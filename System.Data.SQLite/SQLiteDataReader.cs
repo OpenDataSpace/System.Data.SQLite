@@ -206,7 +206,6 @@ namespace System.Data.SQLite
     /// <returns></returns>
     public override bool GetBoolean(int ordinal)
     {
-      CheckClosed();
       VerifyType(ordinal, DbType.Boolean);
       return Convert.ToBoolean(GetValue(ordinal));
     }
@@ -218,7 +217,6 @@ namespace System.Data.SQLite
     /// <returns></returns>
     public override byte GetByte(int ordinal)
     {
-      CheckClosed();
       VerifyType(ordinal, DbType.Byte);
       return Convert.ToByte(_activeStatement._sql.GetInt32(_activeStatement, ordinal));
     }
@@ -234,7 +232,6 @@ namespace System.Data.SQLite
     /// <returns></returns>
     public override long GetBytes(int ordinal, long dataOffset, byte[] buffer, int bufferOffset, int length)
     {
-      CheckClosed();
       VerifyType(ordinal, DbType.Binary);
       return _activeStatement._sql.GetBytes(_activeStatement, ordinal, (int)dataOffset, buffer, bufferOffset, length);
     }
@@ -246,7 +243,6 @@ namespace System.Data.SQLite
     /// <returns></returns>
     public override char GetChar(int ordinal)
     {
-      CheckClosed();
       VerifyType(ordinal, DbType.SByte);
       return Convert.ToChar(_activeStatement._sql.GetInt32(_activeStatement, ordinal));
     }
@@ -262,7 +258,6 @@ namespace System.Data.SQLite
     /// <returns></returns>
     public override long GetChars(int ordinal, long dataOffset, char[] buffer, int bufferOffset, int length)
     {
-      CheckClosed();
       VerifyType(ordinal, DbType.String);
       return _activeStatement._sql.GetChars(_activeStatement, ordinal, (int)dataOffset, buffer, bufferOffset, length);
     }
@@ -285,7 +280,6 @@ namespace System.Data.SQLite
     /// <returns></returns>
     public override DateTime GetDateTime(int ordinal)
     {
-      CheckClosed();
       VerifyType(ordinal, DbType.DateTime);
       return _activeStatement._sql.GetDateTime(_activeStatement, ordinal);
     }
@@ -297,7 +291,6 @@ namespace System.Data.SQLite
     /// <returns></returns>
     public override decimal GetDecimal(int ordinal)
     {
-      CheckClosed();
       VerifyType(ordinal, DbType.Decimal);
       return Convert.ToDecimal(_activeStatement._sql.GetDouble(_activeStatement, ordinal));
     }
@@ -309,7 +302,6 @@ namespace System.Data.SQLite
     /// <returns></returns>
     public override double GetDouble(int ordinal)
     {
-      CheckClosed();
       VerifyType(ordinal, DbType.Double);
       return _activeStatement._sql.GetDouble(_activeStatement, ordinal);
     }
@@ -321,7 +313,6 @@ namespace System.Data.SQLite
     /// <returns></returns>
     public override Type GetFieldType(int ordinal)
     {
-      CheckClosed();
       SQLiteType t = GetSQLiteType(ordinal);
 
       if (t.Type != DbType.Object)
@@ -349,7 +340,6 @@ namespace System.Data.SQLite
     /// <returns></returns>
     public override float GetFloat(int ordinal)
     {
-      CheckClosed();
       VerifyType(ordinal, DbType.Single);
       return Convert.ToSingle(_activeStatement._sql.GetDouble(_activeStatement, ordinal));
     }
@@ -361,7 +351,6 @@ namespace System.Data.SQLite
     /// <returns></returns>
     public override Guid GetGuid(int ordinal)
     {
-      CheckClosed();
       VerifyType(ordinal, DbType.Guid);
       return new Guid(_activeStatement._sql.GetText(_activeStatement, ordinal));
     }
@@ -373,7 +362,6 @@ namespace System.Data.SQLite
     /// <returns></returns>
     public override Int16 GetInt16(int ordinal)
     {
-      CheckClosed();
       VerifyType(ordinal, DbType.Int16);
       return Convert.ToInt16(_activeStatement._sql.GetInt32(_activeStatement, ordinal));
     }
@@ -385,7 +373,6 @@ namespace System.Data.SQLite
     /// <returns></returns>
     public override Int32 GetInt32(int ordinal)
     {
-      CheckClosed();
       VerifyType(ordinal, DbType.Int32);
       return _activeStatement._sql.GetInt32(_activeStatement, ordinal);
     }
@@ -397,7 +384,6 @@ namespace System.Data.SQLite
     /// <returns></returns>
     public override Int64 GetInt64(int ordinal)
     {
-      CheckClosed();
       VerifyType(ordinal, DbType.Int64);
       return _activeStatement._sql.GetInt64(_activeStatement, ordinal);
     }
@@ -588,7 +574,6 @@ namespace System.Data.SQLite
     /// <returns></returns>
     public override string GetString(int ordinal)
     {
-      CheckClosed();
       VerifyType(ordinal, DbType.String);
       return _activeStatement._sql.GetText(_activeStatement, ordinal);
     }
@@ -600,7 +585,6 @@ namespace System.Data.SQLite
     /// <returns></returns>
     public override object GetValue(int ordinal)
     {
-      CheckClosed();
       if (IsDBNull(ordinal)) return DBNull.Value;
 
       if (GetFieldType(ordinal) == typeof(byte[]))
@@ -623,7 +607,7 @@ namespace System.Data.SQLite
     public override int GetValues(object[] values)
     {
       CheckClosed();
-      int nMax = FieldCount;
+      int nMax = _fieldCount;
       if (values.Length < nMax) nMax = values.Length;
 
       for (int n = 0; n < nMax; n++)
@@ -678,17 +662,15 @@ namespace System.Data.SQLite
 
       while (true)
       {
-        _readingState = 2; // HasRows() returns false, Read() returns false
-
         if (_activeStatement != null)
         {
-          // Reset the previously-executed command
-          _activeStatement._sql.Reset(_activeStatement);
-
           // If we're only supposed to return a single rowset, step through all remaining statements once until
           // they are all done and return false to indicate no more resultsets exist.
           if ((_commandBehavior & CommandBehavior.SingleResult) != 0)
           {
+            // Reset the previously-executed command
+            _activeStatement._sql.Reset(_activeStatement);
+
             while (_activeStatementIndex + 1 != _command._statementList.Length)
             {
               _activeStatementIndex++;
@@ -698,11 +680,18 @@ namespace System.Data.SQLite
             }
             return false;
           }
+
+          // Reset the previously-executed command
+          _activeStatement._sql.Reset(_activeStatement);
         }
 
         // If we've reached the end of the statements, return false, no more resultsets
         if (_activeStatementIndex + 1 == _command._statementList.Length)
           return false;
+
+        // If we were on a resultset, set the state to "done reading" for it
+        if (_readingState < 1)
+          _readingState = 1;
 
         _activeStatementIndex++;
 
@@ -738,6 +727,7 @@ namespace System.Data.SQLite
 
     private SQLiteType GetSQLiteType(int ordinal)
     {
+      CheckClosed();
       if (_fieldTypeArray == null) _fieldTypeArray = new SQLiteType[_fieldCount];
 
       if (_fieldTypeArray[ordinal].Affinity == 0)
