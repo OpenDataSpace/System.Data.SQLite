@@ -155,7 +155,8 @@ namespace System.Data.SQLite
     /// <param name="values"></param>
     public void AddRange(SQLiteParameter[] values)
     {
-      for (int n = 0; n < values.Length; n++)
+      int x = values.Length;
+      for (int n = 0; n < x; n++)
         Add(values[n]);
     }
 
@@ -165,7 +166,8 @@ namespace System.Data.SQLite
     /// <param name="values"></param>
     public override void AddRange(Array values)
     {
-      for (int n = 0; n < values.Length; n++)
+      int x = values.Length;
+      for (int n = 0; n < x; n++)
         Add((SQLiteParameter)(values.GetValue(n)));
     }
 
@@ -256,7 +258,8 @@ namespace System.Data.SQLite
     /// <returns></returns>
     public override int IndexOf(string parameterName)
     {
-      for (int n = 0; n < _parameterList.Count; n++)
+      int x = _parameterList.Count;
+      for (int n = 0; n < x; n++)
       {
         if (String.Compare(parameterName, _parameterList[n].ParameterName, true) == 0) return n;
       }
@@ -364,7 +367,8 @@ namespace System.Data.SQLite
           nUnnamed++;
         }
 
-        for (n = 0; n < _command._statementList.Length; n++)
+        int x = _command._statementList.Length;
+        for (n = 0; n < x; n++)
         {
           stmt = _command._statementList[n];
           if (stmt._paramNames != null)

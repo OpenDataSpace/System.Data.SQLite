@@ -367,11 +367,6 @@ namespace System.Data.SQLite
     {
       Dispose(true);
 
-      _InvokeFunc = null;
-      _StepFunc = null;
-      _FinalFunc = null;
-      _CompareFunc = null;
-
       IDisposable disp;
 
 #if !PLATFORM_COMPACTFRAMEWORK
@@ -385,6 +380,13 @@ namespace System.Data.SQLite
           disp.Dispose();
       }
       _contextDataList.Clear();
+
+      _InvokeFunc = null;
+      _StepFunc = null;
+      _FinalFunc = null;
+      _CompareFunc = null;
+      _base = null;
+      _contextDataList = null;
 
       GC.SuppressFinalize(this);
     }
@@ -496,7 +498,8 @@ namespace System.Data.SQLite
     {
       if (ar == null) return;
 
-      for (int n = 0; n < ar.Length; n++)
+      int x = ar.Length;
+      for (int n = 0; n < x; n++)
       {
         sqlbase.FreeFunction(ar[n]._interopCookie);
         ar[n].Dispose();

@@ -286,7 +286,9 @@ namespace System.Data.SQLite
 
     internal override int ColumnIndex(SQLiteStatement stmt, string columnName)
     {
-      for (int n = 0; n < ColumnCount(stmt); n++)
+      int x = ColumnCount(stmt);
+
+      for (int n = 0; n < x; n++)
       {
         if (String.Compare(columnName, ColumnName(stmt, n), true) == 0) return n;
       }

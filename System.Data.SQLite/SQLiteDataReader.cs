@@ -94,6 +94,8 @@ namespace System.Data.SQLite
         _command.Connection.Close();
 
       _command = null;
+      _activeStatement = null;
+      _fieldTypeArray = null;
     }
 
     /// <summary>
@@ -468,7 +470,7 @@ namespace System.Data.SQLite
           using (DbDataReader rd = cmd.ExecuteReader())
           {
             // No need to Read() from this reader, we just want the column names
-            for (int n = 0; n < FieldCount; n++)
+            for (int n = 0; n < _fieldCount; n++)
             {
               strTable = "";
               strCatalog = "main";

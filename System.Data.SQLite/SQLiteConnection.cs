@@ -258,7 +258,8 @@ namespace System.Data.SQLite
     {
       if (_sql != null)
       {
-        for (int n = 0; n < _commandList.Count; n++)
+        int x = _commandList.Count;
+        for (int n = 0; n < x; n++)
         {
           _commandList[n].ClearCommands();
         }
@@ -384,8 +385,9 @@ namespace System.Data.SQLite
       string[] arParts = SQLiteConvert.Split(s, ';');
       string[] arPiece;
 
+      int x = arParts.Length;
       // For each semi-colon piece, split into key and value pairs by the presence of the = sign
-      for (n = 0; n < arParts.Length; n++)
+      for (n = 0; n < x; n++)
       {
         arPiece = SQLiteConvert.Split(arParts[n], '=');
         if (arPiece.Length == 2)
@@ -411,7 +413,8 @@ namespace System.Data.SQLite
     /// <returns>The value corresponding to the specified key, or the default value if not found.</returns>
     internal string FindKey(KeyValuePair<string, string>[] opts, string key, string defValue)
     {
-      for (int n = 0; n < opts.Length; n++)
+      int x = opts.Length;
+      for (int n = 0; n < x; n++)
       {
         if (String.Compare(opts[n].Key, key, true) == 0)
         {

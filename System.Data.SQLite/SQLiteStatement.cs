@@ -60,7 +60,8 @@ namespace System.Data.SQLite
     {
       if (_paramNames == null) return;
 
-      for (int n = 0; n < _paramNames.Length; n++)
+      int x = _paramNames.Length;
+      for (int n = 0; n < x; n++)
       {
         if (String.Compare(_paramNames[n], s, true) == 0)
         {
@@ -77,6 +78,8 @@ namespace System.Data.SQLite
       
       _paramNames = null;
       _paramValues = null;
+      _sql = null;
+      _sqlStatement = null;
 
       GC.SuppressFinalize(this);
     }

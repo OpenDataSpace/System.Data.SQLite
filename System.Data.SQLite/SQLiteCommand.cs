@@ -19,7 +19,7 @@ namespace System.Data.SQLite
   {
     private string                    _commandText;
     private SQLiteConnection          _cnn;
-    private SQLiteDataReader          _dataReader;
+    private bool                      _isReaderOpen;
     private int                       _commandTimeout;
     private bool                      _designTimeVisible;
     private UpdateRowSource           _updateRowSource;
@@ -70,7 +70,7 @@ namespace System.Data.SQLite
     private void Initialize(string strSql, SQLiteConnection cnn)
     {
       _statementList = null;
-      _dataReader = null;
+      _isReaderOpen = false;
       _commandTimeout = 30;
       _parameterCollection = new SQLiteParameterCollection(this);
       _designTimeVisible = true;
@@ -92,13 +92,16 @@ namespace System.Data.SQLite
       base.Dispose(disposing);
       ClearCommands();
       _parameterCollection.Clear();
+      _cnn = null;
+      _commandText = null;
     }
 
     internal void ClearCommands()
     {
       if (_statementList == null) return;
 
-      for (int n = 0; n < _statementList.Length; n++)
+      int x = _statementList.Length;
+      for (int n = 0; n < x; n++)
         _statementList[n].Dispose();
 
       _statementList = null;
@@ -154,7 +157,7 @@ namespace System.Data.SQLite
       {
         if (_commandText == value) return;
 
-        if (_dataReader != null)
+        if (_isReaderOpen)
         {
           throw new InvalidOperationException("Cannot set CommandText while a DataReader is active");
         }
@@ -224,7 +227,7 @@ namespace System.Data.SQLite
       }
       set
       {
-        if (_dataReader != null)
+        if (_isReaderOpen)
           throw new InvalidOperationException("Cannot set Connection while a DataReader is active");
 
         if (_cnn != null)
@@ -280,7 +283,7 @@ namespace System.Data.SQLite
     /// <returns></returns>
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
     {
-      if (_dataReader != null)
+      if (_isReaderOpen )
         throw new InvalidOperationException("DataReader already active on this command");
 
       if (_cnn == null)
@@ -290,6 +293,7 @@ namespace System.Data.SQLite
         throw new InvalidOperationException("Database is not open");
 
       int n;
+      int x;
 
       if (_statementList.Length == 0)
       {
@@ -299,20 +303,21 @@ namespace System.Data.SQLite
       // Make sure all parameters are mapped properly to associated statement(s)
       _parameterCollection.MapParameters();
 
+      x = _statementList.Length;
       // Bind all parameters to their statements
-      for (n = 0; n < _statementList.Length; n++)
+      for (n = 0; n < x; n++)
         _statementList[n].BindParameters();
 
       _cnn._sql.SetTimeout(_commandTimeout * 1000);
 
-      _dataReader = new SQLiteDataReader(this, behavior);
+      _isReaderOpen = true;
 
-      return _dataReader;
+      return new SQLiteDataReader(this, behavior);
     }
 
     internal void ClearDataReader()
     {
-      _dataReader = null;
+      _isReaderOpen = false;
     }
 
     /// <summary>

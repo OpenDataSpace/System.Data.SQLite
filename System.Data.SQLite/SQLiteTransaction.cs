@@ -67,6 +67,9 @@ namespace System.Data.SQLite
     {
       if (_cnn != null) 
         Rollback();
+
+      _cnn = null;
+
       GC.SuppressFinalize(this);
     }
 
