@@ -12,7 +12,7 @@
 ** This file contains code to implement the "sqlite" command line
 ** utility for accessing SQLite databases.
 **
-** $Id: shell.c,v 1.1 2005/03/01 16:04:35 rmsimpson Exp $
+** $Id: shell.c,v 1.2 2005/03/11 15:03:31 rmsimpson Exp $
 */
 #include <stdlib.h>
 #include <string.h>
@@ -656,7 +656,7 @@ static int dump_callback(void *pArg, int nArg, char **azArg, char **azCol){
   zType = azArg[1];
   zSql = azArg[2];
   
-  if( strcasecmp(zTable,"sqlite_sequence")!=0 ){
+  if( strcmp(zTable,"sqlite_sequence")!=0 ){
     fprintf(p->out, "%s;\n", zSql);
   }else{
     fprintf(p->out, "DELETE FROM sqlite_sequence;\n");

@@ -16,7 +16,7 @@
 ** so is applicable.  Because this module is responsible for selecting
 ** indices, you might also think of this module as the "query optimizer".
 **
-** $Id: where.c,v 1.1 2005/03/01 16:04:39 rmsimpson Exp $
+** $Id: where.c,v 1.2 2005/03/11 15:03:32 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 
@@ -1123,7 +1123,7 @@ WhereInfo *sqlite3WhereBegin(
       if( testOp!=OP_Noop ){
         sqlite3VdbeAddOp(v, OP_Recno, iCur, 0);
         sqlite3VdbeAddOp(v, OP_MemLoad, pLevel->iMem, 0);
-        sqlite3VdbeAddOp(v, testOp, 0, brk);
+        sqlite3VdbeAddOp(v, testOp, (int)(('n'<<8)&0x0000FF00), brk);
       }
     }else if( pIdx==0 ){
       /* Case 4:  There is no usable index.  We must do a complete

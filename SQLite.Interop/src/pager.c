@@ -18,7 +18,7 @@
 ** file simultaneously, or one process from reading the database while
 ** another is writing.
 **
-** @(#) $Id: pager.c,v 1.1 2005/03/01 16:04:31 rmsimpson Exp $
+** @(#) $Id: pager.c,v 1.2 2005/03/11 15:03:30 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include "os.h"
@@ -2559,6 +2559,8 @@ static int pager_open_journal(Pager *pPager){
   if( rc!=SQLITE_OK ){
     goto failed_to_open_journal;
   }
+  SET_FULLSYNC(pPager->jfd, pPager->fullSync);
+  SET_FULLSYNC(pPager->fd, pPager->fullSync);
   sqlite3OsOpenDirectory(pPager->zDirectory, &pPager->jfd);
   pPager->journalOpen = 1;
   pPager->journalStarted = 0;
@@ -3406,8 +3408,10 @@ sync_exit:
 ** meta-data associated with page pData (i.e. data stored in the nExtra bytes
 ** allocated along with the page) is the responsibility of the caller.
 **
-** A transaction must be active when this routine is called, however it is 
-** illegal to call this routine if a statment transaction is active.
+** A transaction must be active when this routine is called. It used to be
+** required that a statement transaction was not active, but this restriction
+** has been removed (CREATE INDEX needs to move a page when a statement
+** transaction is active).
 */
 int sqlite3pager_movepage(Pager *pPager, void *pData, Pgno pgno){
   PgHdr *pPg = DATA_TO_PGHDR(pData);
@@ -3415,7 +3419,6 @@ int sqlite3pager_movepage(Pager *pPager, void *pData, Pgno pgno){
   int h;
   Pgno needSyncPgno = 0;
 
-  assert( !pPager->stmtInUse );
   assert( pPg->nRef>0 );
 
   TRACE5("MOVE %d page %d (needSync=%d) moves to %d\n", 
