@@ -66,6 +66,12 @@ namespace System.Data.SQLite
     ISO8601 = 1,
   }
 
+  internal struct SQLiteType
+  {
+    internal DbType Type;
+    internal TypeAffinity Affinity;
+  }
+
   /// <summary>
   /// This base class provides datatype conversion services for the SQLite provider.
   /// </summary>
@@ -311,6 +317,35 @@ namespace System.Data.SQLite
     }
 
     #region Type Conversions
+    internal static SQLiteType ColumnToType(SQLiteStatement stmt, int ordinal)
+    {
+      SQLiteType typ;
+
+      typ.Type = TypeNameToDbType(stmt._sql.ColumnType(stmt, ordinal, out typ.Affinity));
+
+      return typ;
+    }
+
+    internal static Type SQLiteTypeToType(SQLiteType t)
+    {
+      if (t.Type != DbType.Object)
+        return SQLiteConvert.DbTypeToType(t.Type);
+
+      switch (t.Affinity)
+      {
+        case TypeAffinity.Null:
+          return typeof(DBNull);
+        case TypeAffinity.Int64:
+          return typeof(Int64);
+        case TypeAffinity.Double:
+          return typeof(Double);
+        case TypeAffinity.Blob:
+          return typeof(byte[]);
+        default:
+          return typeof(string);
+      }
+    }
+
     /// <summary>
     /// For a given intrinsic type, return a DbType
     /// </summary>

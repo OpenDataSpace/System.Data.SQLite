@@ -134,6 +134,25 @@ namespace System.Data.SQLite
     internal abstract long     GetChars(SQLiteStatement stmt, int index, int nDataoffset, char[] bDest, int nStart, int nLength);
     internal abstract DateTime GetDateTime(SQLiteStatement stmt, int index);
     internal abstract bool     IsNull(SQLiteStatement stmt, int index);
+    
+    internal virtual  object   GetValue(SQLiteStatement stmt, int index, ref SQLiteType typ)
+    {
+      if (typ.Affinity == 0) typ = SQLiteConvert.ColumnToType(stmt, index);
+      if (IsNull(stmt, index)) return DBNull.Value;
+      
+      Type t = SQLiteConvert.SQLiteTypeToType(typ);
+
+      if (t == typeof(byte[]))
+      {
+        int n = (int)GetBytes(stmt, index, 0, null, 0, 0);
+        byte[] b = new byte[n];
+        GetBytes(stmt, index, 0, b, 0, n);
+
+        return b;
+      }
+
+      return Convert.ChangeType(GetText(stmt, index), t, null);
+    }
 
     internal abstract int  CreateCollation(string strCollation, SQLiteCollation func);
     internal abstract int  CreateFunction(string strFunction, int nArgs, SQLiteCallback func, SQLiteCallback funcstep, SQLiteCallback funcfinal);
