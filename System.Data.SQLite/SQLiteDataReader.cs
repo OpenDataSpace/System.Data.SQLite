@@ -55,6 +55,11 @@ namespace System.Data.SQLite
     /// </summary>
     private CommandBehavior _commandBehavior;
 
+    /// <summary>
+    /// Internal constructor, initializes the datareader and sets up to begin executing statements
+    /// </summary>
+    /// <param name="cmd">The SQLiteCommand this data reader is for</param>
+    /// <param name="behave">The expected behavior of the data reader</param>
     internal SQLiteDataReader(SQLiteCommand cmd, CommandBehavior behave)
     {
       _command = cmd;
@@ -65,6 +70,9 @@ namespace System.Data.SQLite
         NextResult();
     }
 
+    /// <summary>
+    /// Initializes and resets the datareader's member variables
+    /// </summary>
     internal void Initialize()
     {
       _activeStatementIndex = -1;
@@ -123,7 +131,7 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Not implemented.  Returns 0
     /// </summary>
     public override int Depth
     {
@@ -135,7 +143,7 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Returns the number of columns in the current resultset
     /// </summary>
     public override int FieldCount
     {
@@ -200,9 +208,10 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
+    /// Retrieves the column as a boolean value
     /// </summary>
-    /// <param name="ordinal"></param>
-    /// <returns></returns>
+    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <returns>bool</returns>
     public override bool GetBoolean(int ordinal)
     {
       VerifyType(ordinal, DbType.Boolean);
@@ -210,10 +219,10 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Retrieves the column as a single byte value
     /// </summary>
-    /// <param name="ordinal"></param>
-    /// <returns></returns>
+    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <returns>byte</returns>
     public override byte GetByte(int ordinal)
     {
       VerifyType(ordinal, DbType.Byte);
@@ -221,14 +230,17 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Retrieves a column as an array of bytes (blob)
     /// </summary>
-    /// <param name="ordinal"></param>
-    /// <param name="dataOffset"></param>
-    /// <param name="buffer"></param>
-    /// <param name="bufferOffset"></param>
-    /// <param name="length"></param>
-    /// <returns></returns>
+    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <param name="dataOffset">The zero-based index of where to begin reading the data</param>
+    /// <param name="buffer">The buffer to write the bytes into</param>
+    /// <param name="bufferOffset">The zero-based index of where to begin writing into the array</param>
+    /// <param name="length">The number of bytes to retrieve</param>
+    /// <returns>The actual number of bytes written into the array</returns>
+    /// <remarks>
+    /// To determine the number of bytes in the column, pass a null value for the buffer.  The total length will be returned.
+    /// </remarks>
     public override long GetBytes(int ordinal, long dataOffset, byte[] buffer, int bufferOffset, int length)
     {
       VerifyType(ordinal, DbType.Binary);
@@ -236,10 +248,10 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Returns the column as a single character
     /// </summary>
-    /// <param name="ordinal"></param>
-    /// <returns></returns>
+    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <returns>char</returns>
     public override char GetChar(int ordinal)
     {
       VerifyType(ordinal, DbType.SByte);
@@ -247,14 +259,17 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Retrieves a column as an array of chars (blob)
     /// </summary>
-    /// <param name="ordinal"></param>
-    /// <param name="dataOffset"></param>
-    /// <param name="buffer"></param>
-    /// <param name="bufferOffset"></param>
-    /// <param name="length"></param>
-    /// <returns></returns>
+    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <param name="dataOffset">The zero-based index of where to begin reading the data</param>
+    /// <param name="buffer">The buffer to write the characters into</param>
+    /// <param name="bufferOffset">The zero-based index of where to begin writing into the array</param>
+    /// <param name="length">The number of bytes to retrieve</param>
+    /// <returns>The actual number of characters written into the array</returns>
+    /// <remarks>
+    /// To determine the number of characters in the column, pass a null value for the buffer.  The total length will be returned.
+    /// </remarks>
     public override long GetChars(int ordinal, long dataOffset, char[] buffer, int bufferOffset, int length)
     {
       VerifyType(ordinal, DbType.String);
@@ -262,21 +277,25 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Retrieves the name of the back-end datatype of the column
     /// </summary>
-    /// <param name="ordinal"></param>
-    /// <returns></returns>
+    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <returns>string</returns>
     public override string GetDataTypeName(int ordinal)
     {
       CheckClosed();
-      return _activeStatement._sql.ColumnName(_activeStatement, ordinal);
+      SQLiteType typ = GetSQLiteType(ordinal);
+
+      if (typ.Type == DbType.Object) return SQLiteConvert.SQLiteTypeToType(typ).Name;
+
+      return _activeStatement._sql.ColumnType(_activeStatement, ordinal, out typ.Affinity);
     }
 
     /// <summary>
-    /// 
+    /// Retrieve the column as a date/time value
     /// </summary>
-    /// <param name="ordinal"></param>
-    /// <returns></returns>
+    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <returns>DateTime</returns>
     public override DateTime GetDateTime(int ordinal)
     {
       VerifyType(ordinal, DbType.DateTime);
@@ -284,10 +303,10 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Retrieve the column as a decimal value
     /// </summary>
-    /// <param name="ordinal"></param>
-    /// <returns></returns>
+    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <returns>decimal</returns>
     public override decimal GetDecimal(int ordinal)
     {
       VerifyType(ordinal, DbType.Decimal);
@@ -295,10 +314,10 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Returns the column as a double
     /// </summary>
-    /// <param name="ordinal"></param>
-    /// <returns></returns>
+    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <returns>double</returns>
     public override double GetDouble(int ordinal)
     {
       VerifyType(ordinal, DbType.Double);
@@ -306,20 +325,20 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Returns the .NET type of a given column
     /// </summary>
-    /// <param name="ordinal"></param>
-    /// <returns></returns>
+    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <returns>Type</returns>
     public override Type GetFieldType(int ordinal)
     {
       return SQLiteConvert.SQLiteTypeToType(GetSQLiteType(ordinal));
     }
 
     /// <summary>
-    /// 
+    /// Returns a column as a float value
     /// </summary>
-    /// <param name="ordinal"></param>
-    /// <returns></returns>
+    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <returns>float</returns>
     public override float GetFloat(int ordinal)
     {
       VerifyType(ordinal, DbType.Single);
@@ -327,10 +346,10 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Returns the column as a Guid
     /// </summary>
-    /// <param name="ordinal"></param>
-    /// <returns></returns>
+    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <returns>Guid</returns>
     public override Guid GetGuid(int ordinal)
     {
       VerifyType(ordinal, DbType.Guid);
@@ -338,10 +357,10 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Returns the column as a short
     /// </summary>
-    /// <param name="ordinal"></param>
-    /// <returns></returns>
+    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <returns>Int16</returns>
     public override Int16 GetInt16(int ordinal)
     {
       VerifyType(ordinal, DbType.Int16);
@@ -349,10 +368,10 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Retrieves the column as an int
     /// </summary>
-    /// <param name="ordinal"></param>
-    /// <returns></returns>
+    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <returns>Int32</returns>
     public override Int32 GetInt32(int ordinal)
     {
       VerifyType(ordinal, DbType.Int32);
@@ -360,10 +379,10 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Retrieves the column as a long
     /// </summary>
-    /// <param name="ordinal"></param>
-    /// <returns></returns>
+    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <returns>Int64</returns>
     public override Int64 GetInt64(int ordinal)
     {
       VerifyType(ordinal, DbType.Int64);
@@ -371,10 +390,10 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Retrieves the name of the column
     /// </summary>
-    /// <param name="ordinal"></param>
-    /// <returns></returns>
+    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <returns>string</returns>
     public override string GetName(int ordinal)
     {
       CheckClosed();
@@ -382,10 +401,10 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Retrieves the ordinal of a column, given its name
     /// </summary>
-    /// <param name="name"></param>
-    /// <returns></returns>
+    /// <param name="name">The name of the column to retrieve</param>
+    /// <returns>The int ordinal of the column</returns>
     public override int GetOrdinal(string name)
     {
       CheckClosed();
@@ -546,10 +565,10 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Retrieves the column as a string
     /// </summary>
-    /// <param name="ordinal"></param>
-    /// <returns></returns>
+    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <returns>string</returns>
     public override string GetString(int ordinal)
     {
       VerifyType(ordinal, DbType.String);
@@ -557,10 +576,10 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Retrieves the column as an object corresponding to the underlying datatype of the column
     /// </summary>
-    /// <param name="ordinal"></param>
-    /// <returns></returns>
+    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <returns>object</returns>
     public override object GetValue(int ordinal)
     {
       SQLiteType typ = GetSQLiteType(ordinal);
@@ -569,10 +588,10 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Retreives the values of multiple columns, up to the size of the supplied array
     /// </summary>
-    /// <param name="values"></param>
-    /// <returns></returns>
+    /// <param name="values">The array to fill with values from the columns in the current resultset</param>
+    /// <returns>The number of columns retrieved</returns>
     public override int GetValues(object[] values)
     {
       CheckClosed();
@@ -588,7 +607,7 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Returns True if the resultset has rows that can be fetched
     /// </summary>
     public override bool HasRows
     {
@@ -600,7 +619,7 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Returns True if the data reader is closed
     /// </summary>
     public override bool IsClosed
     {
@@ -608,10 +627,10 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Returns True if the specified column is null
     /// </summary>
-    /// <param name="ordinal"></param>
-    /// <returns></returns>
+    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <returns>True or False</returns>
     public override bool IsDBNull(int ordinal)
     {
       CheckClosed();
@@ -619,9 +638,9 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Moves to the next resultset in multiple row-returning SQL command.
     /// </summary>
-    /// <returns></returns>
+    /// <returns>True if the command was successful and a new resultset is available, False otherwise.</returns>
     public override bool NextResult()
     {
       CheckClosed();
@@ -694,6 +713,11 @@ namespace System.Data.SQLite
       }
     }
 
+    /// <summary>
+    /// Retrieves the SQLiteType for a given column, and caches it to avoid repetetive interop calls.
+    /// </summary>
+    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <returns>A SQLiteType structure</returns>
     private SQLiteType GetSQLiteType(int ordinal)
     {
       CheckClosed();
@@ -705,9 +729,9 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Reads the next row from the resultset
     /// </summary>
-    /// <returns></returns>
+    /// <returns>True if a new row was successfully loaded and is ready for processing</returns>
     public override bool Read()
     {
       CheckClosed();
@@ -729,7 +753,7 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Retrieve the count of records affected by an update/insert command.  Only valid once the data reader is closed!
     /// </summary>
     public override int RecordsAffected
     {
@@ -737,20 +761,20 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Indexer to retrieve data from a column given its name
     /// </summary>
-    /// <param name="name"></param>
-    /// <returns></returns>
+    /// <param name="name">The name of the column to retrieve data for</param>
+    /// <returns>The value contained in the column</returns>
     public override object this[string name]
     {
       get { return GetValue(GetOrdinal(name)); }
     }
 
     /// <summary>
-    /// 
+    /// Indexer to retrieve data from a column given its ordinal
     /// </summary>
-    /// <param name="ordinal"></param>
-    /// <returns></returns>
+    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <returns>The value contained in the column</returns>
     public override object this[int ordinal]
     {
       get { return GetValue(ordinal); }
