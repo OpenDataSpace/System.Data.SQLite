@@ -49,6 +49,11 @@ namespace System.Data.SQLite
       _sql = 0;
     }
 
+    internal override void Cancel()
+    {
+      UnsafeNativeMethods.sqlite3_interrupt_interop(_sql);
+    }
+
     internal override string Version
     {
       get

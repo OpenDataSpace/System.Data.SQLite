@@ -96,6 +96,8 @@ namespace System.Data.SQLite
     /// <returns>Returns true if the schema changed while resetting, or false otherwise.</returns>
     internal abstract bool Reset(SQLiteStatement stmt);
 
+    internal abstract void Cancel();
+
     /// <summary>
     /// An interop-specific function, this call sets an internal flag in the sqlite.interop.dll which causes all column names
     /// of subsequently-prepared statements to return in Database.Table.Column format, ignoring all aliases that may have been applied

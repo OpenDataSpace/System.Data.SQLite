@@ -26,6 +26,9 @@ namespace System.Data.SQLite
     internal static extern int sqlite3_open_interop(byte[] utf8Filename, out int db);
 
     [DllImport(SQLITE_DLL)]
+    internal static extern void sqlite3_interrupt_interop(int db);
+
+    [DllImport(SQLITE_DLL)]
     internal static extern int sqlite3_close_interop(int db);
 
     [DllImport(SQLITE_DLL)]
