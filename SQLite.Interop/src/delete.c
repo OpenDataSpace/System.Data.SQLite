@@ -12,7 +12,7 @@
 ** This file contains C code routines that are called by the parser
 ** in order to generate code for DELETE FROM statements.
 **
-** $Id: delete.c,v 1.2 2005/03/11 15:03:29 rmsimpson Exp $
+** $Id: delete.c,v 1.3 2005/03/22 14:54:22 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 
@@ -99,7 +99,6 @@ void sqlite3DeleteFrom(
 
   sContext.pParse = 0;
   if( pParse->nErr || sqlite3_malloc_failed ){
-    pTabList = 0;
     goto delete_from_cleanup;
   }
   db = pParse->db;

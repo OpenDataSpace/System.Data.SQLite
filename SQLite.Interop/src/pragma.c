@@ -11,7 +11,7 @@
 *************************************************************************
 ** This file contains code used to implement the PRAGMA command.
 **
-** $Id: pragma.c,v 1.2 2005/03/11 15:03:30 rmsimpson Exp $
+** $Id: pragma.c,v 1.3 2005/03/22 14:54:23 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include "os.h"

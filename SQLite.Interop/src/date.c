@@ -16,7 +16,7 @@
 ** sqlite3RegisterDateTimeFunctions() found at the bottom of the file.
 ** All other code has file scope.
 **
-** $Id: date.c,v 1.2 2005/03/11 15:03:29 rmsimpson Exp $
+** $Id: date.c,v 1.3 2005/03/22 14:54:22 rmsimpson Exp $
 **
 ** NOTES:
 **
@@ -272,7 +272,7 @@ static int parseYyyyMmDd(const char *zDate, DateTime *p){
     return 1;
   }
   zDate += 10;
-  while( isspace(*(u8*)zDate) ){ zDate++; }
+  while( isspace(*(u8*)zDate) || 'T'==*(u8*)zDate ){ zDate++; }
   if( parseHhMmSs(zDate, p)==0 ){
     /* We got the time */
   }else if( *zDate==0 ){
