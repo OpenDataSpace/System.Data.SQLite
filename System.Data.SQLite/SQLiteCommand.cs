@@ -276,14 +276,9 @@ namespace System.Data.SQLite
       }
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="behavior"></param>
-    /// <returns></returns>
-    protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
+    private void InitializeForReader()
     {
-      if (_isReaderOpen )
+      if (_isReaderOpen)
         throw new InvalidOperationException("DataReader already active on this command");
 
       if (_cnn == null)
@@ -307,12 +302,30 @@ namespace System.Data.SQLite
       // Bind all parameters to their statements
       for (n = 0; n < x; n++)
         _statementList[n].BindParameters();
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="behavior"></param>
+    /// <returns></returns>
+    protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
+    {
+      InitializeForReader();
 
       _cnn._sql.SetTimeout(_commandTimeout * 1000);
 
-      _isReaderOpen = true;
+      try
+      {
+        SQLiteDataReader rd = new SQLiteDataReader(this, behavior);
 
-      return new SQLiteDataReader(this, behavior);
+        _isReaderOpen = true;
+        
+        return rd;
+      }
+      finally
+      {
+      }
     }
 
     internal void ClearDataReader()
@@ -326,11 +339,29 @@ namespace System.Data.SQLite
     /// <returns></returns>
     public override int ExecuteNonQuery()
     {
-      using (DbDataReader rd = ExecuteDbDataReader(CommandBehavior.Default))
+      //using (DbDataReader rd = ExecuteDbDataReader(CommandBehavior.Default))
+      //{
+      //  rd.Close();
+      //  return rd.RecordsAffected;
+      //}
+      InitializeForReader();
+
+      _cnn._sql.SetTimeout(_commandTimeout * 1000);
+
+      int nAffected = 0;
+      int n;
+      int x;
+
+      x = _statementList.Length;
+
+      for (n = 0; n < x; n++)
       {
-        rd.Close();
-        return rd.RecordsAffected;
+        _cnn._sql.Step(_statementList[n]);
+        nAffected += _cnn._sql.Changes;
+        _cnn._sql.Reset(_statementList[n]);
       }
+
+      return nAffected;
     }
 
     /// <summary>
@@ -339,12 +370,37 @@ namespace System.Data.SQLite
     /// <returns></returns>
     public override object ExecuteScalar()
     {
-      using (DbDataReader rd = ExecuteDbDataReader(CommandBehavior.Default))
+      //using (DbDataReader rd = ExecuteDbDataReader(CommandBehavior.Default))
+      //{
+      //  if (rd.Read())
+      //    return rd[0];
+      //}
+      //return null;
+
+      InitializeForReader();
+
+      _cnn._sql.SetTimeout(_commandTimeout * 1000);
+
+      int n;
+      int x;
+      object ret = null;
+      SQLiteType typ = new SQLiteType();
+
+      x = _statementList.Length;
+
+      for (n = 0; n < x; n++)
       {
-        if (rd.Read())
-          return rd[0];
+        if (_cnn._sql.Step(_statementList[n]) == true)
+        {
+          ret = _cnn._sql.GetValue(_statementList[n], 0, ref typ);
+        }
+        _cnn._sql.Reset(_statementList[n]);
+        if (ret != null) break;
       }
-      return null;
+
+      if (ret == null) ret = DBNull.Value;
+
+      return ret;
     }
 
     /// <summary>
