@@ -139,7 +139,6 @@ namespace System.Data.SQLite
     /// </summary>
     public override void Cancel()
     {
-      throw new NotImplementedException();
     }
 
     /// <summary>
