@@ -1,0 +1,162 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+	<head>
+		<title></title>
+	</head>
+	<body>
+    ADO.NET 2.0 SQLite Data Provider<br />
+    Version 1.0.6 - Feb 28, 2005<br />
+    Written by Robert Simpson (<a href="mailto:robert@blackcastlesoft.com">robert@blackcastlesoft.com</a>)<br />
+    Released to the public domain, use at your own risk!<br />
+    <br />
+    This provider was written and verified using the Visual Studio 2005 November and
+    December CTP's.<br />
+    <br />
+    The latest version can be downloaded <a href="http://www.blackcastlesoft.com/files/system.data.sqlite.zip">here</a>
+    <br />
+    <br />
+
+    <b>Features:</b><br />
+    <ul>
+      <li>DbProviderFactory support, just add the XML below at the machine.config and/or app.config level. </li>
+      <li>Full support for ATTACH'ed databases.&nbsp; Exposed as <i>Catalogs</i> in the
+        schema.&nbsp; When cloning a connection, all attached databases are automatically
+        re-attached to the new connection.</li>
+      <li>DbConnection.GetSchema(...) support includes the <i>MetaDataCollections</i>, <i>
+        DataSourceInformation</i>, <i>Columns</i>, <i>Tables</i>, <i>Views</i>, <i>Catalogs</i>
+        and <i>Indexes</i> keywords.</li>
+      <li>Enhanced DbDataReader.GetSchemaTable() functionality returns catalog, namespace
+        and detailed schema information even for complex queries.</li>
+      <li>Named and unnamed parameters.</li>
+      <li>Full UTF-8 and UTF-16 support.</li>
+      <li>Multiple simultaneous DataReaders (one DataReader per Command however).</li>
+      <li>Full support for user-defined scalar and aggregate functions, encapsulated into
+        an
+        easy-to-use base class in which only a couple of overrides are necessary to implement
+        new SQL functions.</li>
+      <li>Full support for user-defined collating sequences, every bit as simple to implement
+        as user-defined functions and uses the same base class.</li></ul>
+    In order to use the SQLiteFactory and have the SQLite data provider enumerated in
+    the DbProviderFactories methods, you must add the following segment into either
+    your application's app.config or the system's machine.config located in the %SystemRoot%\Microsoft.Net\Framework\v2.xxxx\Config
+    folder:<br />
+    <br />
+    <pre>
+&lt;configuration&gt;
+  &lt;system.data&gt;
+    &lt;DbProviderFactories&gt;
+      &lt;add name="SQLite Data Provider" invariant="System.Data.SQLite" support="3F" description=".Net Framework Data Provider for SQLite" type="System.Data.SQLite.SQLiteFactory, System.Data.SQLite" /&gt;
+    &lt;/DbProviderFactories&gt;
+  &lt;/system.data&gt;
+&lt;/configuration&gt;
+</pre>
+    <br />
+    <b>Development Notes Regarding the SQLite 3 Source Code<br />
+    </b>*** At this time, the necessary changes to the DLL to support Windows CE have
+    not been completed.&nbsp; All function calls that return or pass a 64-bit value
+    have been wrapped, but the necessary OS changes have not been finished.<br />
+    <br />
+      <p></p>
+    <p>
+      Steps for merging the sqlite3 core codebase:</p>
+    <ol>
+      <li>Download the latest sqlite3 source from <a href="http://www.sqlite.org/download.html">
+        http://www.sqlite.org/download.html</a></li>
+      <li>Extract the source code to the <b>SQLite.Interop\src</b> directory of this project</li>
+      <li>Open the <b>src\select.c</b> file.</li>
+      <li>Add <b>#include "../interop.h" </b>to the top of the file where the other include's
+        are.</li>
+      <li>Scroll down the <b>select.c</b> file to around line <b>748</b>.&nbsp; Change the name of the function <b>static void generateColumnNames </b>to
+    <b>static void _generateColumnNames</b> (<i>note the underscore in front of the name</i>).</li>
+      <li>Compile it.</li>
+    </ol>
+      <b>Version History<br />
+        1.06 - Feb 28, 2005<br />
+      </b>
+    <ul>
+      <li>Speed-ups to SQLiteDataReader.&nbsp; It was interop'ing every time it tried to
+        fetch a field due to a logic error.</li>
+      <li>Changed/Added some code to SQLiteConvert's internal DbType, Type and TypeAffinity
+        functions.</li>
+      <li>Fixed the SQLiteDataReader to obey the flags set in the optional CommandBehavior
+        flag from SQLiteCommand.ExecuteReader().</li>
+		<li>Changed the default page size to 1024 to reflect the defaults of 
+		SQLite.&nbsp; Ignores the &quot;Page Size&quot; connection string option for 
+		memory databases, as tests revealed that changing it resulted in memory 
+		corruption errors.</li>
+      <li>Performance enhancements to the SQLiteCommand and SQLiteStatement classes which
+        reduced the 100,000 row insert execution time as well as the various Function execution
+        times significantly.</li>
+    </ul>
+    <b>
+      <br />
+        1.05 - Feb 25, 2005</b>
+    <ul>
+      <li>Fixed the SQLite3 C# class step/reset functions to accomodate schema changes
+        that invalidate a prepared statement.&nbsp; Statements are recompiled transparently.</li>
+      <li>Moved all native DLL declarations to an UnsafeNativeMethods class.</li>
+      <li>Split several classes into their own modules for readability.</li>
+      <li>Renamed many internal variables, reviewed access to variables marked as internal
+        and altered their protection levels accordingly.</li>
+      <li>Due to the presence of the altered sqlite3 codebase and so many added interop
+        functions, I decided to rename the sqlite3 C project and the DLL to SQLite.Interop.DLL.&nbsp;
+        This is the same core sqlite3 codebase but designed specifically for this
+        ADO.NET provider.&nbsp; This eliminates any possibility of someone dropping another
+        build of sqlite3.dll into the system and rendering the provider inoperable.&nbsp;
+        In the future if the folks at sqlite.org finally introduce a method of retrieving
+        column usage for an arbitrary prepared statement, I'll retool this library to be
+        a lightweight function call wrapper around the core binary distribution.</li>
+      <li>Added [SuppressUnmanagedCodeSecurity] attribute to the UnsafeNativeMethods class
+        which brings VS2005 November CTP execution speeds inline with the December CTP.</li>
+		<li>Added a <b>bin</b> directory to the project root where pre-compiled 
+		binaries can be found.</li>
+		<li>Added a <b>doc</b> directory where preliminary documentation on the 
+		class library can be found.</li>
+		<li>Documented a lot more of the classes internally.</li>
+    </ul>
+      <b>
+        <br />
+        1.04 - Feb 24, 2005</b>
+    <ul>
+      <li>Removed the SQLiteContext class and revamped the way UserFunctions work to simplify
+        the imlementation.</li>
+      <li>Fixed a counting bug in the TestCases class, specifically in the function tests
+        where I wasn't resetting the counter and it was consequently reporting intrinsic
+        and raw select calls as being much much faster than they actually were.&nbsp; The
+        numbers are now much closer to what I expected for performance, with .NET user-functions
+        still being the slowest, but only by a small margin.</li>
+      <li>Small performance tweaks to SQLiteDataReader.</li>
+      <li>Added PageSize to the SQLiteConnectionStringBuilder and subsequently to the SQLiteConnection</li>
+      <li>Added a PRAGMA encoding=XXX execution statement to the SQLiteConnection after
+        opening a connection.</li>
+    </ul>
+      <b>
+        1.03 - Feb 23, 2005</b>
+    <ul>
+      <li>Fixed up SQLiteCommandBuilder to correct implementation errors, which resulted
+        in an enormous performance boost in the InsertMany test.&nbsp;&nbsp; 10,000 row
+        insert that executed in 1500ms now executes in 500ms.</li>
+      <li>Fixed several errors in the SQLite3_UTF16 class.&nbsp; ToString() was working
+        incorrectly and the Open() method failed to register user defined functions and
+        collations.</li>
+      <li>Fixed a bug in SQLiteCommand.ClearCommands() whereby only the first statement
+        was being properly cleaned up.</li>
+      <li>Fixed a bug in SQLiteDataReader whereby calling NextResult() would not properly
+        reset the previously-executed command in the sequence.</li>
+      <li>Added an InsertManyWithIdentityFetch test, which appends a select clause to populate
+        the ID of the last inserted row into the InsertCommand, demonstrating ADO.NET's
+        ability to auto-fetch identity columns on insert.</li>
+    </ul>
+    <p>
+      <b>
+        1.02 - Feb 21, 2005</b></p>
+    <ul>
+      <li>Tweaks to the xxx_interop functions that return char *'s, so they also return
+        the length.&nbsp; Saves an interop call to get the UTF-8 string length during conversion
+        to a .NET string.</li>
+      <li>Reworked the whole interop.c thing into interop.h and reduced the code required
+        to merge the main sqlite3 codebase.</li>
+      <li>Added support for user-defined collations.</li>
+    </ul>
+	</body>
+</html>
