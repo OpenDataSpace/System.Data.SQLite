@@ -19,13 +19,18 @@
         </documenter>
         <documenter name="MSDN">
             <property name="OutputDirectory" value="c:\src\SQLite.NET\Doc\" />
-            <property name="HtmlHelpName" value="SQLite.NET" />
-            <property name="Title" value="SQLite.NET Class Library" />
+            <property name="HtmlHelpName" value="SQLite.NET.Internal" />
+            <property name="Title" value="SQLite.NET Internal Class Library" />
             <property name="OutputTarget" value="HtmlHelp" />
             <property name="IncludeFavorites" value="True" />
+            <property name="DocumentInternals" value="True" />
+            <property name="DocumentSealedProtected" value="True" />
+            <property name="DocumentPrivates" value="True" />
+            <property name="DocumentProtectedInternalAsProtected" value="True" />
             <property name="AssemblyVersionInfo" value="AssemblyVersion" />
             <property name="FeedbackEmailAddress" value="robert@blackcastlesoft.com" />
             <property name="Preliminary" value="True" />
+            <property name="DocumentAttributes" value="True" />
             <property name="IncludeDefaultThreadSafety" value="False" />
             <property name="CleanIntermediates" value="True" />
         </documenter>
