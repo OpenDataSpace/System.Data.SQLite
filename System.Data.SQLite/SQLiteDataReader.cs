@@ -12,12 +12,6 @@ namespace System.Data.SQLite
   using System.Data.Common;
   using System.Collections.Generic;
 
-  internal struct SQLiteType
-  {
-    internal DbType         Type;
-    internal TypeAffinity Affinity;
-  }
-
   /// <summary>
   /// SQLite implementation of DbDataReader.
   /// </summary>
@@ -66,6 +60,9 @@ namespace System.Data.SQLite
       _command = cmd;
       _commandBehavior = behave;
       Initialize();
+
+      if (_command != null)
+        NextResult();
     }
 
     internal void Initialize()
@@ -74,8 +71,6 @@ namespace System.Data.SQLite
       _activeStatement = null;
       _rowsAffected = -1;
       _fieldCount = -1;
-
-      NextResult();
     }
 
     /// <summary>
@@ -85,7 +80,9 @@ namespace System.Data.SQLite
     {
       if (_command != null)
       {
-        while (NextResult()) ;
+        while (NextResult())
+        {
+        }
         _command.ClearDataReader();
       }
 
@@ -315,24 +312,7 @@ namespace System.Data.SQLite
     /// <returns></returns>
     public override Type GetFieldType(int ordinal)
     {
-      SQLiteType t = GetSQLiteType(ordinal);
-
-      if (t.Type != DbType.Object)
-        return SQLiteConvert.DbTypeToType(t.Type);
-
-      switch (t.Affinity)
-      {
-        case TypeAffinity.Null:
-          return typeof(DBNull);
-        case TypeAffinity.Int64:
-          return typeof(Int64);
-        case TypeAffinity.Double:
-          return typeof(Double);
-        case TypeAffinity.Blob:
-          return typeof(byte[]);
-        default:
-          return typeof(string);
-      }
+      return SQLiteConvert.SQLiteTypeToType(GetSQLiteType(ordinal));
     }
 
     /// <summary>
@@ -587,18 +567,9 @@ namespace System.Data.SQLite
     /// <returns></returns>
     public override object GetValue(int ordinal)
     {
-      if (IsDBNull(ordinal)) return DBNull.Value;
+      SQLiteType typ = GetSQLiteType(ordinal);
 
-      if (GetFieldType(ordinal) == typeof(byte[]))
-      {
-        int n = (int)GetBytes(ordinal, 0, null, 0, 0);
-        byte[] b = new byte[n];
-        GetBytes(ordinal, 0, b, 0, n);
-
-        return b;
-      }
-
-      return Convert.ChangeType(_activeStatement._sql.GetText(_activeStatement, ordinal), GetFieldType(ordinal), null);
+      return _activeStatement._sql.GetValue(_activeStatement, ordinal, ref typ);
     }
 
     /// <summary>
