@@ -534,10 +534,6 @@ namespace System.Data.SQLite
           }
         }
       }
-      catch (Exception e)
-      {
-        throw (e);
-      }
       finally
       {
         cnn._sql.SetRealColNames(false);
