@@ -80,7 +80,9 @@ namespace System.Data.SQLite
     /// <summary>
     /// Obsolete
     /// </summary>
+#if !BETA1
     [Obsolete]
+#endif
     protected override DbProviderFactory ProviderFactory
     {
       get 

@@ -229,7 +229,7 @@ namespace System.Data.SQLite
       get { return _parameterList.Count; }
     }
 
-#if !PLATFORM_COMPACTFRAMEWORK
+#if !PLATFORM_COMPACTFRAMEWORK && !BETA1
     /// <summary>
     /// 
     /// </summary>
@@ -316,7 +316,7 @@ namespace System.Data.SQLite
       _parameterList.RemoveAt(index);
     }
 
-#if !PLATFORM_COMPACTFRAMEWORK
+#if !PLATFORM_COMPACTFRAMEWORK && !BETA1
     /// <summary>
     /// 
     /// </summary>

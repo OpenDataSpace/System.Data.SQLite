@@ -73,7 +73,7 @@ namespace System.Data.SQLite
 
     private SQLiteBase              _base;
     private int                     _interopCookie;
-#if !PLATFORM_COMPACTFRAMEWORK
+#if !PLATFORM_COMPACTFRAMEWORK && !BETA1
     private SortedList<int, object> _contextDataList;
 #else
     private SortedList _contextDataList;
@@ -94,7 +94,7 @@ namespace System.Data.SQLite
     /// </summary>
     protected SQLiteFunction()
     {
-#if !PLATFORM_COMPACTFRAMEWORK
+#if !PLATFORM_COMPACTFRAMEWORK && !BETA1
       _contextDataList = new SortedList<int, object>();
 #else
       _contextDataList = new SortedList();
@@ -369,7 +369,7 @@ namespace System.Data.SQLite
 
       IDisposable disp;
 
-#if !PLATFORM_COMPACTFRAMEWORK
+#if !PLATFORM_COMPACTFRAMEWORK && !BETA1
       foreach (KeyValuePair<int, object> kv in _contextDataList)
 #else
       foreach (DictionaryEntry kv in _contextDataList)
@@ -391,6 +391,7 @@ namespace System.Data.SQLite
       GC.SuppressFinalize(this);
     }
 
+#if !PLATFORM_COMPACTFRAMEWORK
     /// <summary>
     /// Using reflection, enumerate all assemblies in the current appdomain looking for classes that
     /// have a SQLiteFunctionAttribute attribute, and registering them accordingly.
@@ -421,7 +422,7 @@ namespace System.Data.SQLite
         }
       }
     }
-
+#else
     /// <summary>
     /// Manual method of registering a function.  The type must still have the SQLiteFunctionAttributes in order to work
     /// properly, but this is a workaround for the Compact Framework where enumerating assemblies is not currently supported.
@@ -443,6 +444,7 @@ namespace System.Data.SQLite
         }
       }
     }
+#endif
 
     /// <summary>
     /// Called by SQLiteBase derived classes, this function binds all user-defined functions to a connection.

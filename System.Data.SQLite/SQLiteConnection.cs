@@ -110,7 +110,7 @@ namespace System.Data.SQLite
     /// </summary>
     internal List<SQLiteCommand> _commandList;
 
-#if !PLATFORM_COMPACTFRAMEWORK
+#if !PLATFORM_COMPACTFRAMEWORK && !BETA1
     /// <event/>
     /// <summary>
     /// This event is raised whenever the database is opened or closed.
@@ -169,7 +169,7 @@ namespace System.Data.SQLite
       }
     }
 
-#if PLATFORM_COMPACTFRAMEWORK
+#if PLATFORM_COMPACTFRAMEWORK && !BETA1
     public override int ConnectionTimeout
     {
       get
@@ -216,7 +216,7 @@ namespace System.Data.SQLite
       ConnectionState oldState = _connectionState;
       _connectionState = newState;
 
-#if !PLATFORM_COMPACTFRAMEWORK
+#if !PLATFORM_COMPACTFRAMEWORK && !BETA1
       if (StateChange != null && oldState != newState)
       {
         StateChangeEventArgs e = new StateChangeEventArgs(oldState, newState);
