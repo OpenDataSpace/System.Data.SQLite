@@ -5,14 +5,14 @@
 	</head>
 	<body>
     ADO.NET 2.0 SQLite Data Provider<br />
-    Version 1.0.6 - Feb 28, 2005<br />
+    Version 1.0.7 - Mar 5, 2005<br />
     Written by Robert Simpson (<a href="mailto:robert@blackcastlesoft.com">robert@blackcastlesoft.com</a>)<br />
     Released to the public domain, use at your own risk!<br />
     <br />
-    This provider was written and verified using the Visual Studio 2005 November and
-    December CTP's.<br />
+    This provider was written and verified using the Visual Studio 2005 February CTP,
+    but will compile without error on previous VS2005 releases..<br />
     <br />
-    The latest version can be downloaded <a href="http://www.blackcastlesoft.com/files/system.data.sqlite.zip">here</a>
+    The latest version can be downloaded <a href="http://sourceforge.net/projects/sqlite-dotnet2">here</a>
     <br />
     <br />
 
@@ -71,8 +71,20 @@
       <li>Compile it.</li>
     </ol>
       <b>Version History<br />
-        1.06 - Feb 28, 2005<br />
+        1.07 - Mar 5, 2005<br />
       </b>
+    <ul>
+      <li>Made more optimizations to frequently-called functions, resulting in significant
+        performance gains in all tests.</li>
+      <li>Recompiled the binaries using the latest VS2005 February CTP, resulting in yet
+        more significant speed gains.&nbsp; The 100k insert test used to take 3.5 seconds
+        and the insertwithidentity took almost 8 seconds.&nbsp; With the above two changes,
+        those tests are now executing in 1.9 and 4.9 seconds respectively.</li>
+    </ul>
+    <b>
+      <br />
+        1.06 - Mar 1, 2005<br />
+    </b>
     <ul>
       <li>Speed-ups to SQLiteDataReader.&nbsp; It was interop'ing every time it tried to
         fetch a field due to a logic error.</li>
