@@ -5,18 +5,22 @@
 	</head>
 	<body>
     ADO.NET 2.0 SQLite Data Provider<br />
-    Version 1.0.7 - Mar 5, 2005<br />
+    Version 1.0.8 - Mar 11, 2005<br />
+    Interop using SQLite 3.14<br />
     Written by Robert Simpson (<a href="mailto:robert@blackcastlesoft.com">robert@blackcastlesoft.com</a>)<br />
     Released to the public domain, use at your own risk!<br />
     <br />
-    This provider was written and verified using the Visual Studio 2005 February CTP,
-    but will compile without error on previous VS2005 releases..<br />
+    This provider was written and verified using the Visual Studio 2005 November, December
+    and February 2005 CTP's.<br />
     <br />
     The latest version can be downloaded <a href="http://sourceforge.net/projects/sqlite-dotnet2">here</a>
     <br />
     <br />
 
-    <b>Features:</b><br />
+    <b></b>
+    <h2>
+      <b>Features:</b><br />
+    </h2>
     <ul>
       <li>DbProviderFactory support, just add the XML below at the machine.config and/or app.config level. </li>
       <li>Full support for ATTACH'ed databases.&nbsp; Exposed as <i>Catalogs</i> in the
@@ -36,6 +40,9 @@
         new SQL functions.</li>
       <li>Full support for user-defined collating sequences, every bit as simple to implement
         as user-defined functions and uses the same base class.</li></ul>
+    <strong></strong>
+    <h2>
+      <strong>Compiling:</strong></h2>
     In order to use the SQLiteFactory and have the SQLite data provider enumerated in
     the DbProviderFactories methods, you must add the following segment into either
     your application's app.config or the system's machine.config located in the %SystemRoot%\Microsoft.Net\Framework\v2.xxxx\Config
@@ -51,11 +58,27 @@
 &lt;/configuration&gt;
 </pre>
     <br />
-    <b>Development Notes Regarding the SQLite 3 Source Code<br />
-    </b>*** At this time, the necessary changes to the DLL to support Windows CE have
-    not been completed.&nbsp; All function calls that return or pass a 64-bit value
-    have been wrapped, but the necessary OS changes have not been finished.<br />
+    <h3>
+      Compiling for Beta 1:</h3>
+    The <strong>System.Data.SQLite</strong> project was compiled using the November/December/February
+    CTP's of Visual Studio 2005, but it can be compiled with some trivial effort on
+    the previous Beta 1 edition of VS2005.&nbsp; Just right-click the <strong>System.Data.SQLite</strong>
+    project, select <strong>Properties</strong>, go to the <strong>Build</strong> tab,
+    and add <strong>BETA1</strong> to the conditional compilation symbols.<br />
     <br />
+    <h3>
+      Compiling for the Compact Framework</h3>
+    <p>
+      The SQLite.Interop.DLL does not (yet) support a build that includes Windows CE processor
+      architectures.&nbsp; I am aware of the CE port of SQLite and will be investigating
+      their code to see how best to proceed in that regard.&nbsp; I am also waiting for
+      the newer version of SQLite to become available which will offer select metadata
+      information and will cause a major redesign of this library to support it.<br />
+    <b>
+    </b>
+    </p>
+    <h2>
+      <b>Development Notes Regarding the SQLite 3 Source Code</b></h2>
       <p></p>
     <p>
       Steps for merging the sqlite3 core codebase:</p>
@@ -70,23 +93,31 @@
     <b>static void _generateColumnNames</b> (<i>note the underscore in front of the name</i>).</li>
       <li>Compile it.</li>
     </ol>
-      <b>Version History<br />
-        1.07 - Mar 5, 2005<br />
+      <b>
       </b>
-    <ul>
-      <li>Made more optimizations to frequently-called functions, resulting in significant
-        performance gains in all tests.</li>
-      <li>Recompiled the binaries using the latest VS2005 February CTP, resulting in yet
-        more significant speed gains.&nbsp; The 100k insert test used to take 3.5 seconds
-        and the insertwithidentity took almost 8 seconds.&nbsp; With the above two changes,
-        those tests are now executing in 1.9 and 4.9 seconds respectively.</li>
-    </ul>
-    <b>
-      <br />
-        1.06 - Mar 1, 2005<br />
+    <h2>
+      <b>Version History</b></h2>
+    <b>1.08 - Mar 11, 2005<br />
     </b>
     <ul>
-      <li>Speed-ups to SQLiteDataReader.&nbsp; It was interop'ing every time it tried to
+      <li>Added additional #if statements to support the old beta 1 edition of VS2005.</li>
+      <li>Code merged the SQLite 3.14 source.</li>
+    </ul>
+    <b>1.07 - Mar 5, 2005</b><br />
+      <ul>
+        <li>Made more optimizations to frequently-called functions, resulting in significant
+          performance gains in all tests. </li>
+        <li>
+      Recompiled the binaries using the latest VS2005 February CTP, resulting in yet more
+      significant speed gains.&nbsp; The 100k insert test used to take 3.5 seconds and
+      the insertwithidentity took almost 8 seconds.&nbsp; With the above two changes,
+      those tests are now executing in 1.9 and 4.9 seconds respectively.</LI></UL><p>
+        <b>
+        1.06 - Mar 1, 2005<br />
+        </b>
+      </p>
+    <ul>
+      <li>Speed-ups to SQLiteDataReader.&nbsp; It was interop'ing unnecessarily every time it tried to
         fetch a field due to a logic error.</li>
       <li>Changed/Added some code to SQLiteConvert's internal DbType, Type and TypeAffinity
         functions.</li>
