@@ -26,6 +26,15 @@ namespace System.Data.SQLite
       HResult = (int)((uint)0x800F0000 | (uint)nCode);
     }
 
+    /// <summary>
+    /// Initializes the exception class with the SQLite error code.
+    /// </summary>
+    /// <param name="nCode">The SQLite error code</param>
+    /// <param name="strMessage">A detailed error message</param>
+    /// <returns>An error message string</returns>
+    /// <remarks>
+    /// The SQLite error code is OR'd with 0x800F0000 to generate an HResult
+    /// </remarks>
     private static string Initialize(int nCode, string strMessage)
     {
       if (strMessage != null)

@@ -36,12 +36,19 @@ namespace System.Data.SQLite
       Initialize(cnnString);
     }
 
+    /// <summary>
+    /// Private initializer, which assigns the connection string and resets the builder
+    /// </summary>
+    /// <param name="cnnString">The connection string to assign</param>
     private void Initialize(string cnnString)
     {
       ConnectionString = cnnString;
       Reset();
     }
 
+    /// <summary>
+    /// Resets the builder to the default settings
+    /// </summary>
     internal void Reset()
     {
       if (this.ContainsKey("Version") == false)

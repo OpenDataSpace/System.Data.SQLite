@@ -17,10 +17,23 @@ namespace System.Data.SQLite
   /// </summary>
   public sealed class SQLiteParameterCollection : DbParameterCollection
   {
+    /// <summary>
+    /// The underlying command to which this collection belongs
+    /// </summary>
     private SQLiteCommand         _command;
+    /// <summary>
+    /// The internal array of parameters in this collection
+    /// </summary>
     private List<SQLiteParameter> _parameterList;
+    /// <summary>
+    /// Determines whether or not all parameters have been bound to their statement(s)
+    /// </summary>
     private bool                  _unboundFlag;
 
+    /// <summary>
+    /// Initializes the collection
+    /// </summary>
+    /// <param name="cmd">The command to which the collection belongs</param>
     internal SQLiteParameterCollection(SQLiteCommand cmd)
     {
       _command = cmd;
@@ -29,7 +42,7 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Returns true
     /// </summary>
     public override bool IsSynchronized
     {
@@ -37,7 +50,7 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Returns false
     /// </summary>
     public override bool IsFixedSize
     {
@@ -45,7 +58,7 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Returns false
     /// </summary>
     public override bool IsReadOnly
     {
@@ -53,7 +66,7 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Returns null
     /// </summary>
     public override object SyncRoot
     {
@@ -61,22 +74,22 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Retrieves an enumerator for the collection
     /// </summary>
-    /// <returns></returns>
+    /// <returns>An enumerator for the underlying array</returns>
     public override System.Collections.IEnumerator GetEnumerator()
     {
       return _parameterList.GetEnumerator();
     }
 
     /// <summary>
-    /// 
+    /// Adds a parameter to the collection
     /// </summary>
-    /// <param name="paramName"></param>
-    /// <param name="dbType"></param>
-    /// <param name="nSize"></param>
-    /// <param name="sourceColumn"></param>
-    /// <returns></returns>
+    /// <param name="paramName">The parameter name</param>
+    /// <param name="dbType">The data type</param>
+    /// <param name="nSize">The size of the value</param>
+    /// <param name="sourceColumn">The source column</param>
+    /// <returns>A SQLiteParameter object</returns>
     public SQLiteParameter Add(string paramName, DbType dbType, int nSize, string sourceColumn)
     {
       SQLiteParameter param = new SQLiteParameter(paramName, dbType, nSize, sourceColumn);
@@ -86,12 +99,12 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Adds a parameter to the collection
     /// </summary>
-    /// <param name="paramName"></param>
-    /// <param name="dbType"></param>
-    /// <param name="nSize"></param>
-    /// <returns></returns>
+    /// <param name="paramName">The parameter name</param>
+    /// <param name="dbType">The data type</param>
+    /// <param name="nSize">The size of the value</param>
+    /// <returns>A SQLiteParameter object</returns>
     public SQLiteParameter Add(string paramName, DbType dbType, int nSize)
     {
       SQLiteParameter param = new SQLiteParameter(paramName, dbType, nSize);
@@ -101,11 +114,11 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Adds a parameter to the collection
     /// </summary>
-    /// <param name="paramName"></param>
-    /// <param name="dbType"></param>
-    /// <returns></returns>
+    /// <param name="paramName">The parameter name</param>
+    /// <param name="dbType">The data type</param>
+    /// <returns>A SQLiteParameter object</returns>
     public SQLiteParameter Add(string paramName, DbType dbType)
     {
       SQLiteParameter param = new SQLiteParameter(paramName, dbType);
@@ -115,10 +128,10 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Adds a parameter to the collection
     /// </summary>
-    /// <param name="p"></param>
-    /// <returns></returns>
+    /// <param name="p">The parameter to add</param>
+    /// <returns>A zero-based index of where the parameter is located in the array</returns>
     public int Add(SQLiteParameter p)
     {
       int n = -1;
@@ -140,19 +153,19 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Adds a parameter to the collection
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">The parameter to add</param>
+    /// <returns>A zero-based index of where the parameter is located in the array</returns>
     public override int Add(object value)
     {
       return Add((SQLiteParameter)value);
     }
 
     /// <summary>
-    /// 
+    /// Adds an array of parameters to the collection
     /// </summary>
-    /// <param name="values"></param>
+    /// <param name="values">The array of parameters to add</param>
     public void AddRange(SQLiteParameter[] values)
     {
       int x = values.Length;
@@ -161,9 +174,9 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Adds an array of parameters to the collection
     /// </summary>
-    /// <param name="values"></param>
+    /// <param name="values">The array of parameters to add</param>
     public override void AddRange(Array values)
     {
       int x = values.Length;
@@ -172,7 +185,7 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Obsolete
     /// </summary>
     /// <param name="parameterName"></param>
     /// <returns></returns>
@@ -183,7 +196,7 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Clears the array and resets the collection
     /// </summary>
     public override void Clear()
     {
@@ -192,27 +205,27 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Determines if the named parameter exists in the collection
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">The name of the parameter to check</param>
+    /// <returns>True if the parameter is in the collection</returns>
     public override bool Contains(string value)
     {
       return (IndexOf(value) != -1);
     }
 
     /// <summary>
-    /// 
+    /// Determines if the parameter exists in the collection
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">The SQLiteParameter to check</param>
+    /// <returns>True if the parameter is in the collection</returns>
     public override bool Contains(object value)
     {
       return _parameterList.Contains((SQLiteParameter)value);
     }
 
     /// <summary>
-    /// 
+    /// Not implemented
     /// </summary>
     /// <param name="array"></param>
     /// <param name="index"></param>
@@ -222,7 +235,7 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Returns a count of parameters in the collection
     /// </summary>
     public override int Count
     {
@@ -231,10 +244,10 @@ namespace System.Data.SQLite
 
 #if !PLATFORM_COMPACTFRAMEWORK && !BETA1
     /// <summary>
-    /// 
+    /// Retrieve a parameter by name from the collection
     /// </summary>
-    /// <param name="parameterName"></param>
-    /// <returns></returns>
+    /// <param name="parameterName">The name of the parameter to fetch</param>
+    /// <returns>A DbParameter object</returns>
     protected override DbParameter GetParameter(string parameterName)
     {
       return GetParameter(IndexOf(parameterName));
@@ -242,20 +255,20 @@ namespace System.Data.SQLite
 #endif
 
     /// <summary>
-    /// 
+    /// Retrieves a parameter by its index in the collection
     /// </summary>
-    /// <param name="index"></param>
-    /// <returns></returns>
+    /// <param name="index">The index of the parameter to retrieve</param>
+    /// <returns>A DbParameter object</returns>
     protected override DbParameter GetParameter(int index)
     {
       return _parameterList[index];
     }
 
     /// <summary>
-    /// 
+    /// Returns the index of a parameter given its name
     /// </summary>
-    /// <param name="parameterName"></param>
-    /// <returns></returns>
+    /// <param name="parameterName">The name of the parameter to find</param>
+    /// <returns>-1 if not found, otherwise a zero-based index of the parameter</returns>
     public override int IndexOf(string parameterName)
     {
       int x = _parameterList.Count;
@@ -267,20 +280,20 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Returns the index of a parameter
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">The parameter to find</param>
+    /// <returns>-1 if not found, otherwise a zero-based index of the parameter</returns>
     public override int IndexOf(object value)
     {
       return _parameterList.IndexOf((SQLiteParameter)value);
     }
 
     /// <summary>
-    /// 
+    /// Inserts a parameter into the array at the specified location
     /// </summary>
-    /// <param name="index"></param>
-    /// <param name="value"></param>
+    /// <param name="index">The zero-based index to insert the parameter at</param>
+    /// <param name="value">The parameter to insert</param>
     public override void Insert(int index, object value)
     {
       _unboundFlag = true;
@@ -288,9 +301,9 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Removes a parameter from the collection
     /// </summary>
-    /// <param name="value"></param>
+    /// <param name="value">The parameter to remove</param>
     public override void Remove(object value)
     {
       _unboundFlag = true;
@@ -298,18 +311,18 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Removes a parameter from the collection given its name
     /// </summary>
-    /// <param name="parameterName"></param>
+    /// <param name="parameterName">The name of the parameter to remove</param>
     public override void RemoveAt(string parameterName)
     {
       Remove(IndexOf(parameterName));
     }
 
     /// <summary>
-    /// 
+    /// Removes a parameter from the collection given its index
     /// </summary>
-    /// <param name="index"></param>
+    /// <param name="index">The zero-based parameter index to remove</param>
     public override void RemoveAt(int index)
     {
       _unboundFlag = true;
@@ -318,10 +331,10 @@ namespace System.Data.SQLite
 
 #if !PLATFORM_COMPACTFRAMEWORK && !BETA1
     /// <summary>
-    /// 
+    /// Re-assign the named parameter to a new parameter object
     /// </summary>
-    /// <param name="parameterName"></param>
-    /// <param name="value"></param>
+    /// <param name="parameterName">The name of the parameter to replace</param>
+    /// <param name="value">The new parameter</param>
     protected override void SetParameter(string parameterName, DbParameter value)
     {
       SetParameter(IndexOf(parameterName), value);
@@ -329,16 +342,19 @@ namespace System.Data.SQLite
 #endif
 
     /// <summary>
-    /// 
+    /// Re-assign a parameter at the specified index
     /// </summary>
-    /// <param name="index"></param>
-    /// <param name="value"></param>
+    /// <param name="index">The zero-based index of the parameter to replace</param>
+    /// <param name="value">The new parameter</param>
     protected override void SetParameter(int index, DbParameter value)
     {
       _unboundFlag = true;
       _parameterList[index] = (SQLiteParameter)value;
     }
 
+    /// <summary>
+    /// Un-binds all parameters from their statements
+    /// </summary>
     internal void Unbind()
     {
       _unboundFlag = true;

@@ -16,8 +16,15 @@ namespace System.Data.SQLite
   /// </summary>
   public sealed class SQLiteTransaction : DbTransaction
   {
+    /// <summary>
+    /// The connection to which this transaction is bound
+    /// </summary>
     private SQLiteConnection _cnn;
 
+    /// <summary>
+    /// Constructs the transaction object, binding it to the supplied connection
+    /// </summary>
+    /// <param name="cnn">The connection to open a transaction on</param>
     internal SQLiteTransaction(SQLiteConnection cnn)
     {
       try

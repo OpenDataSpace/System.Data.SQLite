@@ -70,18 +70,38 @@ namespace System.Data.SQLite
   /// </remarks>
   public abstract class SQLiteFunction : IDisposable
   {
-
+    /// <summary>
+    /// The base connection this function is attached to
+    /// </summary>
     private SQLiteBase              _base;
+    /// <summary>
+    /// Used internally to keep track of memory allocated for aggregate functions
+    /// </summary>
     private int                     _interopCookie;
+    /// <summary>
+    /// Internal array used to keep track of aggregate function context data
+    /// </summary>
 #if !PLATFORM_COMPACTFRAMEWORK && !BETA1
     private SortedList<int, object> _contextDataList;
 #else
     private SortedList _contextDataList;
 #endif
 
+    /// <summary>
+    /// Holds a reference to the callback function for user functions
+    /// </summary>
     private SQLiteCallback  _InvokeFunc;
+    /// <summary>
+    /// Holds a reference to the callbakc function for stepping in an aggregate function
+    /// </summary>
     private SQLiteCallback  _StepFunc;
+    /// <summary>
+    /// Holds a reference to the callback function for finalizing an aggregate function
+    /// </summary>
     private SQLiteCallback  _FinalFunc;
+    /// <summary>
+    /// Holds a reference to the callback function for collation sequences
+    /// </summary>
     private SQLiteCollation _CompareFunc;
 
     /// <summary>

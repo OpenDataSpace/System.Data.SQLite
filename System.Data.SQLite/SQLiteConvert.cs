@@ -66,9 +66,18 @@ namespace System.Data.SQLite
     ISO8601 = 1,
   }
 
+  /// <summary>
+  /// Struct used internally to determine the datatype of a column in a resultset
+  /// </summary>
   internal struct SQLiteType
   {
+    /// <summary>
+    /// The DbType of the column, or DbType.Object if it cannot be determined
+    /// </summary>
     internal DbType Type;
+    /// <summary>
+    /// The affinity of a column, used for expressions or when Type is DbType.Object
+    /// </summary>
     internal TypeAffinity Affinity;
   }
 
@@ -85,7 +94,7 @@ namespace System.Data.SQLite
     /// <summary>
     /// An UTF-8 Encoding instance, so we can convert strings to and from UTF8
     /// </summary>
-    private Text.UTF8Encoding _utf8;
+    private static Text.UTF8Encoding _utf8 = new Text.UTF8Encoding();
     /// <summary>
     /// The default DateTime format for this instance
     /// </summary>
@@ -107,10 +116,13 @@ namespace System.Data.SQLite
 															 };
     }
 
+    /// <summary>
+    /// Initializes the conversion class
+    /// </summary>
+    /// <param name="fmt">The default date/time format to use for this instance</param>
     internal SQLiteConvert(DateTimeFormat fmt)
     {
       _datetimeFormat = fmt;
-      _utf8 = new System.Text.UTF8Encoding();
     }
 
     #region UTF-8 Conversion Functions
@@ -317,6 +329,12 @@ namespace System.Data.SQLite
     }
 
     #region Type Conversions
+    /// <summary>
+    /// Determines the data type of a column in a statement
+    /// </summary>
+    /// <param name="stmt">The statement to retrieve information for</param>
+    /// <param name="ordinal">The column to retrieve type information on</param>
+    /// <returns>Returns a SQLiteType struct</returns>
     internal static SQLiteType ColumnToType(SQLiteStatement stmt, int ordinal)
     {
       SQLiteType typ;
@@ -326,6 +344,11 @@ namespace System.Data.SQLite
       return typ;
     }
 
+    /// <summary>
+    /// Converts a SQLiteType to a .NET Type object
+    /// </summary>
+    /// <param name="t">The SQLiteType to convert</param>
+    /// <returns>Returns a .NET Type object</returns>
     internal static Type SQLiteTypeToType(SQLiteType t)
     {
       if (t.Type != DbType.Object)

@@ -135,6 +135,13 @@ namespace System.Data.SQLite
     internal abstract DateTime GetDateTime(SQLiteStatement stmt, int index);
     internal abstract bool     IsNull(SQLiteStatement stmt, int index);
     
+    /// <summary>
+    /// Helper function to retrieve a column of data from an active statement.
+    /// </summary>
+    /// <param name="stmt">The statement being step()'d through</param>
+    /// <param name="index">The column index to retrieve</param>
+    /// <param name="typ">The type of data contained in the column.  If Uninitialized, this function will retrieve the datatype information.</param>
+    /// <returns>Returns the data in the column</returns>
     internal virtual  object   GetValue(SQLiteStatement stmt, int index, ref SQLiteType typ)
     {
       if (typ.Affinity == 0) typ = SQLiteConvert.ColumnToType(stmt, index);

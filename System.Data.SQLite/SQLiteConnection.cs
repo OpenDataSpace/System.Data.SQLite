@@ -170,6 +170,9 @@ namespace System.Data.SQLite
     }
 
 #if PLATFORM_COMPACTFRAMEWORK && !BETA1
+    /// <summary>
+    /// Obsolete
+    /// </summary>
     public override int ConnectionTimeout
     {
       get
@@ -211,6 +214,10 @@ namespace System.Data.SQLite
       Close();
     }
 
+    /// <summary>
+    /// Raises the state change event when the state of the connection changes
+    /// </summary>
+    /// <param name="newState">The new state.  If it is different from the previous state, an event is raised.</param>
     internal void OnStateChange(ConnectionState newState)
     {
       ConnectionState oldState = _connectionState;
@@ -572,6 +579,10 @@ namespace System.Data.SQLite
       return null;
     }
 
+    /// <summary>
+    /// Builds a MetaDataCollections schema datatable
+    /// </summary>
+    /// <returns>DataTable</returns>
     private DataTable Schema_MetaDataCollections()
     {
       DataTable tbl = new DataTable("MetaDataCollections");
@@ -617,6 +628,10 @@ namespace System.Data.SQLite
       return tbl;
     }
 
+    /// <summary>
+    /// Builds a DataSourceInformation datatable
+    /// </summary>
+    /// <returns>DataTable</returns>
     private DataTable Schema_DataSourceInformation()
     {
       DataTable tbl = new DataTable("DataSourceInformation");
@@ -672,6 +687,13 @@ namespace System.Data.SQLite
       return tbl;
     }
 
+    /// <summary>
+    /// Build a Columns schema
+    /// </summary>
+    /// <param name="strCatalog">The catalog (attached database) to query, can be null</param>
+    /// <param name="strTable">The table to retrieve schema information for, must not be null</param>
+    /// <param name="strColumn">The column to retrieve schema information for, can be null</param>
+    /// <returns>DataTable</returns>
     private DataTable Schema_Columns(string strCatalog, string strTable, string strColumn)
     {
       DataTable tbl = new DataTable("Columns");
@@ -744,6 +766,13 @@ namespace System.Data.SQLite
       return tbl;
     }
 
+    /// <summary>
+    /// Returns index information for the given database and catalog
+    /// </summary>
+    /// <param name="strCatalog">The catalog (attached database) to query, can be null</param>
+    /// <param name="strIndex">The name of the index to retrieve information for, can be null</param>
+    /// <param name="strTable">The table to retrieve index information for, can be null</param>
+    /// <returns>DataTable</returns>
     private DataTable Schema_Indexes(string strCatalog, string strIndex, string strTable)
     {
       DataTable tbl = new DataTable("Indexes");
@@ -807,6 +836,13 @@ namespace System.Data.SQLite
       return tbl;
     }
 
+    /// <summary>
+    /// Retrieves table schema information for the database and catalog
+    /// </summary>
+    /// <param name="strCatalog">The catalog (attached database) to retrieve tables on</param>
+    /// <param name="strTable">The table to retrieve, can be null</param>
+    /// <param name="strType">The table type, can be null</param>
+    /// <returns>DataTable</returns>
     private DataTable Schema_Tables(string strCatalog, string strTable, string strType)
     {
       DataTable tbl = new DataTable("Tables");
@@ -859,6 +895,12 @@ namespace System.Data.SQLite
       return tbl;
     }
 
+    /// <summary>
+    /// Retrieves view schema information for the database
+    /// </summary>
+    /// <param name="strCatalog">The catalog (attached database) to retrieve views on</param>
+    /// <param name="strView">The view name, can be null</param>
+    /// <returns>DataTable</returns>
     private DataTable Schema_Views(string strCatalog, string strView)
     {
       DataTable tbl = new DataTable("Views");
@@ -912,6 +954,11 @@ namespace System.Data.SQLite
       return tbl;
     }
 
+    /// <summary>
+    /// Retrieves catalog (attached databases) schema information for the database
+    /// </summary>
+    /// <param name="strCatalog">The catalog to retrieve, can be null</param>
+    /// <returns>DataTable</returns>
     private DataTable Schema_Catalogs(string strCatalog)
     {
       DataTable tbl = new DataTable("Catalogs");

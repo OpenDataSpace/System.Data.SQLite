@@ -17,14 +17,37 @@ namespace System.Data.SQLite
   /// </summary>
   public sealed class SQLiteCommand : DbCommand
   {
+    /// <summary>
+    /// The command text this command is based on
+    /// </summary>
     private string                    _commandText;
+    /// <summary>
+    /// The connection the command is associated with
+    /// </summary>
     private SQLiteConnection          _cnn;
+    /// <summary>
+    /// Indicates whether or not a DataReader is active on the command.
+    /// </summary>
     private bool                      _isReaderOpen;
+    /// <summary>
+    /// The timeout for the command, kludged because SQLite doesn't support per-command timeout values
+    /// </summary>
     private int                       _commandTimeout;
+    /// <summary>
+    /// Designer support
+    /// </summary>
     private bool                      _designTimeVisible;
+    /// <summary>
+    /// Used by DbDataAdapter to determine updating behavior
+    /// </summary>
     private UpdateRowSource           _updateRowSource;
+    /// <summary>
+    /// The collection of parameters for the command
+    /// </summary>
     private SQLiteParameterCollection _parameterCollection;
-
+    /// <summary>
+    /// The SQL command text, broken into individual SQL statements
+    /// </summary>
     internal SQLiteStatement[]        _statementList;
 
     ///<overloads>
@@ -67,6 +90,11 @@ namespace System.Data.SQLite
       Initialize(null, cnn);
     }
 
+    /// <summary>
+    /// Initializes the command class
+    /// </summary>
+    /// <param name="strSql">The SQL command text</param>
+    /// <param name="cnn">A connection to associate with the command</param>
     private void Initialize(string strSql, SQLiteConnection cnn)
     {
       _statementList = null;
@@ -84,9 +112,9 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Disposes of the command and clears all member variables
     /// </summary>
-    /// <param name="disposing"></param>
+    /// <param name="disposing">Whether or not the class is being explicitly or implicitly disposed</param>
     protected override void Dispose(bool disposing)
     {
       base.Dispose(disposing);
@@ -96,6 +124,9 @@ namespace System.Data.SQLite
       _commandText = null;
     }
 
+    /// <summary>
+    /// Clears and destroys all statements currently prepared
+    /// </summary>
     internal void ClearCommands()
     {
       if (_statementList == null) return;
@@ -109,6 +140,9 @@ namespace System.Data.SQLite
       _parameterCollection.Unbind();
     }
 
+    /// <summary>
+    /// Builds an array of prepared statements for each complete SQL statement in the command text
+    /// </summary>
     internal void BuildCommands()
     {
       ClearCommands();
@@ -276,6 +310,11 @@ namespace System.Data.SQLite
       }
     }
 
+    /// <summary>
+    /// This function ensures there are no active readers, that we have a valid connection,
+    /// that the connection is open, that all statements are prepared and all parameters are assigned
+    /// in preparation for allocating a data reader.
+    /// </summary>
     private void InitializeForReader()
     {
       if (_isReaderOpen)
@@ -305,10 +344,10 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Creates a new SQLiteDataReader to execute/iterate the array of SQLite prepared statements
     /// </summary>
-    /// <param name="behavior"></param>
-    /// <returns></returns>
+    /// <param name="behavior">The behavior the data reader should adopt</param>
+    /// <returns>Returns a SQLiteDataReader object</returns>
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
     {
       InitializeForReader();
@@ -328,6 +367,9 @@ namespace System.Data.SQLite
       }
     }
 
+    /// <summary>
+    /// Called by the SQLiteDataReader when the data reader is closed.
+    /// </summary>
     internal void ClearDataReader()
     {
       _isReaderOpen = false;

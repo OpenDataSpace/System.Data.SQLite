@@ -15,13 +15,38 @@ namespace System.Data.SQLite
   /// </summary>
   internal sealed class SQLiteStatement : IDisposable
   {
+    /// <summary>
+    /// The underlying SQLite object this statement is bound to
+    /// </summary>
     internal SQLiteBase                          _sql;
+    /// <summary>
+    /// The command text of this SQL statement
+    /// </summary>
     internal string                              _sqlStatement;
+    /// <summary>
+    /// The actual statement pointer
+    /// </summary>
     internal int                                 _sqlite_stmt;
+    /// <summary>
+    /// An index from which unnamed parameters begin
+    /// </summary>
     internal int                                 _unnamedParameterStart;
+    /// <summary>
+    /// Names of the parameters as SQLite understands them to be
+    /// </summary>
     internal string[]          _paramNames;
+    /// <summary>
+    /// Parameters for this statement
+    /// </summary>
     internal SQLiteParameter[] _paramValues;
 
+    /// <summary>
+    /// Initializes the statement and attempts to get all information about parameters in the statement
+    /// </summary>
+    /// <param name="sqlbase">The base SQLite object</param>
+    /// <param name="stmt">The statement</param>
+    /// <param name="strCommand">The command text for this statement</param>
+    /// <param name="nCmdStart">The index at which to start numbering unnamed parameters</param>
     internal SQLiteStatement(SQLiteBase sqlbase, int stmt, string strCommand, ref int nCmdStart)
     {
       _paramNames = null;
@@ -56,6 +81,12 @@ namespace System.Data.SQLite
       }
     }
 
+    /// <summary>
+    /// Called by SQLiteParameterCollection, this function determines if the specified parameter name belongs to
+    /// this statement, and if so, keeps a reference to the parameter so it can be bound later.
+    /// </summary>
+    /// <param name="s">The parameter name to map</param>
+    /// <param name="p">The parameter to assign it</param>
     internal void MapParameter(string s, SQLiteParameter p)
     {
       if (_paramNames == null) return;
@@ -72,6 +103,9 @@ namespace System.Data.SQLite
     }
 
     #region IDisposable Members
+    /// <summary>
+    /// Disposes and finalizes the statement
+    /// </summary>
     public void Dispose()
     {
       _sql.Finalize(this);
