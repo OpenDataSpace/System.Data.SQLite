@@ -205,33 +205,33 @@ namespace System.Data.SQLite
       }
     }
 
-    /// <summary>
-    /// Attempt to convert the specified string to a datetime value.
-    /// </summary>
-    /// <param name="strSrc">The string to parse into a datetime</param>
-    /// <param name="result">If successful, a valid datetime structure</param>
-    /// <returns>Returns true if the string was a valid ISO8601 datetime, false otherwise.</returns>
-    public bool TryToDateTime(string strSrc, out DateTime result)
-    {
-      switch (_datetimeFormat)
-      {
-        case DateTimeFormat.ISO8601:
-          return DateTime.TryParseExact(strSrc, _datetimeFormats, System.Globalization.DateTimeFormatInfo.InvariantInfo, System.Globalization.DateTimeStyles.None, out result);
-        case DateTimeFormat.Ticks:
-          {
-            long n;
-            if (long.TryParse(strSrc, out n) == true)
-            {
-              result = new DateTime(n);
-              return true;
-            }
-          }
-          break;
-      }
+    ///// <summary>
+    ///// Attempt to convert the specified string to a datetime value.
+    ///// </summary>
+    ///// <param name="strSrc">The string to parse into a datetime</param>
+    ///// <param name="result">If successful, a valid datetime structure</param>
+    ///// <returns>Returns true if the string was a valid ISO8601 datetime, false otherwise.</returns>
+    //public bool TryToDateTime(string strSrc, out DateTime result)
+    //{
+    //  switch (_datetimeFormat)
+    //  {
+    //    case DateTimeFormat.ISO8601:
+    //      return DateTime.TryParseExact(strSrc, _datetimeFormats, System.Globalization.DateTimeFormatInfo.InvariantInfo, System.Globalization.DateTimeStyles.None, out result);
+    //    case DateTimeFormat.Ticks:
+    //      {
+    //        long n;
+    //        if (long.TryParse(strSrc, out n) == true)
+    //        {
+    //          result = new DateTime(n);
+    //          return true;
+    //        }
+    //      }
+    //      break;
+    //  }
 
-      result = DateTime.Now;
-      return false;
-    }
+    //  result = DateTime.Now;
+    //  return false;
+    //}
 
     /// <summary>
     /// Converts a DateTime to a string value, using the current DateTimeFormat specified for the connection when it was opened.

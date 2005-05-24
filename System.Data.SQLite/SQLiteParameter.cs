@@ -223,16 +223,6 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// Not implemented
-    /// </summary>
-    /// <param name="destination"></param>
-    [Obsolete]
-    public override void CopyTo(DbParameter destination)
-    {
-      throw new NotImplementedException();
-    }
-
-    /// <summary>
     /// Returns the datatype of the parameter
     /// </summary>
     public override DbType DbType

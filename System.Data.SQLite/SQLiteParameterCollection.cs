@@ -185,17 +185,6 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// Obsolete
-    /// </summary>
-    /// <param name="parameterName"></param>
-    /// <returns></returns>
-    [Obsolete]
-    protected override int CheckName(string parameterName)
-    {
-      throw new NotImplementedException();
-    }
-
-    /// <summary>
     /// Clears the array and resets the collection
     /// </summary>
     public override void Clear()
@@ -242,7 +231,6 @@ namespace System.Data.SQLite
       get { return _parameterList.Count; }
     }
 
-#if !PLATFORM_COMPACTFRAMEWORK && !BETA1
     /// <summary>
     /// Retrieve a parameter by name from the collection
     /// </summary>
@@ -252,7 +240,6 @@ namespace System.Data.SQLite
     {
       return GetParameter(IndexOf(parameterName));
     }
-#endif
 
     /// <summary>
     /// Retrieves a parameter by its index in the collection
@@ -329,7 +316,6 @@ namespace System.Data.SQLite
       _parameterList.RemoveAt(index);
     }
 
-#if !PLATFORM_COMPACTFRAMEWORK && !BETA1
     /// <summary>
     /// Re-assign the named parameter to a new parameter object
     /// </summary>
@@ -339,7 +325,6 @@ namespace System.Data.SQLite
     {
       SetParameter(IndexOf(parameterName), value);
     }
-#endif
 
     /// <summary>
     /// Re-assign a parameter at the specified index

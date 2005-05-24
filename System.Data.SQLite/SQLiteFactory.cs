@@ -22,18 +22,6 @@ namespace System.Data.SQLite
     public static readonly SQLiteFactory Instance = new SQLiteFactory();
 
     /// <summary>
-    /// Returns the types of classes this factory supports
-    /// </summary>
-    [Obsolete]
-    public override DbProviderSupportedClasses SupportedClasses
-    {
-      get
-      {
-        return (DbProviderSupportedClasses)0x3F;
-      }
-    }
-
-    /// <summary>
     /// Returns a new SQLiteCommand object.
     /// </summary>
     /// <returns>A SQLiteCommand object.</returns>

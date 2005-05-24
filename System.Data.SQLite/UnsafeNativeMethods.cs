@@ -11,7 +11,9 @@ namespace System.Data.SQLite
   using System.Security;
   using System.Runtime.InteropServices;
 
+#if !PLATFORM_COMPACTFRAMEWORK
   [SuppressUnmanagedCodeSecurity]
+#endif
   internal class UnsafeNativeMethods
   {
     private const string SQLITE_DLL = "SQLite.Interop.DLL";

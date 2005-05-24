@@ -120,6 +120,7 @@ namespace test
       using (DbCommand cmd = cnn.CreateCommand())
       {
         cmd.CommandText = "CREATE TABLE TestCase (ID integer primary key autoincrement, Field1 Integer, Field2 Float, Field3 VARCHAR(50), Field4 CHAR(10), Field5 DateTime, Field6 Image)";
+        //cmd.CommandText = "CREATE TABLE TestCase (ID bigint primary key identity, Field1 Integer, Field2 Float, Field3 VARCHAR(50), Field4 CHAR(10), Field5 DateTime, Field6 Image)";
         cmd.ExecuteNonQuery();
       }
     }
@@ -325,6 +326,7 @@ namespace test
             {
               bld.DataAdapter = adp;
               adp.InsertCommand = bld.GetInsertCommand();
+
               if (bWithIdentity)
               {
                 adp.InsertCommand.CommandText += ";SELECT [ID] FROM TestCase WHERE RowID = last_insert_rowid()";

@@ -110,13 +110,11 @@ namespace System.Data.SQLite
     /// </summary>
     internal List<SQLiteCommand> _commandList;
 
-#if !PLATFORM_COMPACTFRAMEWORK && !BETA1
     /// <event/>
     /// <summary>
     /// This event is raised whenever the database is opened or closed.
     /// </summary>
     public override event StateChangeEventHandler StateChange;
-#endif
 
     ///<overloads>
     /// Constructs a new SQLiteConnection object
@@ -169,7 +167,7 @@ namespace System.Data.SQLite
       }
     }
 
-#if PLATFORM_COMPACTFRAMEWORK && !BETA1
+#if PLATFORM_COMPACTFRAMEWORK
     /// <summary>
     /// Obsolete
     /// </summary>
@@ -223,13 +221,11 @@ namespace System.Data.SQLite
       ConnectionState oldState = _connectionState;
       _connectionState = newState;
 
-#if !PLATFORM_COMPACTFRAMEWORK && !BETA1
       if (StateChange != null && oldState != newState)
       {
         StateChangeEventArgs e = new StateChangeEventArgs(oldState, newState);
         StateChange(this, e);
       }
-#endif
     }
 
     /// <summary>

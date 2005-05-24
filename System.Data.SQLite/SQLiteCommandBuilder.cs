@@ -76,22 +76,6 @@ namespace System.Data.SQLite
       return "?";
     }
 
-#if !PLATFORM_COMPACTFRAMEWORK
-    /// <summary>
-    /// Obsolete
-    /// </summary>
-#if !BETA1
-    [Obsolete]
-#endif
-    protected override DbProviderFactory ProviderFactory
-    {
-      get 
-      {
-        return new SQLiteFactory();
-      }
-    }
-#endif
-
     /// <summary>
     /// Not implemented.
     /// </summary>

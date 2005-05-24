@@ -10,9 +10,7 @@
     Written by Robert Simpson (<a href="mailto:robert@blackcastlesoft.com">robert@blackcastlesoft.com</a>)<br />
     Released to the public domain, use at your own risk!<br />
     <br />
-    This provider was written and verified using the Visual Studio 2005 November, December
-    and February 2005 CTP's.&nbsp; The binaries included in the distribution were compiled
-    with the 2.0.50110 version of the .NET framework (VS2005 February 2005 CTP).<br />
+    This provider was written and verified using the Visual Studio 2005 Beta 2 release.<br />
     <br />
     The latest version can be downloaded <a href="http://sourceforge.net/projects/sqlite-dotnet2">here</a>
     <br />
@@ -60,14 +58,6 @@
 </pre>
     <br />
     <h3>
-      Compiling for Beta 1:</h3>
-    The <strong>System.Data.SQLite</strong> project was compiled using the November/December/February
-    CTP's of Visual Studio 2005, but it can be compiled with some trivial effort on
-    the previous Beta 1 edition of VS2005.&nbsp; Just right-click the <strong>System.Data.SQLite</strong>
-    project, select <strong>Properties</strong>, go to the <strong>Build</strong> tab,
-    and add <strong>BETA1</strong> to the conditional compilation symbols.<br />
-    <br />
-    <h3>
       Compiling for the Compact Framework</h3>
     <p>
       The SQLite.Interop.DLL does not (yet) support a build that includes Windows CE processor
@@ -97,9 +87,12 @@
       <b>
       </b>
     <h2>
-      <b>Version History</b></h2>
-    <b>1.08 Refresh - Mar 24, 2005<br />
-    </b>
+    <b>Version History</b></h2>
+    <b>1.09 - May 25, 2005</b><br />
+    <ul>
+      <li>Code merge with the latest 3.21 version of SQLite. </li>
+      <li>Removed obsolete methods and properties for Whidbey Beta 2</li></ul>
+    <b>1.08 Refresh - Mar 24, 2005<br /></b>
     <ul>
       <li>Code merge with the latest 3.20 version of SQLite.</li>
       <li>Recompiled the help file to fix a build error in it.</li>

@@ -81,11 +81,7 @@ namespace System.Data.SQLite
     /// <summary>
     /// Internal array used to keep track of aggregate function context data
     /// </summary>
-#if !PLATFORM_COMPACTFRAMEWORK && !BETA1
     private SortedList<int, object> _contextDataList;
-#else
-    private SortedList _contextDataList;
-#endif
 
     /// <summary>
     /// Holds a reference to the callback function for user functions
@@ -114,11 +110,7 @@ namespace System.Data.SQLite
     /// </summary>
     protected SQLiteFunction()
     {
-#if !PLATFORM_COMPACTFRAMEWORK && !BETA1
       _contextDataList = new SortedList<int, object>();
-#else
-      _contextDataList = new SortedList();
-#endif
       _InvokeFunc = null;
       _StepFunc = null;
       _FinalFunc = null;
@@ -389,11 +381,7 @@ namespace System.Data.SQLite
 
       IDisposable disp;
 
-#if !PLATFORM_COMPACTFRAMEWORK && !BETA1
       foreach (KeyValuePair<int, object> kv in _contextDataList)
-#else
-      foreach (DictionaryEntry kv in _contextDataList)
-#endif
       {
         disp = kv.Value as IDisposable;
         if (disp != null)
