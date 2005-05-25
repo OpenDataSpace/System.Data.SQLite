@@ -321,7 +321,7 @@ namespace System.Data.SQLite
         throw new InvalidOperationException("DataReader already active on this command");
 
       if (_cnn == null)
-        throw new InvalidOperationException("No connection associated with this Command");
+        throw new InvalidOperationException("No connection associated with this command");
 
       if (_cnn.State != ConnectionState.Open)
         throw new InvalidOperationException("Database is not open");
@@ -354,17 +354,10 @@ namespace System.Data.SQLite
 
       _cnn._sql.SetTimeout(_commandTimeout * 1000);
 
-      try
-      {
-        SQLiteDataReader rd = new SQLiteDataReader(this, behavior);
-
-        _isReaderOpen = true;
+      SQLiteDataReader rd = new SQLiteDataReader(this, behavior);
+      _isReaderOpen = true;
         
-        return rd;
-      }
-      finally
-      {
-      }
+      return rd;
     }
 
     /// <summary>

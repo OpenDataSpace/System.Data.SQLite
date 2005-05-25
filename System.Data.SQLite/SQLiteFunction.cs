@@ -150,8 +150,7 @@ namespace System.Data.SQLite
     /// Aggregate functions override this method to do their magic.
     /// </summary>
     /// <remarks>
-    /// Don't call the ReturnXXX functions of the context object during this function call.  Save it for the Final() method.
-    /// Typically you'll just be updating whatever you've placed in the contextData field and returning as quickly as possible.
+    /// Typically you'll be updating whatever you've placed in the contextData field and returning as quickly as possible.
     /// </remarks>
     /// <param name="args">The arguments for the command to process</param>
     /// <param name="nStep">The 1-based step number.  This is incrememted each time the step method is called.</param>
@@ -164,13 +163,9 @@ namespace System.Data.SQLite
     /// Aggregate functions override this method to finish their aggregate processing.
     /// </summary>
     /// <remarks>
-    /// This is where you will call one of the ReturnXXX methods of the context class.  If you implemented your aggregate properly,
+    /// If you implemented your aggregate function properly,
     /// you've been recording and keeping track of your data in the contextData object provided, and now at this stage you should have
     /// all the information you need in there to figure out what to return.
-    /// 
-    /// Parameters passed to this function have only an affinity for a certain data type, there is no underlying schema available
-    /// to force them into a certain type.  Therefore the only types you will ever see as parameters are
-    /// DBNull.Value, Int64, Double, String or byte[] array.
     /// </remarks>
     /// <param name="contextData">Your own assigned contextData, provided for you so you can return your final results.</param>
     /// <returns>You may return most simple types as a return value, null or DBNull.Value to return null, DateTime, or
