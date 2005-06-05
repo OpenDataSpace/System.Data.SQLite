@@ -184,7 +184,8 @@ namespace System.Data.SQLite
 
       strRemain = ToString(ptr, len);
 
-      SQLiteStatement cmd = new SQLiteStatement(this, stmt, strSql.Substring(0, strSql.Length - strRemain.Length), ref nParamStart);
+      SQLiteStatement cmd = null;
+      if (stmt > 0) cmd = new SQLiteStatement(this, stmt, strSql.Substring(0, strSql.Length - strRemain.Length), ref nParamStart);
 
       return cmd;
     }
