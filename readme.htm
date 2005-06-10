@@ -5,7 +5,7 @@
 	</head>
 	<body>
     ADO.NET 2.0 SQLite Data Provider<br />
-    Version 1.0.10 - June 5, 2005<br />
+    Version 1.0.10 - June 10, 2005<br />
     Interop using SQLite 3.21<br />
     Written by Robert Simpson (<a href="mailto:robert@blackcastlesoft.com">robert@blackcastlesoft.com</a>)<br />
     Released to the public domain, use at your own risk!<br />
@@ -88,10 +88,15 @@
       </b>
     <h2>
     <b>Version History</b></h2>
-    <b>1.10 - June 5, 2005</b><br />
+    <b>1.10 - June 10, 2005</b><br />
     <ul>
       <li>Fixed a bug in the SQLite3.cs Prepare() function that created a statement even when the SQLite engine returned a NULL pointer.
-          Typically this occurs when multiple statements are processed and there are trailing comments at the end of the statement.</li></ul>
+          Typically this occurs when multiple statements are processed and there are trailing comments at the end of the statement.</li>
+      <li>Fixed a bug in SQLiteStatement.cs that retrieved parameter names for a parameterized
+        query.&nbsp; SQLite's parameters are 1-based, and the function was starting at 0.&nbsp;
+        This was fine when all parameters were unnamed, but for named parameters it caused
+        the parameters to be out of whack.</li>
+    </ul>
     <b>1.09a - May 25, 2005</b><br />
     <ul>
       <li>Fixed a broken helpfile and corrected some obsolete help remarks in SQLiteFunction.cs</li><li>Added a version resource to the SQLite.Interop.DLL.&nbsp;</li></ul>

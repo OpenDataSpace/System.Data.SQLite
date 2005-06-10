@@ -729,7 +729,7 @@ namespace System.Data.SQLite
 
       using (SQLiteCommand cmd = new SQLiteCommand(String.Format("SELECT * FROM [{0}].[{1}]", strCatalog, strTable), this))
       {
-        using (SQLiteDataReader rd = (SQLiteDataReader)cmd.ExecuteReader())
+        using (SQLiteDataReader rd = (SQLiteDataReader)cmd.ExecuteReader(CommandBehavior.SchemaOnly))
         {
           using (DataTable tblSchema = rd.GetSchemaTable())
           {
