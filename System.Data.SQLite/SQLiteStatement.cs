@@ -69,7 +69,7 @@ namespace System.Data.SQLite
 
         for (x = 0; x < n; x++)
         {
-          s = _sql.Bind_ParamName(this, x);
+          s = _sql.Bind_ParamName(this, x + 1);
           if (s == null || s == "")
           {
             s = String.Format(";{0}", nCmdStart);
