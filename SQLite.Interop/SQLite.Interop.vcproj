@@ -6,6 +6,7 @@
 	ProjectGUID="{10B51CE8-A838-44DE-BD82-B658F0296F80}"
 	RootNamespace="SQLite.Interop"
 	Keyword="Win32Proj"
+	SignManifests="true"
 	>
 	<Platforms>
 		<Platform
@@ -207,6 +208,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\callback.c"
+				>
+			</File>
+			<File
 				RelativePath=".\src\date.c"
 				>
 			</File>
@@ -260,6 +265,10 @@
 			</File>
 			<File
 				RelativePath=".\src\pragma.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\prepare.c"
 				>
 			</File>
 			<File

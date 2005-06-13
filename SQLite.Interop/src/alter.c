@@ -12,7 +12,7 @@
 ** This file contains C code routines that used to generate VDBE code
 ** that implements the ALTER TABLE command.
 **
-** $Id: alter.c,v 1.4 2005/05/24 22:10:28 rmsimpson Exp $
+** $Id: alter.c,v 1.5 2005/06/13 22:32:18 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include <ctype.h>
@@ -538,6 +538,7 @@ void sqlite3AlterBeginAddColumn(Parse *pParse, SrcList *pSrc){
   }
   pNew->iDb = iDb;
   pNew->addColOffset = pTab->addColOffset;
+  pNew->nRef = 1;
 
   /* Begin a transaction and increment the schema cookie.  */
   sqlite3BeginWriteOperation(pParse, 0, iDb);
