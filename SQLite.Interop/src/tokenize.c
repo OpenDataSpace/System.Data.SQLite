@@ -1,3 +1,6 @@
+#pragma unmanaged
+extern "C"
+{
 /*
 ** 2001 September 15
 **
@@ -15,7 +18,7 @@
 ** individual tokens and sends those tokens one-by-one over to the
 ** parser for analysis.
 **
-** $Id: tokenize.c,v 1.5 2005/06/13 22:32:19 rmsimpson Exp $
+** $Id: tokenize.c,v 1.6 2005/08/01 19:32:15 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include "os.h"
@@ -356,7 +359,7 @@ int sqlite3RunParser(Parse *pParse, const char *zSql, char **pzErrMsg){
   pParse->zTail = pParse->zSql = zSql;
   while( sqlite3_malloc_failed==0 && zSql[i]!=0 ){
     assert( i>=0 );
-    pParse->sLastToken.z = &zSql[i];
+    pParse->sLastToken.z = (const unsigned char *)&zSql[i];
     assert( pParse->sLastToken.dyn==0 );
     pParse->sLastToken.n = getToken((unsigned char*)&zSql[i],&tokenType);
     i += pParse->sLastToken.n;
@@ -659,7 +662,7 @@ int sqlite3_complete16(const void *zSql){
 
   pVal = sqlite3ValueNew();
   sqlite3ValueSetStr(pVal, -1, zSql, SQLITE_UTF16NATIVE, SQLITE_STATIC);
-  zSql8 = sqlite3ValueText(pVal, SQLITE_UTF8);
+  zSql8 = (const char *)sqlite3ValueText(pVal, SQLITE_UTF8);
   if( zSql8 ){
     rc = sqlite3_complete(zSql8);
   }
@@ -668,3 +671,5 @@ int sqlite3_complete16(const void *zSql){
 }
 #endif /* SQLITE_OMIT_UTF16 */
 #endif /* SQLITE_OMIT_COMPLETE */
+
+}

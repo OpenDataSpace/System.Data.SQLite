@@ -1,3 +1,6 @@
+#pragma unmanaged
+extern "C"
+{
 /*
 ** 2001 September 15
 **
@@ -12,10 +15,10 @@
 ** This file contains C code routines that are called by the parser
 ** to handle SELECT statements in SQLite.
 **
-** $Id: select.c,v 1.5 2005/06/13 22:32:19 rmsimpson Exp $
+** $Id: select.c,v 1.6 2005/08/01 19:32:14 rmsimpson Exp $
 */
 #include "sqliteInt.h"
-#include "../interop.h"
+#include "../Interop.h"
 
 /*
 ** Allocate a new Select structure and return a pointer to that
@@ -33,7 +36,7 @@ Select *sqlite3SelectNew(
   Expr *pOffset         /* OFFSET value.  NULL means no offset */
 ){
   Select *pNew;
-  pNew = sqliteMalloc( sizeof(*pNew) );
+  pNew = (Select *)sqliteMalloc( sizeof(*pNew) );
   assert( !pOffset || pLimit );   /* Can't have OFFSET without LIMIT. */
   if( pNew==0 ){
     sqlite3ExprListDelete(pEList);
@@ -105,7 +108,7 @@ int sqlite3JoinType(Parse *pParse, Token *pA, Token *pB, Token *pC){
     p = apAll[i];
     for(j=0; j<sizeof(keywords)/sizeof(keywords[0]); j++){
       if( p->n==keywords[j].nChar 
-          && sqlite3StrNICmp(p->z, keywords[j].zKeyword, p->n)==0 ){
+          && sqlite3StrNICmp((const char *)p->z, keywords[j].zKeyword, p->n)==0 ){
         jointype |= keywords[j].code;
         break;
       }
@@ -150,7 +153,7 @@ static int columnIndex(Table *pTab, const char *zCol){
 ** Set the value of a token to a '\000'-terminated string.
 */
 static void setToken(Token *p, const char *z){
-  p->z = z;
+  p->z = (const unsigned char *)z;
   p->n = strlen(z);
   p->dyn = 0;
 }
@@ -228,8 +231,8 @@ static void setJoinExpr(Expr *p){
 static int sqliteProcessJoin(Parse *pParse, Select *p){
   SrcList *pSrc;                  /* All tables in the FROM clause */
   int i, j;                       /* Loop counters */
-  struct SrcList_item *pLeft;     /* Left table being joined */
-  struct SrcList_item *pRight;    /* Right table being joined */
+  struct SrcList::SrcList_item *pLeft;     /* Left table being joined */
+  struct SrcList::SrcList_item *pRight;    /* Right table being joined */
 
   pSrc = p->pSrc;
   pLeft = &pSrc->a[0];
@@ -579,9 +582,9 @@ static void generateSortTail(
   if( eDest==SRT_Sorter ) return;
   pOrderBy = p->pOrderBy;
   nCol = pOrderBy->nExpr;
-  pInfo = sqliteMalloc( sizeof(*pInfo) + nCol*(sizeof(CollSeq*)+1) );
+  pInfo = (KeyInfo *)sqliteMalloc( sizeof(*pInfo) + nCol*(sizeof(CollSeq*)+1) );
   if( pInfo==0 ) return;
-  pInfo->aSortOrder = (char*)&pInfo->aColl[nCol];
+  pInfo->aSortOrder = (u8 *)(char*)&pInfo->aColl[nCol];
   pInfo->nField = nCol;
   for(i=0; i<nCol; i++){
     /* If a collation sequence was specified explicity, then it
@@ -802,7 +805,7 @@ static void _generateColumnNames(
         zCol = pTab->aCol[iCol].zName;
       }
       if( !shortNames && !fullNames && p->span.z && p->span.z[0] ){
-        sqlite3VdbeSetColName(v, i, p->span.z, p->span.n);
+        sqlite3VdbeSetColName(v, i, (char *)p->span.z, p->span.n);
       }else if( fullNames || (!shortNames && pTabList->nSrc>1) ){
         char *zName = 0;
         char *zTab;
@@ -815,7 +818,7 @@ static void _generateColumnNames(
         sqlite3VdbeSetColName(v, i, zCol, strlen(zCol));
       }
     }else if( p->span.z && p->span.z[0] ){
-      sqlite3VdbeSetColName(v, i, p->span.z, p->span.n);
+      sqlite3VdbeSetColName(v, i, (char *)p->span.z, p->span.n);
       /* sqlite3VdbeCompressSpace(v, addr); */
     }else{
       char zName[30];
@@ -864,7 +867,7 @@ Table *sqlite3ResultSetOfSelect(Parse *pParse, char *zTabName, Select *pSelect){
   if( sqlite3SelectResolve(pParse, pSelect, 0) ){
     return 0;
   }
-  pTab = sqliteMalloc( sizeof(Table) );
+  pTab = (Table *)sqliteMalloc( sizeof(Table) );
   if( pTab==0 ){
     return 0;
   }
@@ -873,7 +876,7 @@ Table *sqlite3ResultSetOfSelect(Parse *pParse, char *zTabName, Select *pSelect){
   pEList = pSelect->pEList;
   pTab->nCol = pEList->nExpr;
   assert( pTab->nCol>0 );
-  pTab->aCol = aCol = sqliteMalloc( sizeof(pTab->aCol[0])*pTab->nCol );
+  pTab->aCol = aCol = (Column *)sqliteMalloc( sizeof(pTab->aCol[0])*pTab->nCol );
   for(i=0, pCol=aCol; i<pTab->nCol; i++, pCol++){
     Expr *p, *pR;
     char *zType;
@@ -971,7 +974,7 @@ static int prepSelectStmt(Parse *pParse, Select *p){
   SrcList *pTabList;
   ExprList *pEList;
   Table *pTab;
-  struct SrcList_item *pFrom;
+  struct SrcList::SrcList_item *pFrom;
 
   if( p==0 || p->pSrc==0 || sqlite3_malloc_failed ) return 1;
   pTabList = p->pSrc;
@@ -1068,7 +1071,7 @@ static int prepSelectStmt(Parse *pParse, Select *p){
     ** operators that need to be expanded.  Loop through each expression
     ** in the result set and expand them one by one.
     */
-    struct ExprList_item *a = pEList->a;
+    struct ExprList::ExprList_item *a = pEList->a;
     ExprList *pNew = 0;
     int flags = pParse->db->flags;
     int longNames = (flags & SQLITE_FullColNames)!=0 &&
@@ -1110,7 +1113,7 @@ static int prepSelectStmt(Parse *pParse, Select *p){
             char *zName = pTab->aCol[j].zName;
 
             if( i>0 ){
-              struct SrcList_item *pLeft = &pTabList->a[i-1];
+              struct SrcList::SrcList_item *pLeft = &pTabList->a[i-1];
               if( (pLeft->jointype & JT_NATURAL)!=0 &&
                         columnIndex(pLeft->pTab, zName)>=0 ){
                 /* In a NATURAL join, omit the join columns from the 
@@ -1336,7 +1339,7 @@ static int openTempIndex(Parse *pParse, Select *p, int iTab){
     return 0;
   }
   nColumn = p->pEList->nExpr;
-  pKeyInfo = sqliteMalloc( sizeof(*pKeyInfo)+nColumn*sizeof(CollSeq*) );
+  pKeyInfo = (KeyInfo *)sqliteMalloc( sizeof(*pKeyInfo)+nColumn*sizeof(CollSeq*) );
   if( pKeyInfo==0 ) return 0;
   pKeyInfo->enc = db->enc;
   pKeyInfo->nField = nColumn;
@@ -1730,7 +1733,7 @@ static int multiSelect(
     KeyInfo *pKeyInfo;            /* Collating sequence for the result set */
 
     assert( p->ppOpenTemp == &pOpenTemp );
-    pKeyInfo = sqliteMalloc(sizeof(*pKeyInfo)+nCol*sizeof(CollSeq*));
+    pKeyInfo = (KeyInfo *)sqliteMalloc(sizeof(*pKeyInfo)+nCol*sizeof(CollSeq*));
     if( !pKeyInfo ){
       rc = SQLITE_NOMEM;
       goto multi_select_end;
@@ -1753,7 +1756,7 @@ static int multiSelect(
     }
 
     if( p->pOrderBy ){
-      struct ExprList_item *pOrderByTerm = p->pOrderBy->a;
+      struct ExprList::ExprList_item *pOrderByTerm = p->pOrderBy->a;
       for(i=0; i<p->pOrderBy->nExpr; i++, pOrderByTerm++){
         Expr *pExpr = pOrderByTerm->pExpr;
         char *zName = pOrderByTerm->zName;
@@ -1933,7 +1936,7 @@ static int flattenSubquery(
   int iParent;        /* VDBE cursor number of the pSub result set temp table */
   int i;              /* Loop counter */
   Expr *pWhere;                    /* The WHERE clause */
-  struct SrcList_item *pSubitem;   /* The subquery */
+  struct SrcList::SrcList_item *pSubitem;   /* The subquery */
 
   /* Check to see if flattening is permitted.  Return 0 if not.
   */
@@ -2045,7 +2048,7 @@ static int flattenSubquery(
   for(i=0; i<pList->nExpr; i++){
     Expr *pExpr;
     if( pList->a[i].zName==0 && (pExpr = pList->a[i].pExpr)->span.z!=0 ){
-      pList->a[i].zName = sqliteStrNDup(pExpr->span.z, pExpr->span.n);
+      pList->a[i].zName = sqliteStrNDup((char *)pExpr->span.z, pExpr->span.n);
     }
   }
   if( isAgg ){
@@ -2128,7 +2131,7 @@ static int simpleMinMaxQuery(Parse *pParse, Select *p, int eDest, int iParm){
   int seekOp;
   int cont;
   ExprList *pEList, *pList, eList;
-  struct ExprList_item eListItem;
+  struct ExprList::ExprList_item eListItem;
   SrcList *pSrc;
 
   /* Check to see if this query is a simple min() or max() query.  Return
@@ -2144,9 +2147,9 @@ static int simpleMinMaxQuery(Parse *pParse, Select *p, int eDest, int iParm){
   pList = pExpr->pList;
   if( pList==0 || pList->nExpr!=1 ) return 0;
   if( pExpr->token.n!=3 ) return 0;
-  if( sqlite3StrNICmp(pExpr->token.z,"min",3)==0 ){
+  if( sqlite3StrNICmp((char *)pExpr->token.z,"min",3)==0 ){
     seekOp = OP_Rewind;
-  }else if( sqlite3StrNICmp(pExpr->token.z,"max",3)==0 ){
+  }else if( sqlite3StrNICmp((char *)pExpr->token.z,"max",3)==0 ){
     seekOp = OP_Last;
   }else{
     return 0;
@@ -2865,4 +2868,6 @@ int sqlite3Select(
 select_end:
   restoreAggregateInfo(pParse, &sAggInfo);
   return rc;
+}
+
 }

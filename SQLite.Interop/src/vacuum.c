@@ -1,3 +1,6 @@
+#pragma unmanaged
+extern "C"
+{
 /*
 ** 2003 April 6
 **
@@ -14,7 +17,7 @@
 ** Most of the code in this file may be omitted by defining the
 ** SQLITE_OMIT_VACUUM macro.
 **
-** $Id: vacuum.c,v 1.5 2005/06/13 22:32:19 rmsimpson Exp $
+** $Id: vacuum.c,v 1.6 2005/08/01 19:32:15 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include "os.h"
@@ -58,7 +61,7 @@ static int execExecSql(sqlite3 *db, const char *zSql){
   if( rc!=SQLITE_OK ) return rc;
 
   while( SQLITE_ROW==sqlite3_step(pStmt) ){
-    rc = execSql(db, sqlite3_column_text(pStmt, 0));
+    rc = execSql(db, (const char *)sqlite3_column_text(pStmt, 0));
     if( rc!=SQLITE_OK ){
       sqlite3_finalize(pStmt);
       return rc;
@@ -127,7 +130,7 @@ int sqlite3RunVacuum(char **pzErrMsg, sqlite3 *db){
     return SQLITE_OK;
   }
   nFilename = strlen(zFilename);
-  zTemp = sqliteMalloc( nFilename+100 );
+  zTemp = (char *)sqliteMalloc( nFilename+100 );
   if( zTemp==0 ){
     rc = SQLITE_NOMEM;
     goto end_of_vacuum;
@@ -307,4 +310,6 @@ end_of_vacuum:
 #endif
 
   return rc;
+}
+
 }

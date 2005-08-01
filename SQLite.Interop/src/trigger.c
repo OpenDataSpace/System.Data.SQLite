@@ -1,3 +1,6 @@
+#pragma unmanaged
+extern "C"
+{
 /*
 **
 ** The author disclaims copyright to this source code.  In place of
@@ -237,7 +240,7 @@ void sqlite3FinishTrigger(
     addr = sqlite3VdbeAddOpList(v, ArraySize(insertTrig), insertTrig);
     sqlite3VdbeChangeP3(v, addr+2, pTrig->name, 0); 
     sqlite3VdbeChangeP3(v, addr+3, pTrig->table, 0); 
-    sqlite3VdbeChangeP3(v, addr+6, pAll->z, pAll->n);
+    sqlite3VdbeChangeP3(v, addr+6, (char *)pAll->z, pAll->n);
     sqlite3ChangeCookie(db, v, pTrig->iDb);
     sqlite3VdbeAddOp(v, OP_Close, 0, 0);
     sqlite3VdbeOp3(v, OP_ParseSchema, pTrig->iDb, 0, 
@@ -247,7 +250,7 @@ void sqlite3FinishTrigger(
   if( db->init.busy ){
     Table *pTab;
     Trigger *pDel;
-    pDel = sqlite3HashInsert(&db->aDb[pTrig->iDb].trigHash, 
+    pDel = (Trigger *)sqlite3HashInsert(&db->aDb[pTrig->iDb].trigHash, 
                      pTrig->name, strlen(pTrig->name)+1, pTrig);
     if( pDel ){
       assert( sqlite3_malloc_failed && pDel==pTrig );
@@ -278,7 +281,7 @@ triggerfinish_cleanup:
 */
 static void sqlitePersistTriggerStep(TriggerStep *p){
   if( p->target.z ){
-    p->target.z = sqliteStrNDup(p->target.z, p->target.n);
+    p->target.z = (const unsigned char *)sqliteStrNDup((char *)p->target.z, p->target.n);
     p->target.dyn = 1;
   }
   if( p->pSelect ){
@@ -311,7 +314,7 @@ static void sqlitePersistTriggerStep(TriggerStep *p){
 ** body of a TRIGGER.  
 */
 TriggerStep *sqlite3TriggerSelectStep(Select *pSelect){
-  TriggerStep *pTriggerStep = sqliteMalloc(sizeof(TriggerStep));
+  TriggerStep *pTriggerStep = (TriggerStep *)sqliteMalloc(sizeof(TriggerStep));
   if( pTriggerStep==0 ) return 0;
 
   pTriggerStep->op = TK_SELECT;
@@ -336,7 +339,7 @@ TriggerStep *sqlite3TriggerInsertStep(
   Select *pSelect,    /* A SELECT statement that supplies values */
   int orconf          /* The conflict algorithm (OE_Abort, OE_Replace, etc.) */
 ){
-  TriggerStep *pTriggerStep = sqliteMalloc(sizeof(TriggerStep));
+  TriggerStep *pTriggerStep = (TriggerStep *)sqliteMalloc(sizeof(TriggerStep));
 
   assert(pEList == 0 || pSelect == 0);
   assert(pEList != 0 || pSelect != 0);
@@ -369,7 +372,7 @@ TriggerStep *sqlite3TriggerUpdateStep(
   Expr *pWhere,        /* The WHERE clause */
   int orconf           /* The conflict algorithm. (OE_Abort, OE_Ignore, etc) */
 ){
-  TriggerStep *pTriggerStep = sqliteMalloc(sizeof(TriggerStep));
+  TriggerStep *pTriggerStep = (TriggerStep *)sqliteMalloc(sizeof(TriggerStep));
   if( pTriggerStep==0 ) return 0;
 
   pTriggerStep->op = TK_UPDATE;
@@ -388,7 +391,7 @@ TriggerStep *sqlite3TriggerUpdateStep(
 ** sees a DELETE statement inside the body of a CREATE TRIGGER.
 */
 TriggerStep *sqlite3TriggerDeleteStep(Token *pTableName, Expr *pWhere){
-  TriggerStep *pTriggerStep = sqliteMalloc(sizeof(TriggerStep));
+  TriggerStep *pTriggerStep = (TriggerStep *)sqliteMalloc(sizeof(TriggerStep));
   if( pTriggerStep==0 ) return 0;
 
   pTriggerStep->op = TK_DELETE;
@@ -442,7 +445,7 @@ void sqlite3DropTrigger(Parse *pParse, SrcList *pName){
   for(i=OMIT_TEMPDB; i<db->nDb; i++){
     int j = (i<2) ? i^1 : i;  /* Search TEMP before MAIN */
     if( zDb && sqlite3StrICmp(db->aDb[j].zName, zDb) ) continue;
-    pTrigger = sqlite3HashFind(&(db->aDb[j].trigHash), zName, nName+1);
+    pTrigger = (Trigger *)sqlite3HashFind(&(db->aDb[j].trigHash), zName, nName+1);
     if( pTrigger ) break;
   }
   if( !pTrigger ){
@@ -525,7 +528,7 @@ void sqlite3DropTriggerPtr(Parse *pParse, Trigger *pTrigger, int nested){
 void sqlite3UnlinkAndDeleteTrigger(sqlite3 *db, int iDb, const char *zName){
   Trigger *pTrigger;
   int nName = strlen(zName);
-  pTrigger = sqlite3HashInsert(&(db->aDb[iDb].trigHash), zName, nName+1, 0);
+  pTrigger = (Trigger *)sqlite3HashInsert(&(db->aDb[iDb].trigHash), zName, nName+1, 0);
   if( pTrigger ){
     Table *pTable = tableOfTrigger(db, pTrigger);
     assert( pTable!=0 );
@@ -620,8 +623,8 @@ static SrcList *targetSrcList(
   iDb = pStep->pTrig->iDb;
   if( iDb==0 || iDb>=2 ){
     assert( iDb<pParse->db->nDb );
-    sDb.z = pParse->db->aDb[iDb].zName;
-    sDb.n = strlen(sDb.z);
+    sDb.z = (const unsigned char *)pParse->db->aDb[iDb].zName;
+    sDb.n = strlen((char *)sDb.z);
     pSrc = sqlite3SrcListAppend(0, &sDb, &pStep->target);
   } else {
     pSrc = sqlite3SrcListAppend(0, &pStep->target, 0);
@@ -800,3 +803,5 @@ int sqlite3CodeRowTrigger(
   return 0;
 }
 #endif /* !defined(SQLITE_OMIT_TRIGGER) */
+
+}

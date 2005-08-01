@@ -1,3 +1,6 @@
+#pragma unmanaged
+extern "C"
+{
 /*
 ** 2004 April 13
 **
@@ -12,7 +15,7 @@
 ** This file contains routines used to translate between UTF-8, 
 ** UTF-16, UTF-16BE, and UTF-16LE.
 **
-** $Id: utf.c,v 1.5 2005/06/13 22:32:19 rmsimpson Exp $
+** $Id: utf.c,v 1.6 2005/08/01 19:32:15 rmsimpson Exp $
 **
 ** Notes on UTF-8:
 **
@@ -272,7 +275,7 @@ int sqlite3VdbeMemTranslate(Mem *pMem, u8 desiredEnc){
       assert( rc==SQLITE_NOMEM );
       return SQLITE_NOMEM;
     }
-    zIn = pMem->z;
+    zIn = (unsigned char *)pMem->z;
     zTerm = &zIn[pMem->n];
     while( zIn<zTerm ){
       temp = *zIn;
@@ -308,10 +311,10 @@ int sqlite3VdbeMemTranslate(Mem *pMem, u8 desiredEnc){
   ** obtained from malloc(), or Mem.zShort, if it large enough and not in
   ** use, or the zShort array on the stack (see above).
   */
-  zIn = pMem->z;
+  zIn = (unsigned char *)pMem->z;
   zTerm = &zIn[pMem->n];
   if( len>NBFS ){
-    zOut = sqliteMallocRaw(len);
+    zOut = (unsigned char *)sqliteMallocRaw(len);
     if( !zOut ) return SQLITE_NOMEM;
   }else{
     zOut = zShort;
@@ -360,12 +363,12 @@ int sqlite3VdbeMemTranslate(Mem *pMem, u8 desiredEnc){
   pMem->enc = desiredEnc;
   if( zOut==zShort ){
     memcpy(pMem->zShort, zOut, len);
-    zOut = pMem->zShort;
+    zOut = (unsigned char *)pMem->zShort;
     pMem->flags |= (MEM_Term|MEM_Short);
   }else{
     pMem->flags |= (MEM_Term|MEM_Dyn);
   }
-  pMem->z = zOut;
+  pMem->z = (char *)zOut;
 
 translate_out:
 #if defined(TRANSLATE_TRACE) && defined(SQLITE_DEBUG)
@@ -459,7 +462,7 @@ int sqlite3utf8CharLen(const char *z, int nByte){
 */
 int sqlite3utf16ByteLen(const void *zIn, int nChar){
   int c = 1;
-  char const *z = zIn;
+  char const *z = (const char *)zIn;
   int n = 0;
   if( SQLITE_UTF16NATIVE==SQLITE_UTF16BE ){
     while( c && ((nChar<0) || n<nChar) ){
@@ -568,3 +571,5 @@ void sqlite3utfSelfTest(){
 }
 #endif /* SQLITE_TEST */
 #endif /* SQLITE_OMIT_UTF16 */
+
+}

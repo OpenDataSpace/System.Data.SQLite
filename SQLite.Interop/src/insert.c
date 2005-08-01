@@ -1,3 +1,6 @@
+#pragma unmanaged
+extern "C"
+{
 /*
 ** 2001 September 15
 **
@@ -12,7 +15,7 @@
 ** This file contains C code routines that are called by the parser
 ** to handle INSERT statements in SQLite.
 **
-** $Id: insert.c,v 1.5 2005/06/13 22:32:19 rmsimpson Exp $
+** $Id: insert.c,v 1.6 2005/08/01 19:32:10 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 
@@ -104,7 +107,7 @@ void sqlite3TableAffinityStr(Vdbe *v, Table *pTab){
 */
 static int selectReadsTable(Select *p, int iDb, int iTab){
   int i;
-  struct SrcList_item *pItem;
+  struct SrcList::SrcList_item *pItem;
   if( p->pSrc==0 ) return 0;
   for(i=0, pItem=p->pSrc->a; i<p->pSrc->nSrc; i++, pItem++){
     if( pItem->pSelect ){
@@ -1108,4 +1111,6 @@ void sqlite3OpenTableAndIndices(
   if( pParse->nTab<=base+i ){
     pParse->nTab = base+i;
   }
+}
+
 }

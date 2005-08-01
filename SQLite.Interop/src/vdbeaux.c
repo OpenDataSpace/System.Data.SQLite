@@ -1,3 +1,6 @@
+#pragma unmanaged
+extern "C"
+{
 /*
 ** 2003 September 6
 **
@@ -18,7 +21,7 @@
 #include "os.h"
 #include <ctype.h>
 #include "vdbeInt.h"
-
+#include "opcodes.c"
 
 /*
 ** When debugging the code generator in a symbolic debugger, one can
@@ -35,7 +38,7 @@ int sqlite3_vdbe_addop_trace = 0;
 */
 Vdbe *sqlite3VdbeCreate(sqlite3 *db){
   Vdbe *p;
-  p = sqliteMalloc( sizeof(Vdbe) );
+  p = (Vdbe *)sqliteMalloc( sizeof(Vdbe) );
   if( p==0 ) return 0;
   p->db = db;
   if( db->pVdbe ){
@@ -65,11 +68,11 @@ static void resizeOpArray(Vdbe *p, int N){
   if( p->magic==VDBE_MAGIC_RUN ){
     assert( N==p->nOp );
     p->nOpAlloc = N;
-    p->aOp = sqliteRealloc(p->aOp, N*sizeof(Op));
+    p->aOp = (Op *)sqliteRealloc(p->aOp, N*sizeof(Op));
   }else if( p->nOpAlloc<N ){
     int oldSize = p->nOpAlloc;
     p->nOpAlloc = N+100;
-    p->aOp = sqliteRealloc(p->aOp, p->nOpAlloc*sizeof(Op));
+    p->aOp = (Op *)sqliteRealloc(p->aOp, p->nOpAlloc*sizeof(Op));
     if( p->aOp ){
       memset(&p->aOp[oldSize], 0, (p->nOpAlloc-oldSize)*sizeof(Op));
     }
@@ -144,7 +147,7 @@ int sqlite3VdbeMakeLabel(Vdbe *p){
   assert( p->magic==VDBE_MAGIC_INIT );
   if( i>=p->nLabelAlloc ){
     p->nLabelAlloc = p->nLabelAlloc*2 + 10;
-    p->aLabel = sqliteRealloc( p->aLabel, p->nLabelAlloc*sizeof(p->aLabel[0]));
+    p->aLabel = (int *)sqliteRealloc( p->aLabel, p->nLabelAlloc*sizeof(p->aLabel[0]));
   }
   if( p->aLabel ){
     p->aLabel[i] = -1;
@@ -406,7 +409,7 @@ void sqlite3VdbeChangeP3(Vdbe *p, int addr, const char *zP3, int n){
     int nField, nByte;
     nField = ((KeyInfo*)zP3)->nField;
     nByte = sizeof(*pKeyInfo) + (nField-1)*sizeof(pKeyInfo->aColl[0]);
-    pKeyInfo = sqliteMallocRaw( nByte );
+    pKeyInfo = (KeyInfo *)sqliteMallocRaw( nByte );
     pOp->p3 = (char*)pKeyInfo;
     if( pKeyInfo ){
       memcpy(pKeyInfo, zP3, nByte);
@@ -636,7 +639,7 @@ int sqlite3VdbeList(
     pMem++;
 
     pMem->flags = MEM_Static|MEM_Str|MEM_Term;
-    pMem->z = sqlite3OpcodeNames[pOp->opcode];  /* Opcode */
+    pMem->z = (char *)sqlite3OpcodeNames[pOp->opcode];  /* Opcode */
     pMem->n = strlen(pMem->z);
     pMem->type = SQLITE_TEXT;
     pMem->enc = SQLITE_UTF8;
@@ -734,7 +737,7 @@ void sqlite3VdbeMakeReady(
     assert( nVar>=0 );
     assert( nStack<p->nOp );
     nStack = isExplain ? 10 : nStack;
-    p->aStack = sqliteMalloc(
+    p->aStack = (Mem *)sqliteMalloc(
         nStack*sizeof(p->aStack[0])    /* aStack */
       + nArg*sizeof(Mem*)              /* apArg */
       + nVar*sizeof(Mem)               /* aVar */
@@ -834,7 +837,7 @@ static void freeAggElem(AggElem *pElem, Agg *pAgg){
       ctx.cnt = pMem->i;
       ctx.isError = 0;
       (*ctx.pFunc->xFinalize)(&ctx);
-      pMem->z = ctx.pAgg;
+      pMem->z = (char *)ctx.pAgg;
       if( pMem->z!=0 && pMem->z!=pMem->zShort ){
         sqliteFree(pMem->z);
       }
@@ -1511,7 +1514,7 @@ int sqlite3VdbeFinalize(Vdbe *p){
 void sqlite3VdbeDeleteAuxData(VdbeFunc *pVdbeFunc, int mask){
   int i;
   for(i=0; i<pVdbeFunc->nAux; i++){
-    struct AuxData *pAux = &pVdbeFunc->apAux[i];
+    struct VdbeFunc::AuxData *pAux = &pVdbeFunc->apAux[i];
     if( (i>31 || !(mask&(1<<i))) && pAux->pAux ){
       if( pAux->xDelete ){
         pAux->xDelete(pAux->pAux);
@@ -1820,9 +1823,9 @@ int sqlite3VdbeRecordCompare(
   mem1.enc = pKeyInfo->enc;
   mem2.enc = pKeyInfo->enc;
   
-  idx1 = sqlite3GetVarint32(pKey1, &szHdr1);
+  idx1 = sqlite3GetVarint32((const unsigned char *)pKey1, &szHdr1);
   d1 = szHdr1;
-  idx2 = sqlite3GetVarint32(pKey2, &szHdr2);
+  idx2 = sqlite3GetVarint32((const unsigned char *)pKey2, &szHdr2);
   d2 = szHdr2;
   nField = pKeyInfo->nField;
   while( idx1<szHdr1 && idx2<szHdr2 ){
@@ -1910,10 +1913,10 @@ int sqlite3VdbeIdxRowid(BtCursor *pCur, i64 *rowid){
   if( rc ){
     return rc;
   }
-  sqlite3GetVarint32(m.z, &szHdr);
-  sqlite3GetVarint32(&m.z[szHdr-1], &typeRowid);
+  sqlite3GetVarint32((const unsigned char *)m.z, &szHdr);
+  sqlite3GetVarint32((const unsigned char *)&m.z[szHdr-1], &typeRowid);
   lenRowid = sqlite3VdbeSerialTypeLen(typeRowid);
-  sqlite3VdbeSerialGet(&m.z[m.n-lenRowid], typeRowid, &v);
+  sqlite3VdbeSerialGet((const unsigned char *)&m.z[m.n-lenRowid], typeRowid, &v);
   *rowid = v.i;
   sqlite3VdbeMemRelease(&m);
   return SQLITE_OK;
@@ -1949,7 +1952,7 @@ int sqlite3VdbeIdxKeyCompare(
   if( rc ){
     return rc;
   }
-  lenRowid = sqlite3VdbeIdxRowidLen(m.n, m.z);
+  lenRowid = sqlite3VdbeIdxRowidLen(m.n, (const u8 *)m.z);
   *res = sqlite3VdbeRecordCompare(pC->pKeyInfo, m.n-lenRowid, m.z, nKey, pKey);
   sqlite3VdbeMemRelease(&m);
   return SQLITE_OK;
@@ -1994,4 +1997,6 @@ void sqlite3ExpirePreparedStatements(sqlite3 *db){
 */
 sqlite3 *sqlite3VdbeDb(Vdbe *v){
   return v->db;
+}
+
 }

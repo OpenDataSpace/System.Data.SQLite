@@ -1,3 +1,6 @@
+#pragma unmanaged
+extern "C"
+{
 /*
 ** 2004 May 26
 **
@@ -57,7 +60,7 @@ sqlite_int64 sqlite3_value_int64(sqlite3_value *pVal){
   return sqlite3VdbeIntValue((Mem*)pVal);
 }
 const unsigned char *sqlite3_value_text(sqlite3_value *pVal){
-  return (const char *)sqlite3ValueText(pVal, SQLITE_UTF8);
+  return (const unsigned char *)sqlite3ValueText(pVal, SQLITE_UTF8);
 }
 #ifndef SQLITE_OMIT_UTF16
 const void *sqlite3_value_text16(sqlite3_value* pVal){
@@ -85,7 +88,7 @@ void sqlite3_result_blob(
   void (*xDel)(void *)
 ){
   assert( n>0 );
-  sqlite3VdbeMemSetStr(&pCtx->s, z, n, 0, xDel);
+  sqlite3VdbeMemSetStr(&pCtx->s, (char *)z, n, 0, xDel);
 }
 void sqlite3_result_double(sqlite3_context *pCtx, double rVal){
   sqlite3VdbeMemSetDouble(&pCtx->s, rVal);
@@ -96,7 +99,7 @@ void sqlite3_result_error(sqlite3_context *pCtx, const char *z, int n){
 }
 void sqlite3_result_error16(sqlite3_context *pCtx, const void *z, int n){
   pCtx->isError = 1;
-  sqlite3VdbeMemSetStr(&pCtx->s, z, n, SQLITE_UTF16NATIVE, SQLITE_TRANSIENT);
+  sqlite3VdbeMemSetStr(&pCtx->s, (char *)z, n, SQLITE_UTF16NATIVE, SQLITE_TRANSIENT);
 }
 void sqlite3_result_int(sqlite3_context *pCtx, int iVal){
   sqlite3VdbeMemSetInt64(&pCtx->s, (i64)iVal);
@@ -122,7 +125,7 @@ void sqlite3_result_text16(
   int n, 
   void (*xDel)(void *)
 ){
-  sqlite3VdbeMemSetStr(&pCtx->s, z, n, SQLITE_UTF16NATIVE, xDel);
+  sqlite3VdbeMemSetStr(&pCtx->s, (char *)z, n, SQLITE_UTF16NATIVE, xDel);
 }
 void sqlite3_result_text16be(
   sqlite3_context *pCtx, 
@@ -130,7 +133,7 @@ void sqlite3_result_text16be(
   int n, 
   void (*xDel)(void *)
 ){
-  sqlite3VdbeMemSetStr(&pCtx->s, z, n, SQLITE_UTF16BE, xDel);
+  sqlite3VdbeMemSetStr(&pCtx->s, (char *)z, n, SQLITE_UTF16BE, xDel);
 }
 void sqlite3_result_text16le(
   sqlite3_context *pCtx, 
@@ -138,7 +141,7 @@ void sqlite3_result_text16le(
   int n, 
   void (*xDel)(void *)
 ){
-  sqlite3VdbeMemSetStr(&pCtx->s, z, n, SQLITE_UTF16LE, xDel);
+  sqlite3VdbeMemSetStr(&pCtx->s, (char *)z, n, SQLITE_UTF16LE, xDel);
 }
 #endif /* SQLITE_OMIT_UTF16 */
 void sqlite3_result_value(sqlite3_context *pCtx, sqlite3_value *pValue){
@@ -271,17 +274,17 @@ void sqlite3_set_auxdata(
   void *pAux, 
   void (*xDelete)(void*)
 ){
-  struct AuxData *pAuxData;
+  struct VdbeFunc::AuxData *pAuxData;
   VdbeFunc *pVdbeFunc;
   if( iArg<0 ) return;
 
   pVdbeFunc = pCtx->pVdbeFunc;
   if( !pVdbeFunc || pVdbeFunc->nAux<=iArg ){
-    int nMalloc = sizeof(VdbeFunc) + sizeof(struct AuxData)*iArg;
-    pCtx->pVdbeFunc = pVdbeFunc = sqliteRealloc(pVdbeFunc, nMalloc);
+    int nMalloc = sizeof(VdbeFunc) + sizeof(struct VdbeFunc::AuxData)*iArg;
+    pCtx->pVdbeFunc = pVdbeFunc = (VdbeFunc *)sqliteRealloc(pVdbeFunc, nMalloc);
     if( !pVdbeFunc ) return;
     memset(&pVdbeFunc->apAux[pVdbeFunc->nAux], 0, 
-             sizeof(struct AuxData)*(iArg+1-pVdbeFunc->nAux));
+      sizeof(struct VdbeFunc::AuxData)*(iArg+1-pVdbeFunc->nAux));
     pVdbeFunc->nAux = iArg+1;
     pVdbeFunc->pFunc = pCtx->pFunc;
   }
@@ -416,7 +419,7 @@ static const void *columnName(
 ** statement pStmt.
 */
 const char *sqlite3_column_name(sqlite3_stmt *pStmt, int N){
-  return columnName(pStmt, N, (const void*(*)(Mem*))sqlite3_value_text, 0);
+  return (const char *)columnName(pStmt, N, (const void*(*)(Mem*))sqlite3_value_text, 0);
 }
 #ifndef SQLITE_OMIT_UTF16
 const void *sqlite3_column_name16(sqlite3_stmt *pStmt, int N){
@@ -429,7 +432,7 @@ const void *sqlite3_column_name16(sqlite3_stmt *pStmt, int N){
 ** of the result set of SQL statement pStmt.
 */
 const char *sqlite3_column_decltype(sqlite3_stmt *pStmt, int N){
-  return columnName(pStmt, N, (const void*(*)(Mem*))sqlite3_value_text, 1);
+  return (const char *)columnName(pStmt, N, (const void*(*)(Mem*))sqlite3_value_text, 1);
 }
 #ifndef SQLITE_OMIT_UTF16
 const void *sqlite3_column_decltype16(sqlite3_stmt *pStmt, int N){
@@ -534,7 +537,7 @@ static int bindText(
     return rc;
   }
   pVar = &p->aVar[i-1];
-  rc = sqlite3VdbeMemSetStr(pVar, zData, nData, encoding, xDel);
+  rc = sqlite3VdbeMemSetStr(pVar, (char *)zData, nData, encoding, xDel);
   if( rc ){
     return rc;
   }
@@ -698,4 +701,6 @@ int sqlite3_transfer_bindings(sqlite3_stmt *pFromStmt, sqlite3_stmt *pToStmt){
 */
 sqlite3 *sqlite3_db_handle(sqlite3_stmt *pStmt){
   return pStmt ? ((Vdbe*)pStmt)->db : 0;
+}
+
 }

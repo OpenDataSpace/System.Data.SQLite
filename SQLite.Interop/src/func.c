@@ -1,3 +1,6 @@
+#pragma unmanaged
+extern "C"
+{
 /*
 ** 2002 February 23
 **
@@ -16,7 +19,7 @@
 ** sqliteRegisterBuildinFunctions() found at the bottom of the file.
 ** All other code has file scope.
 **
-** $Id: func.c,v 1.5 2005/06/13 22:32:19 rmsimpson Exp $
+** $Id: func.c,v 1.6 2005/08/01 19:32:10 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include <ctype.h>
@@ -97,7 +100,7 @@ static void lengthFunc(
       break;
     }
     case SQLITE_TEXT: {
-      const char *z = sqlite3_value_text(argv[0]);
+      const char *z = (const char *)sqlite3_value_text(argv[0]);
       for(len=0; *z; z++){ if( (0xc0&*z)!=0x80 ) len++; }
       sqlite3_result_int(context, len);
       break;
@@ -148,7 +151,7 @@ static void substrFunc(
   int p1, p2, len;
 
   assert( argc==3 );
-  z = sqlite3_value_text(argv[0]);
+  z = (const char *)sqlite3_value_text(argv[0]);
   if( z==0 ) return;
   p1 = sqlite3_value_int(argv[1]);
   p2 = sqlite3_value_int(argv[2]);
@@ -204,26 +207,26 @@ static void upperFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
   unsigned char *z;
   int i;
   if( argc<1 || SQLITE_NULL==sqlite3_value_type(argv[0]) ) return;
-  z = sqliteMalloc(sqlite3_value_bytes(argv[0])+1);
+  z = (unsigned char *)sqliteMalloc(sqlite3_value_bytes(argv[0])+1);
   if( z==0 ) return;
-  strcpy(z, sqlite3_value_text(argv[0]));
+  strcpy((char *)z, (char *)sqlite3_value_text(argv[0]));
   for(i=0; z[i]; i++){
     z[i] = toupper(z[i]);
   }
-  sqlite3_result_text(context, z, -1, SQLITE_TRANSIENT);
+  sqlite3_result_text(context, (char *)z, -1, SQLITE_TRANSIENT);
   sqliteFree(z);
 }
 static void lowerFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
   unsigned char *z;
   int i;
   if( argc<1 || SQLITE_NULL==sqlite3_value_type(argv[0]) ) return;
-  z = sqliteMalloc(sqlite3_value_bytes(argv[0])+1);
+  z = (unsigned char *)sqliteMalloc(sqlite3_value_bytes(argv[0])+1);
   if( z==0 ) return;
-  strcpy(z, sqlite3_value_text(argv[0]));
+  strcpy((char *)z, (char *)sqlite3_value_text(argv[0]));
   for(i=0; z[i]; i++){
     z[i] = tolower(z[i]);
   }
-  sqlite3_result_text(context, z, -1, SQLITE_TRANSIENT);
+  sqlite3_result_text(context, (char *)z, -1, SQLITE_TRANSIENT);
   sqliteFree(z);
 }
 
@@ -268,7 +271,7 @@ static void last_insert_rowid(
   int arg, 
   sqlite3_value **argv
 ){
-  sqlite3 *db = sqlite3_user_data(context);
+  sqlite3 *db = (sqlite3 *)sqlite3_user_data(context);
   sqlite3_result_int64(context, sqlite3_last_insert_rowid(db));
 }
 
@@ -281,7 +284,7 @@ static void changes(
   int arg,
   sqlite3_value **argv
 ){
-  sqlite3 *db = sqlite3_user_data(context);
+  sqlite3 *db = (sqlite3 *)sqlite3_user_data(context);
   sqlite3_result_int(context, sqlite3_changes(db));
 }
 
@@ -294,7 +297,7 @@ static void total_changes(
   int arg,
   sqlite3_value **argv
 ){
-  sqlite3 *db = sqlite3_user_data(context);
+  sqlite3 *db = (sqlite3 *)sqlite3_user_data(context);
   sqlite3_result_int(context, sqlite3_total_changes(db));
 }
 
@@ -476,7 +479,7 @@ static void likeFunc(
     ** Otherwise, return an error.
     */
     const unsigned char *zEsc = sqlite3_value_text(argv[2]);
-    if( sqlite3utf8CharLen(zEsc, -1)!=1 ){
+    if( sqlite3utf8CharLen((char *)zEsc, -1)!=1 ){
       sqlite3_result_error(context, 
           "ESCAPE expression must be a single character", -1);
       return;
@@ -564,7 +567,7 @@ static void quoteFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
       };
       char *zText = 0;
       int nBlob = sqlite3_value_bytes(argv[0]);
-      char const *zBlob = sqlite3_value_blob(argv[0]);
+      char const *zBlob = (const char *)sqlite3_value_blob(argv[0]);
 
       zText = (char *)sqliteMalloc((2*nBlob)+4); 
       if( !zText ){
@@ -586,11 +589,11 @@ static void quoteFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
     }
     case SQLITE_TEXT: {
       int i,j,n;
-      const char *zArg = sqlite3_value_text(argv[0]);
+      const char *zArg = (const char *)sqlite3_value_text(argv[0]);
       char *z;
 
       for(i=n=0; zArg[i]; i++){ if( zArg[i]=='\'' ) n++; }
-      z = sqliteMalloc( i+n+3 );
+      z = (char *)sqliteMalloc( i+n+3 );
       if( z==0 ) return;
       z[0] = '\'';
       for(i=0, j=1; zArg[i]; i++){
@@ -821,7 +824,7 @@ struct SumCtx {
 static void sumStep(sqlite3_context *context, int argc, sqlite3_value **argv){
   SumCtx *p;
   if( argc<1 ) return;
-  p = sqlite3_aggregate_context(context, sizeof(*p));
+  p = (SumCtx *)sqlite3_aggregate_context(context, sizeof(*p));
   if( p && SQLITE_NULL!=sqlite3_value_type(argv[0]) ){
     p->sum += sqlite3_value_double(argv[0]);
     p->cnt++;
@@ -829,12 +832,12 @@ static void sumStep(sqlite3_context *context, int argc, sqlite3_value **argv){
 }
 static void sumFinalize(sqlite3_context *context){
   SumCtx *p;
-  p = sqlite3_aggregate_context(context, sizeof(*p));
+  p = (SumCtx *)sqlite3_aggregate_context(context, sizeof(*p));
   sqlite3_result_double(context, p ? p->sum : 0.0);
 }
 static void avgFinalize(sqlite3_context *context){
   SumCtx *p;
-  p = sqlite3_aggregate_context(context, sizeof(*p));
+  p = (SumCtx *)sqlite3_aggregate_context(context, sizeof(*p));
   if( p && p->cnt>0 ){
     sqlite3_result_double(context, p->sum/(double)p->cnt);
   }
@@ -865,14 +868,14 @@ struct CountCtx {
 */
 static void countStep(sqlite3_context *context, int argc, sqlite3_value **argv){
   CountCtx *p;
-  p = sqlite3_aggregate_context(context, sizeof(*p));
+  p = (CountCtx *)sqlite3_aggregate_context(context, sizeof(*p));
   if( (argc==0 || SQLITE_NULL!=sqlite3_value_type(argv[0])) && p ){
     p->n++;
   }
 }   
 static void countFinalize(sqlite3_context *context){
   CountCtx *p;
-  p = sqlite3_aggregate_context(context, sizeof(*p));
+  p = (CountCtx *)sqlite3_aggregate_context(context, sizeof(*p));
   sqlite3_result_int(context, p ? p->n : 0);
 }
 
@@ -1040,4 +1043,6 @@ void sqlite3RegisterBuiltinFunctions(sqlite3 *db){
     sqlite3SseFunctions(db);
   }
 #endif
+}
+
 }

@@ -1,3 +1,6 @@
+#pragma unmanaged
+extern "C"
+{
 /*
 ** 2001 September 15
 **
@@ -16,7 +19,7 @@
 ** so is applicable.  Because this module is responsible for selecting
 ** indices, you might also think of this module as the "query optimizer".
 **
-** $Id: where.c,v 1.5 2005/06/13 22:32:19 rmsimpson Exp $
+** $Id: where.c,v 1.6 2005/08/01 19:32:16 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 
@@ -249,7 +252,7 @@ static int allowedOp(int op){
 */
 static int tableOrder(SrcList *pList, int iCur){
   int i;
-  struct SrcList_item *pItem;
+  struct SrcList::SrcList_item *pItem;
   for(i=0, pItem=pList->a; i<pList->nSrc; i++, pItem++){
     if( pItem->iCursor==iCur ) return i;
   }
@@ -344,7 +347,7 @@ static int isSortingIndex(
   int i, j;                    /* Loop counters */
   int sortOrder;               /* Which direction we are sorting */
   int nTerm;                   /* Number of ORDER BY terms */
-  struct ExprList_item *pTerm; /* A term of the ORDER BY clause */
+  struct ExprList::ExprList_item *pTerm; /* A term of the ORDER BY clause */
   sqlite3 *db = pParse->db;
 
   assert( pOrderBy!=0 );
@@ -612,7 +615,7 @@ WhereInfo *sqlite3WhereBegin(
   int iDirectLt[BMS];  /* Term of the form ROWID<X or ROWID<=X */
   int iDirectGt[BMS];  /* Term of the form ROWID>X or ROWID>=X */
   ExprInfo aExpr[101]; /* The WHERE clause is divided into these terms */
-  struct SrcList_item *pTabItem;  /* A single entry from pTabList */
+  struct SrcList::SrcList_item *pTabItem;  /* A single entry from pTabList */
   WhereLevel *pLevel;             /* A single level in the pWInfo list */
 
   /* The number of terms in the FROM clause is limited by the number of
@@ -641,7 +644,7 @@ WhereInfo *sqlite3WhereBegin(
   /* Allocate and initialize the WhereInfo structure that will become the
   ** return value.
   */
-  pWInfo = sqliteMalloc( sizeof(WhereInfo) + pTabList->nSrc*sizeof(WhereLevel));
+  pWInfo = (WhereInfo *)sqliteMalloc( sizeof(WhereInfo) + pTabList->nSrc*sizeof(WhereLevel));
   if( sqlite3_malloc_failed ){
     sqliteFree(pWInfo); /* Avoid leaking memory when malloc fails */
     return 0;
@@ -1349,7 +1352,7 @@ void sqlite3WhereEnd(WhereInfo *pWInfo){
   int i;
   WhereLevel *pLevel;
   SrcList *pTabList = pWInfo->pTabList;
-  struct SrcList_item *pTabItem;
+  struct SrcList::SrcList_item *pTabItem;
 
   /* Generate loop termination code.
   */
@@ -1436,4 +1439,6 @@ void sqlite3WhereEnd(WhereInfo *pWInfo){
   */
   sqliteFree(pWInfo);
   return;
+}
+
 }

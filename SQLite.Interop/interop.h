@@ -81,7 +81,7 @@ static void generateColumnNames(
         zCol = pTab->aCol[iCol].zName;
       }
       if( !shortNames && !fullNames && p->span.z && p->span.z[0] ){
-        sqlite3VdbeSetColName(v, i, p->span.z, p->span.n);
+        sqlite3VdbeSetColName(v, i, (char *)p->span.z, p->span.n);
       }else if( fullNames || (!shortNames && pTabList->nSrc>1) ){
         char *zName = 0;
         char *zTab;
@@ -99,7 +99,7 @@ static void generateColumnNames(
         sqlite3VdbeSetColName(v, i, zCol, strlen(zCol));
       }
     }else if( p->span.z && p->span.z[0] ){
-      sqlite3VdbeSetColName(v, i, p->span.z, p->span.n);
+      sqlite3VdbeSetColName(v, i, (char *)p->span.z, p->span.n);
       /* sqlite3VdbeCompressSpace(v, addr); */
     }else{
       char zName[30];
@@ -126,13 +126,13 @@ int sqlite3_interop_collationfunc(void *pv, int len1, const void *pv1, int len2,
 void sqlite3_interop_func(sqlite3_context *pctx, int n, sqlite3_value **pv)
 {
   SQLITEUSERFUNC *pf = (SQLITEUSERFUNC *)sqlite3_user_data(pctx);
-  pf[0](pctx, n, pv);
+  pf[0](pctx, n, (void **)pv);
 }
 
 void sqlite3_interop_step(sqlite3_context *pctx, int n, sqlite3_value **pv)
 {
   SQLITEUSERFUNC *pf = (SQLITEUSERFUNC *)sqlite3_user_data(pctx);
-  pf[1](pctx, n, pv);
+  pf[1](pctx, n, (void **)pv);
 }
 
 void sqlite3_interop_final(sqlite3_context *pctx)
@@ -393,7 +393,7 @@ __declspec(dllexport) void __stdcall sqlite3_column_int64_interop(sqlite3_stmt *
 __declspec(dllexport) const unsigned char * __stdcall sqlite3_column_text_interop(sqlite3_stmt *stmt, int iCol, int *plen)
 {
   const unsigned char *pval = sqlite3_column_text(stmt, iCol);
-  *plen = (pval != 0) ? strlen(pval) : 0;
+  *plen = (pval != 0) ? strlen((char *)pval) : 0;
   return pval;
 }
 
@@ -420,7 +420,7 @@ __declspec(dllexport) int __stdcall sqlite3_reset_interop(sqlite3_stmt *stmt)
 __declspec(dllexport) int __stdcall sqlite3_create_function_interop(sqlite3 *psql, const char *zFunctionName, int nArg, int eTextRep, SQLITEUSERFUNC func, SQLITEUSERFUNC funcstep, SQLITEUSERFUNC funcfinal, void **ppCookie)
 {
   int n;
-  SQLITEUSERFUNC *p = malloc(sizeof(SQLITEUSERFUNC) * 3);
+  SQLITEUSERFUNC *p = (SQLITEUSERFUNC *)malloc(sizeof(SQLITEUSERFUNC) * 3);
 
   p[0] = func;
   p[1] = funcstep;
@@ -440,7 +440,7 @@ __declspec(dllexport) int __stdcall sqlite3_create_function_interop(sqlite3 *psq
 __declspec(dllexport) int __stdcall sqlite3_create_function16_interop(sqlite3 *psql, void *zFunctionName, int nArg, int eTextRep, SQLITEUSERFUNC func, SQLITEUSERFUNC funcstep, SQLITEUSERFUNC funcfinal, void **ppCookie)
 {
   int n;
-  SQLITEUSERFUNC *p = malloc(sizeof(SQLITEUSERFUNC) * 3);
+  SQLITEUSERFUNC *p = (SQLITEUSERFUNC *)malloc(sizeof(SQLITEUSERFUNC) * 3);
 
   p[0] = func;
   p[1] = funcstep;
@@ -460,7 +460,7 @@ __declspec(dllexport) int __stdcall sqlite3_create_function16_interop(sqlite3 *p
 __declspec(dllexport) int __stdcall sqlite3_create_collation_interop(sqlite3* db, const char *zName, int eTextRep, void* pvUser, SQLITECOLLATION func, void **ppCookie)
 {
   int n;
-  SQLITECOLLATION *p = malloc(sizeof(SQLITECOLLATION));
+  SQLITECOLLATION *p = (SQLITECOLLATION *)malloc(sizeof(SQLITECOLLATION));
   
   p[0] = func;
 
@@ -478,7 +478,7 @@ __declspec(dllexport) int __stdcall sqlite3_create_collation_interop(sqlite3* db
 __declspec(dllexport) int __stdcall sqlite3_create_collation16_interop(sqlite3* db, const void *zName, int eTextRep, void* pvUser, SQLITECOLLATION func, void **ppCookie)
 {
   int n;
-  SQLITECOLLATION *p = malloc(sizeof(SQLITECOLLATION));
+  SQLITECOLLATION *p = (SQLITECOLLATION *)malloc(sizeof(SQLITECOLLATION));
   
   p[0] = func;
 
@@ -531,7 +531,7 @@ __declspec(dllexport) void __stdcall sqlite3_value_int64_interop(sqlite3_value *
 __declspec(dllexport) const unsigned char * __stdcall sqlite3_value_text_interop(sqlite3_value *val, int *plen)
 {
   const unsigned char *pval = sqlite3_value_text(val);
-  *plen = (pval != 0) ? strlen(pval) : 0;
+  *plen = (pval != 0) ? strlen((char *)pval) : 0;
   return pval;
 }
 

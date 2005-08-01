@@ -1,3 +1,6 @@
+#pragma unmanaged
+extern "C"
+{
 /*
 ** 2001 September 15
 **
@@ -12,7 +15,7 @@
 ** This file contains C code routines that are called by the parser
 ** in order to generate code for DELETE FROM statements.
 **
-** $Id: delete.c,v 1.5 2005/06/13 22:32:19 rmsimpson Exp $
+** $Id: delete.c,v 1.6 2005/08/01 19:32:09 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 
@@ -24,7 +27,7 @@
 Table *sqlite3SrcListLookup(Parse *pParse, SrcList *pSrc){
   Table *pTab = 0;
   int i;
-  struct SrcList_item *pItem;
+  struct SrcList::SrcList_item *pItem;
   for(i=0, pItem=pSrc->a; i<pSrc->nSrc; i++, pItem++){
     pTab = sqlite3LocateTable(pParse, pItem->zName, pItem->zDatabase);
     sqlite3DeleteTable(pParse->db, pItem->pTab);
@@ -444,4 +447,6 @@ void sqlite3GenerateIndexKey(
   }
   sqlite3VdbeAddOp(v, OP_MakeRecord, pIdx->nColumn, (1<<24));
   sqlite3IndexAffinityStr(v, pIdx);
+}
+
 }

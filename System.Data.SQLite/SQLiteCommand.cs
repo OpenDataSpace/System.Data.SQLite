@@ -425,12 +425,11 @@ namespace System.Data.SQLite
 
       for (n = 0; n < x; n++)
       {
-        if (_cnn._sql.Step(_statementList[n]) == true)
+        if (_cnn._sql.Step(_statementList[n]) == true && ret == null)
         {
           ret = _cnn._sql.GetValue(_statementList[n], 0, ref typ);
         }
         _cnn._sql.Reset(_statementList[n]);
-        if (ret != null) break;
       }
 
       if (ret == null) ret = DBNull.Value;

@@ -11,7 +11,7 @@
 *************************************************************************
 ** Internal interface definitions for SQLite.
 **
-** @(#) $Id: sqliteInt.h,v 1.5 2005/06/13 22:32:19 rmsimpson Exp $
+** @(#) $Id: sqliteInt.h,v 1.6 2005/08/01 19:32:15 rmsimpson Exp $
 */
 #ifndef _SQLITEINT_H_
 #define _SQLITEINT_H_

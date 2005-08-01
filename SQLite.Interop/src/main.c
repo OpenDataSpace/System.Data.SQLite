@@ -1,3 +1,6 @@
+#pragma unmanaged
+extern "C"
+{
 /*
 ** 2001 September 15
 **
@@ -14,7 +17,7 @@
 ** other files are for internal use by SQLite and should not be
 ** accessed by users of the library.
 **
-** $Id: main.c,v 1.5 2005/06/13 22:32:19 rmsimpson Exp $
+** $Id: main.c,v 1.6 2005/08/01 19:32:10 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include "os.h"
@@ -480,7 +483,7 @@ int sqlite3_create_function16(
   }
   pTmp = sqlite3GetTransientValue(db);
   sqlite3ValueSetStr(pTmp, -1, zFunctionName, SQLITE_UTF16NATIVE,SQLITE_STATIC);
-  zFunc8 = sqlite3ValueText(pTmp, SQLITE_UTF8);
+  zFunc8 = (const char *)sqlite3ValueText(pTmp, SQLITE_UTF8);
 
   if( !zFunc8 ){
     return SQLITE_NOMEM;
@@ -585,7 +588,7 @@ int sqlite3BtreeFactory(
 
   rc = sqlite3BtreeOpen(zFilename, ppBtree, btree_flags);
   if( rc==SQLITE_OK ){
-    sqlite3BtreeSetBusyHandler(*ppBtree, (void*)&db->busyHandler);
+    sqlite3BtreeSetBusyHandler(*ppBtree, (BusyHandler *)(void*)&db->busyHandler);
     sqlite3BtreeSetCacheSize(*ppBtree, nCache);
   }
   return rc;
@@ -603,7 +606,7 @@ const char *sqlite3_errmsg(sqlite3 *db){
   if( sqlite3SafetyCheck(db) || db->errCode==SQLITE_MISUSE ){
     return sqlite3ErrStr(SQLITE_MISUSE);
   }
-  z = sqlite3_value_text(db->pErr);
+  z = (const char *)sqlite3_value_text(db->pErr);
   if( z==0 ){
     z = sqlite3ErrStr(db->errCode);
   }
@@ -678,7 +681,7 @@ static int openDatabase(
   int rc, i;
 
   /* Allocate the sqlite data structure */
-  db = sqliteMalloc( sizeof(sqlite3) );
+  db = (sqlite3 *)sqliteMalloc( sizeof(sqlite3) );
   if( db==0 ) goto opendb_out;
   db->priorNewRowid = 0;
   db->magic = SQLITE_MAGIC_BUSY;
@@ -781,7 +784,7 @@ int sqlite3_open16(
   *ppDb = 0;
   pVal = sqlite3ValueNew();
   sqlite3ValueSetStr(pVal, -1, zFilename, SQLITE_UTF16NATIVE, SQLITE_STATIC);
-  zFilename8 = sqlite3ValueText(pVal, SQLITE_UTF8);
+  zFilename8 = (const char *)sqlite3ValueText(pVal, SQLITE_UTF8);
   if( zFilename8 ){
     rc = openDatabase(zFilename8, ppDb);
     if( rc==SQLITE_OK && *ppDb ){
@@ -911,7 +914,7 @@ int sqlite3_create_collation16(
   }
   pTmp = sqlite3GetTransientValue(db);
   sqlite3ValueSetStr(pTmp, -1, zName, SQLITE_UTF16NATIVE, SQLITE_STATIC);
-  zName8 = sqlite3ValueText(pTmp, SQLITE_UTF8);
+  zName8 = (const char *)sqlite3ValueText(pTmp, SQLITE_UTF8);
   return sqlite3_create_collation(db, zName8, enc, pCtx, xCompare);
 }
 #endif /* SQLITE_OMIT_UTF16 */
@@ -1000,4 +1003,6 @@ recover_out:
 */
 int sqlite3_get_autocommit(sqlite3 *db){
   return db->autoCommit;
+}
+
 }

@@ -1,3 +1,6 @@
+#pragma unmanaged
+extern "C"
+{
 /*
 ** 2004 May 22
 **
@@ -649,7 +652,7 @@ char *sqlite3OsFullPathname(const char *zRelative){
   if( cygwin_conv_to_full_win32_path(zRelative, zFull) ) return 0;
 #else
   nByte = GetFullPathNameA(zRelative, 0, 0, &zNotUsed) + 1;
-  zFull = sqliteMalloc( nByte );
+  zFull = (char *)sqliteMalloc( nByte );
   if( zFull==0 ) return 0;
   GetFullPathNameA(zRelative, nByte, zFull, &zNotUsed);
 #endif
@@ -765,3 +768,5 @@ int sqlite3OsCurrentTime(double *prNow){
 }
 
 #endif /* OS_WIN */
+
+}

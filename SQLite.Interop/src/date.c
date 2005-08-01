@@ -1,3 +1,6 @@
+#pragma unmanaged
+extern "C"
+{
 /*
 ** 2003 October 31
 **
@@ -16,7 +19,7 @@
 ** sqlite3RegisterDateTimeFunctions() found at the bottom of the file.
 ** All other code has file scope.
 **
-** $Id: date.c,v 1.5 2005/06/13 22:32:19 rmsimpson Exp $
+** $Id: date.c,v 1.6 2005/08/01 19:32:09 rmsimpson Exp $
 **
 ** NOTES:
 **
@@ -643,10 +646,10 @@ static int isDate(int argc, sqlite3_value **argv, DateTime *p){
   int i;
   if( argc==0 ) return 1;
   if( SQLITE_NULL==sqlite3_value_type(argv[0]) || 
-      parseDateOrTime(sqlite3_value_text(argv[0]), p) ) return 1;
+      parseDateOrTime((const char *)sqlite3_value_text(argv[0]), p) ) return 1;
   for(i=1; i<argc; i++){
     if( SQLITE_NULL==sqlite3_value_type(argv[i]) || 
-        parseModifier(sqlite3_value_text(argv[i]), p) ) return 1;
+        parseModifier((const char *)sqlite3_value_text(argv[i]), p) ) return 1;
   }
   return 0;
 }
@@ -759,7 +762,7 @@ static void strftimeFunc(
   DateTime x;
   int n, i, j;
   char *z;
-  const char *zFmt = sqlite3_value_text(argv[0]);
+  const char *zFmt = (const char *)sqlite3_value_text(argv[0]);
   char zBuf[100];
   if( zFmt==0 || isDate(argc-1, argv+1, &x) ) return;
   for(i=0, n=1; zFmt[i]; i++, n++){
@@ -798,7 +801,7 @@ static void strftimeFunc(
   if( n<sizeof(zBuf) ){
     z = zBuf;
   }else{
-    z = sqliteMalloc( n );
+    z = (char *)sqliteMalloc( n );
     if( z==0 ) return;
   }
   computeJD(&x);
@@ -997,4 +1000,6 @@ void sqlite3RegisterDateTimeFunctions(sqlite3 *db){
         aFuncs[i].zFormat, currentTimeFunc, 0, 0);
   }
 #endif
+}
+
 }

@@ -1,3 +1,6 @@
+#pragma unmanaged
+extern "C"
+{
 /*
 ** The "printf" code that follows dates from the 1980's.  It is in
 ** the public domain.  The original comments are included here for
@@ -577,7 +580,7 @@ static int vxprintf(
           needQuote = !isnull && xtype==etSQLESCAPE2;
           n += i + 1 + needQuote*2;
           if( n>etBUFSIZE ){
-            bufpt = zExtra = sqliteMalloc( n );
+            bufpt = zExtra = (char *)sqliteMalloc( n );
             if( bufpt==0 ) return -1;
           }else{
             bufpt = buf;
@@ -597,7 +600,7 @@ static int vxprintf(
       case etTOKEN: {
         Token *pToken = va_arg(ap, Token*);
         if( pToken && pToken->z ){
-          (*func)(arg, pToken->z, pToken->n);
+          (*func)(arg, (char *)pToken->z, pToken->n);
         }
         length = width = 0;
         break;
@@ -605,7 +608,7 @@ static int vxprintf(
       case etSRCLIST: {
         SrcList *pSrc = va_arg(ap, SrcList*);
         int k = va_arg(ap, int);
-        struct SrcList_item *pItem = &pSrc->a[k];
+        struct SrcList::SrcList_item *pItem = &pSrc->a[k];
         assert( k>=0 && k<pSrc->nSrc );
         if( pItem->zDatabase && pItem->zDatabase[0] ){
           (*func)(arg, pItem->zDatabase, strlen(pItem->zDatabase));
@@ -693,12 +696,12 @@ static void mout(void *arg, const char *zNewText, int nNewChar){
     }else{
       pM->nAlloc = pM->nChar + nNewChar*2 + 1;
       if( pM->zText==pM->zBase ){
-        pM->zText = pM->xRealloc(0, pM->nAlloc);
+        pM->zText = (char *)pM->xRealloc(0, pM->nAlloc);
         if( pM->zText && pM->nChar ){
           memcpy(pM->zText, pM->zBase, pM->nChar);
         }
       }else{
-        pM->zText = pM->xRealloc(pM->zText, pM->nAlloc);
+        pM->zText = (char *)pM->xRealloc(pM->zText, pM->nAlloc);
       }
     }
   }
@@ -731,12 +734,12 @@ static char *base_vprintf(
   vxprintf(mout, &sM, useInternal, zFormat, ap);
   if( xRealloc ){
     if( sM.zText==sM.zBase ){
-      sM.zText = xRealloc(0, sM.nChar+1);
+      sM.zText = (char *)xRealloc(0, sM.nChar+1);
       if( sM.zText ){
         memcpy(sM.zText, sM.zBase, sM.nChar+1);
       }
     }else if( sM.nAlloc>sM.nChar+10 ){
-      sM.zText = xRealloc(sM.zText, sM.nChar+1);
+      sM.zText = (char *)xRealloc(sM.zText, sM.nChar+1);
     }
   }
   return sM.zText;
@@ -829,3 +832,5 @@ void sqlite3DebugPrintf(const char *zFormat, ...){
   fflush(stdout);
 }
 #endif
+
+}

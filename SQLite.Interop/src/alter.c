@@ -1,3 +1,7 @@
+#pragma unmanaged
+extern "C"
+{
+
 /*
 ** 2005 February 15
 **
@@ -12,7 +16,7 @@
 ** This file contains C code routines that used to generate VDBE code
 ** that implements the ALTER TABLE command.
 **
-** $Id: alter.c,v 1.5 2005/06/13 22:32:18 rmsimpson Exp $
+** $Id: alter.c,v 1.6 2005/08/01 19:32:08 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include <ctype.h>
@@ -47,7 +51,7 @@ static void renameTableFunc(
 
   int token;
   Token tname;
-  char const *zCsr = zSql;
+  unsigned char const *zCsr = zSql;
   int len = 0;
   char *zRet;
 
@@ -96,7 +100,7 @@ static void renameTriggerFunc(
   int token;
   Token tname;
   int dist = 3;
-  char const *zCsr = zSql;
+  unsigned char const *zCsr = zSql;
   int len = 0;
   char *zRet;
 
@@ -441,7 +445,7 @@ void sqlite3AlterFinishAddColumn(Parse *pParse, Token *pColDef){
   }
 
   /* Modify the CREATE TABLE statement. */
-  zCol = sqliteStrNDup(pColDef->z, pColDef->n);
+  zCol = sqliteStrNDup((const char *)pColDef->z, pColDef->n);
   if( zCol ){
     char *zEnd = &zCol[pColDef->n-1];
     while( (zEnd>zCol && *zEnd==';') || isspace(*(unsigned char *)zEnd) ){
@@ -551,3 +555,5 @@ exit_begin_add_column:
   return;
 }
 #endif  /* SQLITE_ALTER_TABLE */
+
+}

@@ -1,4 +1,7 @@
-/*
+#pragma unmanaged
+extern "C"
+{
+  /*
 ** 2003 April 6
 **
 ** The author disclaims copyright to this source code.  In place of
@@ -11,7 +14,7 @@
 *************************************************************************
 ** This file contains code used to implement the ATTACH and DETACH commands.
 **
-** $Id: attach.c,v 1.5 2005/06/13 22:32:18 rmsimpson Exp $
+** $Id: attach.c,v 1.6 2005/08/01 19:32:08 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 
@@ -80,13 +83,13 @@ void sqlite3Attach(
   }
 
   if( db->aDb==db->aDbStatic ){
-    aNew = sqliteMalloc( sizeof(db->aDb[0])*3 );
+    aNew = (Db *)sqliteMalloc( sizeof(db->aDb[0])*3 );
     if( aNew==0 ){
       goto attach_end;
     }
     memcpy(aNew, db->aDb, sizeof(db->aDb[0])*2);
   }else{
-    aNew = sqliteRealloc(db->aDb, sizeof(db->aDb[0])*(db->nDb+1) );
+    aNew = (Db *)sqliteRealloc(db->aDb, sizeof(db->aDb[0])*(db->nDb+1) );
     if( aNew==0 ){
       goto attach_end;
     } 
@@ -254,7 +257,7 @@ int sqlite3FixSrcList(
 ){
   int i;
   const char *zDb;
-  struct SrcList_item *pItem;
+  struct SrcList::SrcList_item *pItem;
 
   if( pList==0 ) return 0;
   zDb = pFix->zDb;
@@ -319,7 +322,7 @@ int sqlite3FixExprList(
   ExprList *pList    /* The expression to be fixed to one database */
 ){
   int i;
-  struct ExprList_item *pItem;
+  struct ExprList::ExprList_item *pItem;
   if( pList==0 ) return 0;
   for(i=0, pItem=pList->a; i<pList->nExpr; i++, pItem++){
     if( sqlite3FixExpr(pFix, pItem->pExpr) ){
@@ -350,3 +353,5 @@ int sqlite3FixTriggerStep(
   return 0;
 }
 #endif
+
+}

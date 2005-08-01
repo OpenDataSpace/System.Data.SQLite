@@ -1,3 +1,6 @@
+#pragma unmanaged
+extern "C"
+{
 /*
 ** 2001 September 15
 **
@@ -57,7 +60,7 @@ static int sqlite3_get_table_cb(void *pArg, int nCol, char **argv, char **colv){
   if( p->nData + need >= p->nAlloc ){
     char **azNew;
     p->nAlloc = p->nAlloc*2 + need + 1;
-    azNew = realloc( p->azResult, sizeof(char*)*p->nAlloc );
+    azNew = (char **)realloc( p->azResult, sizeof(char*)*p->nAlloc );
     if( azNew==0 ) goto malloc_failed;
     p->azResult = azNew;
   }
@@ -71,7 +74,7 @@ static int sqlite3_get_table_cb(void *pArg, int nCol, char **argv, char **colv){
       if( colv[i]==0 ){
         z = 0;
       }else{
-        z = malloc( strlen(colv[i])+1 );
+        z = (char *)malloc( strlen(colv[i])+1 );
         if( z==0 ) goto malloc_failed;
         strcpy(z, colv[i]);
       }
@@ -92,7 +95,7 @@ static int sqlite3_get_table_cb(void *pArg, int nCol, char **argv, char **colv){
       if( argv[i]==0 ){
         z = 0;
       }else{
-        z = malloc( strlen(argv[i])+1 );
+        z = (char *)malloc( strlen(argv[i])+1 );
         if( z==0 ) goto malloc_failed;
         strcpy(z, argv[i]);
       }
@@ -138,7 +141,7 @@ int sqlite3_get_table(
   res.nData = 1;
   res.nAlloc = 20;
   res.rc = SQLITE_OK;
-  res.azResult = malloc( sizeof(char*)*res.nAlloc );
+  res.azResult = (char **)malloc( sizeof(char*)*res.nAlloc );
   if( res.azResult==0 ) return SQLITE_NOMEM;
   res.azResult[0] = 0;
   rc = sqlite3_exec(db, zSql, sqlite3_get_table_cb, &res, pzErrMsg);
@@ -164,7 +167,7 @@ int sqlite3_get_table(
   }
   if( res.nAlloc>res.nData ){
     char **azNew;
-    azNew = realloc( res.azResult, sizeof(char*)*(res.nData+1) );
+    azNew = (char **)realloc( res.azResult, sizeof(char*)*(res.nData+1) );
     if( azNew==0 ){
       sqlite3_free_table(&res.azResult[1]);
       return SQLITE_NOMEM;
@@ -192,4 +195,6 @@ void sqlite3_free_table(
     for(i=1; i<n; i++){ if( azResult[i] ) free(azResult[i]); }
     free(azResult);
   }
+}
+
 }
