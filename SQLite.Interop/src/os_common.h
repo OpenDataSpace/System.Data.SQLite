@@ -28,8 +28,8 @@
 #endif
 
 
-int sqlite3_os_trace = 0;
 #ifdef SQLITE_DEBUG
+int sqlite3_os_trace = 0;
 static int last_page = 0;
 #define SEEK(X)           last_page=(X)
 #define TRACE1(X)         if( sqlite3_os_trace ) sqlite3DebugPrintf(X)

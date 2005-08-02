@@ -1,4 +1,3 @@
-#pragma unmanaged
 extern "C"
 {
 /*
@@ -60,6 +59,7 @@ int sqlite3OsFileExists(const char *zFilename){
   return GetFileAttributesA(zFilename) != 0xffffffff;
 }
 
+#ifndef _WIN32_WCE
 /*
 ** Attempt to open a file for both reading and writing.  If that
 ** fails, try opening it read-only.  If the file does not exist,
@@ -187,6 +187,7 @@ int sqlite3OsOpenReadOnly(const char *zFilename, OsFile *id){
   TRACE3("OPEN RO %d \"%s\"\n", h, zFilename);
   return SQLITE_OK;
 }
+#endif /* !defined(_WIN32_WCE) */
 
 /*
 ** Attempt to open a file descriptor for the directory that contains a
@@ -251,6 +252,7 @@ int sqlite3OsTempFileName(char *zBuf){
   return SQLITE_OK; 
 }
 
+#ifndef _WIN32_WCE
 /*
 ** Close a file.
 */
@@ -263,6 +265,7 @@ int sqlite3OsClose(OsFile *id){
   }
   return SQLITE_OK;
 }
+#endif
 
 /*
 ** Read data from a file into a buffer.  Return SQLITE_OK if all
@@ -367,6 +370,7 @@ int sqlite3OsFileSize(OsFile *id, i64 *pSize){
   return SQLITE_OK;
 }
 
+#ifndef _WIN32_WCE
 /*
 ** Return true (non-zero) if we are running under WinNT, Win2K or WinXP.
 ** Return false (zero) for Win95, Win98, or WinME.
@@ -634,6 +638,7 @@ int sqlite3OsUnlock(OsFile *id, int locktype){
   id->locktype = locktype;
   return rc;
 }
+#endif /* !defined(_WIN32_WCE) */
 
 /*
 ** Turn a relative pathname into a full pathname.  Return a pointer
