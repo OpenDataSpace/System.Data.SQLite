@@ -22,6 +22,9 @@ namespace System.Data.SQLite
     private const string SQLITE_DLL = "SQLite.Interop.DLL";
 #endif
 
+    [DllImport("kernel32.dll")]
+    internal static extern void Sleep(uint dwMilliseconds);
+
     [DllImport(SQLITE_DLL)]
     internal static extern IntPtr sqlite3_libversion_interop(out int len);
 

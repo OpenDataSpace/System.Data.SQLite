@@ -18,19 +18,19 @@ namespace System.Data.SQLite
     /// <summary>
     /// The underlying SQLite object this statement is bound to
     /// </summary>
-    internal SQLiteBase                          _sql;
+    internal SQLiteBase        _sql;
     /// <summary>
     /// The command text of this SQL statement
     /// </summary>
-    internal string                              _sqlStatement;
+    internal string            _sqlStatement;
     /// <summary>
     /// The actual statement pointer
     /// </summary>
-    internal int                                 _sqlite_stmt;
+    internal int               _sqlite_stmt;
     /// <summary>
     /// An index from which unnamed parameters begin
     /// </summary>
-    internal int                                 _unnamedParameterStart;
+    internal int               _unnamedParameterStart;
     /// <summary>
     /// Names of the parameters as SQLite understands them to be
     /// </summary>
@@ -39,6 +39,10 @@ namespace System.Data.SQLite
     /// Parameters for this statement
     /// </summary>
     internal SQLiteParameter[] _paramValues;
+    /// <summary>
+    /// Command this statement belongs to (if any)
+    /// </summary>
+    internal SQLiteCommand     _command;
 
     /// <summary>
     /// Initializes the statement and attempts to get all information about parameters in the statement
@@ -51,6 +55,7 @@ namespace System.Data.SQLite
     {
       _paramNames = null;
       _paramValues = null;
+      _command = null;
 
       _unnamedParameterStart   = nCmdStart;
       _sql     = sqlbase;

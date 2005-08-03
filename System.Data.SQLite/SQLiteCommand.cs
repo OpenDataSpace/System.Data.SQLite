@@ -32,7 +32,7 @@ namespace System.Data.SQLite
     /// <summary>
     /// The timeout for the command, kludged because SQLite doesn't support per-command timeout values
     /// </summary>
-    private int                       _commandTimeout;
+    internal int                       _commandTimeout;
     /// <summary>
     /// Designer support
     /// </summary>
@@ -159,7 +159,11 @@ namespace System.Data.SQLite
         while (strRemain.Length > 0)
         {
           itm = _cnn._sql.Prepare(strRemain, ref nStart, out strRemain);
-          if (itm != null) lst.Add(itm);
+          if (itm != null)
+          {
+            itm._command = this;
+            lst.Add(itm);
+          }
         }
       }
       catch (Exception e)
@@ -203,8 +207,6 @@ namespace System.Data.SQLite
         _commandText = value;
 
         if (_cnn == null) return;
-
-        BuildCommands();
       }
     }
 
@@ -329,10 +331,7 @@ namespace System.Data.SQLite
       int n;
       int x;
 
-      if (_statementList.Length == 0)
-      {
-        BuildCommands();
-      }
+      Prepare();
 
       // Make sure all parameters are mapped properly to associated statement(s)
       _parameterCollection.MapParameters();
@@ -442,10 +441,15 @@ namespace System.Data.SQLite
     /// </summary>
     public override void Prepare()
     {
-      if (_statementList.Length == 0)
+      if (_statementList != null)
       {
-        BuildCommands();
+        if (_statementList.Length == 0)
+        {
+          BuildCommands();
+        }
       }
+      else
+        BuildCommands();
     }
 
     /// <summary>

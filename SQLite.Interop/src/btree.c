@@ -12,7 +12,7 @@ extern "C"
 **    May you share freely, never taking more than you give.
 **
 *************************************************************************
-** $Id: btree.c,v 1.6 2005/08/01 19:32:09 rmsimpson Exp $
+** $Id: btree.c,v 1.7 2005/08/03 06:43:44 rmsimpson Exp $
 **
 ** This file implements a external (disk-based) database using BTrees.
 ** For a detailed discussion of BTrees, refer to
@@ -4886,7 +4886,8 @@ int sqlite3BtreeClearTable(Btree *pBt, int iTable){
   }
   for(pCur=pBt->pCursor; pCur; pCur=pCur->pNext){
     if( pCur->pgnoRoot==(Pgno)iTable ){
-      if( pCur->wrFlag==0 ) return SQLITE_LOCKED;
+      if( pCur->wrFlag==0 ) 
+        return SQLITE_LOCKED;
       moveToRoot(pCur);
     }
   }

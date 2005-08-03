@@ -20,7 +20,6 @@ namespace System.Data.SQLite
     /// The opaque pointer returned to us by the sqlite provider
     /// </summary>
     protected int              _sql;
-
     /// <summary>
     /// The user-defined functions registered on this connection
     /// </summary>
@@ -104,6 +103,8 @@ namespace System.Data.SQLite
     internal override bool Step(SQLiteStatement stmt)
     {
       int n;
+      long dwtick = 0;
+      Random rnd = null;
 
       while (true)
       {
@@ -114,12 +115,34 @@ namespace System.Data.SQLite
 
         if (n > 0)
         {
+          int r;
           // An error occurred, attempt to reset the statement.  If the reset worked because the
           // schema has changed, re-try the step again.  Otherwise throw the original error.
-          string str = SQLiteLastError();
-          
-          if (Reset(stmt) == false)
-            throw new SQLiteException(n, str);
+
+          r = Reset(stmt);
+
+          if (r == 0)
+            throw new SQLiteException(n, "in Step()");
+          else if (r == 6 && stmt._command != null) // SQLITE_LOCKED
+          {
+            // Keep trying
+            if (dwtick == 0) // First time we've encountered the lock
+            {
+              dwtick = DateTime.Now.Ticks + (stmt._command._commandTimeout * 10000000);
+              rnd = new Random();
+            }
+            // If we've exceeded the command's timeout, give up and throw an error
+            if (DateTime.Now.Ticks - dwtick > 0)
+            {
+              throw new SQLiteException(r, "in Step() - timeout");
+            }
+            else
+            {
+              // Otherwise sleep for a random amount of time up to 250ms
+              UnsafeNativeMethods.Sleep((uint)rnd.Next(1, 250));
+            }
+          }
+
         }
       }
     }
@@ -129,14 +152,16 @@ namespace System.Data.SQLite
       if (stmt._sqlite_stmt > 0)
       {
         int n = UnsafeNativeMethods.sqlite3_finalize_interop(stmt._sqlite_stmt);
-        if (n > 0) throw new SQLiteException(n, SQLiteLastError());
+        if (n > 0) throw new SQLiteException(n, "in Finalize()");
       }
       stmt._sqlite_stmt = 0;
     }
 
-    internal override bool Reset(SQLiteStatement stmt)
+    internal override int Reset(SQLiteStatement stmt)
     {
-      int n = UnsafeNativeMethods.sqlite3_reset_interop(stmt._sqlite_stmt);
+      int n;
+
+      n = UnsafeNativeMethods.sqlite3_reset_interop(stmt._sqlite_stmt);
 
       // If the schema changed, try and re-prepare it
       if (n == 17) // SQLITE_SCHEMA
@@ -156,13 +181,15 @@ namespace System.Data.SQLite
           // Reapply parameters
           stmt.BindParameters();
         }
-        return true; // Reset was OK, with schema change
+        return -1; // Reset was OK, with schema change
       }
+      else if (n == 6) // SQLITE_LOCKED
+        return n;
 
       if (n > 0)
-        throw new SQLiteException(n, SQLiteLastError());
+        throw new SQLiteException(n, "in Reset()");
 
-      return false; // We reset OK, no schema changes
+      return 0; // We reset OK, no schema changes
     }
 
     internal override string SQLiteLastError()
@@ -180,7 +207,7 @@ namespace System.Data.SQLite
       byte[] b = ToUTF8(strSql);
 
       int n = UnsafeNativeMethods.sqlite3_prepare_interop(_sql, b, b.Length - 1, out stmt, out ptr, out len);
-      if (n > 0) throw new SQLiteException(n, SQLiteLastError());
+      if (n > 0) throw new SQLiteException(n, "in Prepare()");
 
       strRemain = ToString(ptr, len);
 

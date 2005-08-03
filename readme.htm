@@ -5,7 +5,7 @@
   </head>
   <body>
     ADO.NET 2.0 SQLite Data Provider<br>
-    Version 1.0.12 - Aug 2, 2005<br>
+    Version 1.0.12 - Aug 3, 2005<br>
     Interop using SQLite 3.22<br>
     Written by Robert Simpson (<a href="mailto:robert@blackcastlesoft.com">robert@blackcastlesoft.com</a>)<br>
     Released to the public domain, use at your own risk!<br>
@@ -76,6 +76,8 @@
         functions must be explicitly registered.</STRONG>&nbsp; See the <STRONG>testce</STRONG>
       sample application for an example of how to explicitly register user-defined 
       collating sequences and functions.</p>
+    <P>Many thanks to the fine folks at <A href="http://sourceforge.net/projects/sqlite-wince">
+        http://sourceforge.net/projects/sqlite-wince</A> for the Windows CE code!</P>
     <h2>
       <b><A name="redist"></A>Distributing The SQLite Engine and ADO.NET Assembly</b></h2>
     <P>For Win32 platforms, only the <STRONG>System.Data.SQLite.DLL</STRONG> file in 
@@ -133,6 +135,10 @@
         projects are built accordingly.&nbsp; See the&nbsp;<a href="#redist">Distributing 
           SQLite</a> section for information on what files need to be distributed for 
         each platform.&nbsp;</li>
+      <li>
+        Modified SQLite3.Reset() and Step() functions to transparently handle timeouts
+        while waiting on the database to become available (typically when a writer is waiting
+        on a reader to finish, or a reader is waiting on a writer to finish).</li>
     </ul>
     <b>1.0.11 - August 1, 2005</b><br>
     <ul>

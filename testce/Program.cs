@@ -34,7 +34,7 @@ namespace test
       {
         TestCases tests = new TestCases();
 
-        cnn.ConnectionString = "Data Source=test.db3";
+        cnn.ConnectionString = "Data Source=test.db3;Synchronous=Off";
         cnn.Open();
         tests.Run(cnn);
 

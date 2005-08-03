@@ -46,7 +46,6 @@ Global
 		{10B51CE8-A838-44DE-BD82-B658F0296F80}.Debug|Compact Framework.Build.0 = Release|Pocket PC 2003 (ARMV4)
 		{10B51CE8-A838-44DE-BD82-B658F0296F80}.Debug|Compact Framework.Deploy.0 = Release|Pocket PC 2003 (ARMV4)
 		{10B51CE8-A838-44DE-BD82-B658F0296F80}.Debug|Win32.ActiveCfg = Release|Win32
-		{10B51CE8-A838-44DE-BD82-B658F0296F80}.Debug|Win32.Build.0 = Release|Win32
 		{10B51CE8-A838-44DE-BD82-B658F0296F80}.Release|Compact Framework.ActiveCfg = Release|Pocket PC 2003 (ARMV4)
 		{10B51CE8-A838-44DE-BD82-B658F0296F80}.Release|Compact Framework.Build.0 = Release|Pocket PC 2003 (ARMV4)
 		{10B51CE8-A838-44DE-BD82-B658F0296F80}.Release|Compact Framework.Deploy.0 = Release|Pocket PC 2003 (ARMV4)

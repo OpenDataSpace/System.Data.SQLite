@@ -91,6 +91,9 @@ namespace test
       try { ParameterizedInsertMissingParams(cnn); Console.WriteLine("FAIL - ParameterizedInsertMissingParams"); }
       catch (Exception) { Console.WriteLine("SUCCESS - ParameterizedInsertMissingParams"); }
 
+      try { TimeoutTest(cnn); Console.WriteLine("SUCCESS - TimeoutTest"); }
+      catch (Exception) { Console.WriteLine("FAIL - TimeoutTest"); }
+
       try { InsertMany(fact, cnn, false); Console.WriteLine("SUCCESS - InsertMany"); }
       catch (Exception) { Console.WriteLine("FAIL - InsertMany"); }
 
@@ -476,6 +479,36 @@ namespace test
         }
         Console.WriteLine(String.Format("          Intrinsic Function iteration of {0} records in {1} ms", nCount, (dtEnd - dtStart) / 10000));
 
+      }
+    }
+
+    // Open a reader and then attempt to write to test the writer's command timeout property
+    // SQLite doesn't allow a write when a reader is active.
+    internal static void TimeoutTest(DbConnection cnn)
+    {
+      using (DbCommand cmdRead = cnn.CreateCommand())
+      {
+        cmdRead.CommandText = "SELECT ID FROM TestCase";
+        using (DbDataReader rd = cmdRead.ExecuteReader())
+        {
+          using (DbCommand cmdwrite = cnn.CreateCommand())
+          {
+            cmdwrite.CommandText = "UPDATE [TestCase] SET [ID] = [ID]";
+            cmdwrite.CommandTimeout = 10;
+
+            long dwtick = DateTime.Now.Ticks;
+            try
+            {
+              cmdwrite.ExecuteNonQuery();
+            }
+            catch (SQLiteException)
+            {
+              dwtick = (DateTime.Now.Ticks - dwtick) / TimeSpan.TicksPerSecond;
+              if (dwtick < 10 || dwtick > 11)
+                throw new ArgumentOutOfRangeException();
+            }
+          }
+        }
       }
     }
 

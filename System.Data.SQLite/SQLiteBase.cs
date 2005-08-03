@@ -93,8 +93,8 @@ namespace System.Data.SQLite
     /// transparently attempt to rebuild the SQL statement and throw an error if that was not possible.
     /// </summary>
     /// <param name="stmt">The statement to reset</param>
-    /// <returns>Returns true if the schema changed while resetting, or false otherwise.</returns>
-    internal abstract bool Reset(SQLiteStatement stmt);
+    /// <returns>Returns -1 if the schema changed while resetting, 0 if the reset was sucessful or 6 (SQLITE_LOCKED) if the reset failed due to a lock</returns>
+    internal abstract int Reset(SQLiteStatement stmt);
 
     internal abstract void Cancel();
 

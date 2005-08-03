@@ -26,10 +26,10 @@ namespace test
 
 //      TestCases.Run(fact, cnn);
 
-      fact = DbProviderFactories.GetFactory("System.Data.SQLite");
-      using (cnn = fact.CreateConnection())
+      using (cnn = new SQLiteConnection())
       {
-        cnn.ConnectionString = "Data Source=test.db3";
+        fact = DbProviderFactories.GetFactory("System.Data.SQLite");
+        cnn.ConnectionString = "Data Source=test.db3;Synchronous=Off";
         cnn.Open();
         TestCases.Run(fact, cnn);
       }

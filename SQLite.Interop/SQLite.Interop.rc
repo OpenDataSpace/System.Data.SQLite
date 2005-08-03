@@ -54,7 +54,7 @@ END
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION 3,2,2,0
- PRODUCTVERSION 1,0,11,0
+ PRODUCTVERSION 1,0,12,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -76,7 +76,7 @@ BEGIN
             VALUE "LegalCopyright", "Released to the public domain"
             VALUE "OriginalFilename", "SQLite3.DLL"
             VALUE "ProductName", "SQLite.NET"
-            VALUE "ProductVersion", "1.11"
+            VALUE "ProductVersion", "1.0.12"
         END
     END
     BLOCK "VarFileInfo"

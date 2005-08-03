@@ -47,7 +47,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				FavorSizeOrSpeed="1"
+				AdditionalOptions="/GS-"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;NO_TCL;THREADSAFE"
 				StringPooling="true"
 				RuntimeLibrary="2"
@@ -126,11 +126,8 @@
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
 				AdditionalOptions="/GS-"
-				Optimization="3"
-				FavorSizeOrSpeed="1"
 				PreprocessorDefinitions="_WIN32_WCE=$(CEVER);UNDER_CE=$(CEVER);WINCE;$(PLATFORMDEFINES);NDEBUG;_WINDOWS;_USRDLL;CPPSMART_EXPORTS;$(ARCHFAM);$(_ARCHFAM_);UNICODE;_UNICODE"
 				StringPooling="true"
-				FloatingPointModel="0"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
