@@ -82,7 +82,7 @@ namespace test
       try { ParameterizedInsert(cnn); Console.WriteLine("SUCCESS - ParameterizedInsert"); }
       catch (Exception) { Console.WriteLine("FAIL - ParameterizedInsert"); }
 
-      try { BinaryInsert(cnn); Console.WriteLine("SUCCESS - BinaryInsert"); }
+      try { BinaryInsert(cnn); Console.WriteLine("SUCCESS - BinaryInsert (using named parameter)"); }
       catch (Exception) { Console.WriteLine("FAIL - BinaryInsert"); }
 
       try { VerifyBinaryData(cnn); Console.WriteLine("SUCCESS - VerifyBinaryData"); }
@@ -99,6 +99,9 @@ namespace test
 
       try { InsertMany(fact, cnn, true); Console.WriteLine("SUCCESS - InsertManyWithIdentityFetch"); }
       catch (Exception) { Console.WriteLine("FAIL - InsertManyWithIdentityFetch"); }
+
+      try { SimpleInsertMany(cnn); Console.WriteLine("SUCCESS - SimpleInsertMany"); }
+      catch (Exception) { Console.WriteLine("FAIL - SimpleInsertMany"); }
 
       try { IterationTest(cnn); Console.WriteLine("SUCCESS - Iteration Test"); }
       catch (Exception) { Console.WriteLine("FAIL - Iteration Test"); }
@@ -243,8 +246,10 @@ namespace test
     {
       using (DbCommand cmd = cnn.CreateCommand())
       {
-        cmd.CommandText = "INSERT INTO TestCase(Field6) VALUES(?)";
+        cmd.CommandText = "INSERT INTO TestCase(Field6) VALUES($bin)";
         DbParameter Field6 = cmd.CreateParameter();
+
+        cmd.Parameters.Add(Field6);
 
         byte[] b = new byte[4000];
         b[0] = 1;
@@ -253,9 +258,8 @@ namespace test
         b[2000] = 4;
         b[3000] = 5;
 
+        Field6.ParameterName = "$bin";
         Field6.Value = b;
-
-        cmd.Parameters.Add(Field6);
 
         cmd.ExecuteNonQuery();
       }
@@ -362,6 +366,41 @@ namespace test
             }
           }
         }
+      }
+    }
+
+    internal static void SimpleInsertMany(DbConnection cnn)
+    {
+      using (DbTransaction dbTrans = cnn.BeginTransaction())
+      {
+        long dtStart;
+        long dtEnd;
+
+        using (DbCommand cmd = cnn.CreateCommand())
+        {
+          cmd.CommandText = "INSERT INTO TestCase(Field1) VALUES(?)";
+          DbParameter Field1 = cmd.CreateParameter();
+
+          cmd.Parameters.Add(Field1);
+
+          Console.Write(String.Format("          SimpleInsertMany (100000 rows) Begins ... "));
+          dtStart = DateTime.Now.Ticks;
+          for (int n = 0; n < 100000; n++)
+          {
+            Field1.Value = n + 100000;
+            cmd.ExecuteNonQuery();
+          }
+
+          dtEnd = DateTime.Now.Ticks;
+          dtEnd -= dtStart;
+          Console.Write(String.Format("Ends in {0} ms ... ", (dtEnd / 10000)));
+        }
+
+        dtStart = DateTime.Now.Ticks;
+        dbTrans.Rollback();
+        dtEnd = DateTime.Now.Ticks;
+        dtEnd -= dtStart;
+        Console.WriteLine(String.Format("rolled back in {0} ms", (dtEnd / 10000)));
       }
     }
 
@@ -494,7 +533,7 @@ namespace test
           using (DbCommand cmdwrite = cnn.CreateCommand())
           {
             cmdwrite.CommandText = "UPDATE [TestCase] SET [ID] = [ID]";
-            cmdwrite.CommandTimeout = 10;
+            cmdwrite.CommandTimeout = 5;
 
             long dwtick = DateTime.Now.Ticks;
             try
@@ -504,7 +543,7 @@ namespace test
             catch (SQLiteException)
             {
               dwtick = (DateTime.Now.Ticks - dwtick) / TimeSpan.TicksPerSecond;
-              if (dwtick < 10 || dwtick > 11)
+              if (dwtick < 5 || dwtick > 6)
                 throw new ArgumentOutOfRangeException();
             }
           }
