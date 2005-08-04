@@ -37,7 +37,7 @@ namespace System.Data.SQLite
     /// </summary>
     /// <param name="b">A pointer to a zero-terminated UTF-16 string</param>
     /// <returns>A .NET string</returns>
-    internal string ToString(IntPtr b)
+    internal static string ToString(IntPtr b)
     {
       if (b == IntPtr.Zero) return "";
       return Marshal.PtrToStringUni(b);

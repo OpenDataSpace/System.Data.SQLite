@@ -17,20 +17,10 @@ namespace System.Data.SQLite
   [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
   public sealed class SQLiteFunctionAttribute : Attribute
   {
-    /// <summary>
-    /// The function's name as it will be used in SQLite command text.
-    /// </summary>
-    public string       Name;
-    /// <summary>
-    /// The number of arguments this function expects.  -1 if the number of arguments is variable.
-    /// </summary>
-    public int          Arguments;
-    /// <summary>
-    /// The type of function this implementation will be.
-    /// </summary>
-    public FunctionType FuncType;
-
-    internal Type       InstanceType;
+    private string       _name;
+    private int          _arguments;
+    private FunctionType _functionType;
+    internal Type        _instanceType;
 
     /// <summary>
     /// Default constructor, initializes the internal variables for the function.
@@ -40,7 +30,33 @@ namespace System.Data.SQLite
       Name = "";
       Arguments = -1;
       FuncType = FunctionType.Scalar;
-      InstanceType = null;
+    }
+
+    /// <summary>
+    /// The function's name as it will be used in SQLite command text.
+    /// </summary>
+    public string Name
+    {
+      get { return _name; }
+      set { _name = value; }
+    }
+
+    /// <summary>
+    /// The number of arguments this function expects.  -1 if the number of arguments is variable.
+    /// </summary>
+    public int Arguments
+    {
+      get { return _arguments; }
+      set { _arguments = value; }
+    }
+
+    /// <summary>
+    /// The type of function this implementation will be.
+    /// </summary>
+    public FunctionType FuncType
+    {
+      get { return _functionType; }
+      set { _functionType = value; }
     }
   }
 }

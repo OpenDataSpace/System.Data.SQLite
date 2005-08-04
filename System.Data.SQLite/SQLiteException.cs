@@ -10,20 +10,56 @@ namespace System.Data.SQLite
   using System;
   using System.Collections.Generic;
   using System.Text;
+  using System.Data.Common;
+
+#if !PLATFORM_COMPACTFRAMEWORK
+  using System.Runtime.Serialization;
+#endif
 
   /// <summary>
   /// SQLite exception class.
   /// </summary>
+#if !PLATFORM_COMPACTFRAMEWORK
+  [Serializable]
+#endif
   public sealed class SQLiteException : Exception
   {
-    internal SQLiteException(int nCode) : base(Initialize(nCode, null))
+    internal SQLiteException(int nCode, string strMessage) : base(Initialize(nCode, strMessage))
     {
       HResult = (int)((uint)0x800F0000 | (uint)nCode);
     }
 
-    internal SQLiteException(int nCode, string strMessage) : base(Initialize(nCode, strMessage))
+#if !PLATFORM_COMPACTFRAMEWORK
+
+    private SQLiteException(SerializationInfo info, StreamingContext context) : base(info, context)
     {
-      HResult = (int)((uint)0x800F0000 | (uint)nCode);
+    }
+#endif
+
+    /// <summary>
+    /// Various public constructors that just pass along to the base DbException
+    /// </summary>
+    /// <param name="message">Passed verbatim to DbException</param>
+    public SQLiteException(string message)
+      : base(message)
+    {
+    }
+
+    /// <summary>
+    /// Various public constructors that just pass along to the base DbException
+    /// </summary>
+    public SQLiteException()
+    {
+    }
+
+    /// <summary>
+    /// Various public constructors that just pass along to the base DbException
+    /// <param name="message">Passed to DbException</param>
+    /// <param name="innerException">Passed to DbException</param>
+    /// </summary>
+    public SQLiteException(string message, Exception innerException)
+      : base(message, innerException)
+    {
     }
 
     /// <summary>
@@ -37,11 +73,10 @@ namespace System.Data.SQLite
     /// </remarks>
     private static string Initialize(int nCode, string strMessage)
     {
-      if (strMessage != null)
-      {
-        if (strMessage.Length > 0)
-          strMessage = "\r\n\r\n" + strMessage;
-      }
+      if (strMessage == null) strMessage = "";
+
+      if (strMessage.Length > 0)
+        strMessage = "\r\n" + strMessage;
 
       switch (nCode)
       {

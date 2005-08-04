@@ -19,7 +19,7 @@ namespace System.Data.SQLite
     /// <summary>
     /// The connection to which this transaction is bound
     /// </summary>
-    private SQLiteConnection _cnn;
+    internal SQLiteConnection _cnn;
 
     /// <summary>
     /// Constructs the transaction object, binding it to the supplied connection
@@ -32,10 +32,10 @@ namespace System.Data.SQLite
         cnn._sql.Execute("BEGIN");
         _cnn = cnn;
       }
-      catch (SQLiteException e)
+      catch (SQLiteException)
       {
         BaseDispose();
-        throw (e);
+        throw;
       }
     }
 
@@ -51,10 +51,10 @@ namespace System.Data.SQLite
       {
         _cnn._sql.Execute("COMMIT");
       }
-      catch (SQLiteException e)
+      catch (SQLiteException)
       {
         BaseDispose();
-        throw (e);
+        throw;
       }
       BaseDispose();
     }
@@ -100,10 +100,10 @@ namespace System.Data.SQLite
       {
         _cnn._sql.Execute("ROLLBACK");
       }
-      catch (SQLiteException e)
+      catch (SQLiteException)
       {
         BaseDispose();
-        throw (e);
+        throw;
       }
       BaseDispose();
     }

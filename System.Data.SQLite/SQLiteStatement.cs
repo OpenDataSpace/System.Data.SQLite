@@ -53,10 +53,6 @@ namespace System.Data.SQLite
     /// <param name="nCmdStart">The index at which to start numbering unnamed parameters</param>
     internal SQLiteStatement(SQLiteBase sqlbase, int stmt, string strCommand, ref int nCmdStart)
     {
-      _paramNames = null;
-      _paramValues = null;
-      _command = null;
-
       _unnamedParameterStart   = nCmdStart;
       _sql     = sqlbase;
       _sqlite_stmt = stmt;
@@ -75,7 +71,7 @@ namespace System.Data.SQLite
         for (x = 0; x < n; x++)
         {
           s = _sql.Bind_ParamName(this, x + 1);
-          if (s == null || s == "")
+          if (String.IsNullOrEmpty(s))
           {
             s = String.Format(";{0}", nCmdStart);
             nCmdStart++;
@@ -113,7 +109,7 @@ namespace System.Data.SQLite
     /// </summary>
     public void Dispose()
     {
-      _sql.Finalize(this);
+      _sql.FinalizeStatement(this);
       
       _paramNames = null;
       _paramValues = null;

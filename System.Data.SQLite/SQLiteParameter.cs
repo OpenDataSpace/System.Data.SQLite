@@ -59,6 +59,17 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
+    /// Constructs a named parameter given the specified parameter name and initial value
+    /// </summary>
+    /// <param name="parameterName">The parameter name</param>
+    /// <param name="value">The initial value of the parameter</param>
+    public SQLiteParameter(string parameterName, object value)
+    {
+      Initialize(parameterName, -1, 0, null, DataRowVersion.Current);
+      Value = value;
+    }
+
+    /// <summary>
     /// Constructs a named parameter of the specified type
     /// </summary>
     /// <param name="parameterName">The parameter name</param>
@@ -101,6 +112,17 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
+    /// Constructs an unnamed parameter of the specified data type and sets the initial value
+    /// </summary>
+    /// <param name="dbType">The datatype of the parameter</param>
+    /// <param name="value">The initial value of the parameter</param>
+    public SQLiteParameter(DbType dbType, object value)
+    {
+      Initialize(null, (int)dbType, 0, null, DataRowVersion.Current);
+      Value = value;
+    }
+
+    /// <summary>
     /// Constructs an unnamed parameter of the specified data type and source column
     /// </summary>
     /// <param name="dbType">The datatype of the parameter</param>
@@ -125,83 +147,104 @@ namespace System.Data.SQLite
     /// Constructs a named parameter of the specified type and size
     /// </summary>
     /// <param name="parameterName">The parameter name</param>
-    /// <param name="dbType">The data type</param>
-    /// <param name="nSize">The size of the parameter</param>
-    public SQLiteParameter(string parameterName, DbType dbType, int nSize)
+    /// <param name="parameterType">The data type</param>
+    /// <param name="parameterSize">The size of the parameter</param>
+    public SQLiteParameter(string parameterName, DbType parameterType, int parameterSize)
     {
-      Initialize(parameterName, (int)dbType, nSize, null, DataRowVersion.Current);
+      Initialize(parameterName, (int)parameterType, parameterSize, null, DataRowVersion.Current);
     }
 
     /// <summary>
     /// Constructs a named parameter of the specified type, size and source column
     /// </summary>
     /// <param name="parameterName">The name of the parameter</param>
-    /// <param name="dbType">The data type</param>
-    /// <param name="nSize">The size of the parameter</param>
+    /// <param name="parameterType">The data type</param>
+    /// <param name="parameterSize">The size of the parameter</param>
     /// <param name="sourceColumn">The source column</param>
-    public SQLiteParameter(string parameterName, DbType dbType, int nSize, string sourceColumn)
+    public SQLiteParameter(string parameterName, DbType parameterType, int parameterSize, string sourceColumn)
     {
-      Initialize(parameterName, (int)dbType, nSize, sourceColumn, DataRowVersion.Current);
+      Initialize(parameterName, (int)parameterType, parameterSize, sourceColumn, DataRowVersion.Current);
     }
 
     /// <summary>
     /// Constructs a named parameter of the specified type, size, source column and row version
     /// </summary>
     /// <param name="parameterName">The name of the parameter</param>
-    /// <param name="dbType">The data type</param>
-    /// <param name="nSize">The size of the parameter</param>
+    /// <param name="parameterType">The data type</param>
+    /// <param name="parameterSize">The size of the parameter</param>
     /// <param name="sourceColumn">The source column</param>
     /// <param name="rowVersion">The row version information</param>
-    public SQLiteParameter(string parameterName, DbType dbType, int nSize, string sourceColumn, DataRowVersion rowVersion)
+    public SQLiteParameter(string parameterName, DbType parameterType, int parameterSize, string sourceColumn, DataRowVersion rowVersion)
     {
-      Initialize(parameterName, (int)dbType, nSize, sourceColumn, rowVersion);
+      Initialize(parameterName, (int)parameterType, parameterSize, sourceColumn, rowVersion);
+    }
+
+    /// <summary>
+    /// Constructs a named parameter of the specified type, size, source column and row version
+    /// </summary>
+    /// <param name="parameterName">The name of the parameter</param>
+    /// <param name="parameterType">The data type</param>
+    /// <param name="parameterSize">The size of the parameter</param>
+    /// <param name="direction">Only input parameters are supported in SQLite</param>
+    /// <param name="isNullable">Ignored</param>
+    /// <param name="precision">Ignored</param>
+    /// <param name="scale">Ignored</param>
+    /// <param name="sourceColumn">The source column</param>
+    /// <param name="rowVersion">The row version information</param>
+    /// <param name="value">The initial value to assign the parameter</param>
+    public SQLiteParameter(string parameterName, DbType parameterType, int parameterSize, ParameterDirection direction, bool isNullable, byte precision, byte scale, string sourceColumn, DataRowVersion rowVersion, object value)
+    {
+      Initialize(parameterName, (int)parameterType, parameterSize, sourceColumn, rowVersion);
+      Direction = direction;
+      IsNullable = isNullable;
+      Value = value;
     }
 
     /// <summary>
     /// Constructs an unnamed parameter of the specified type and size
     /// </summary>
-    /// <param name="dbType">The data type</param>
-    /// <param name="nSize">The size of the parameter</param>
-    public SQLiteParameter(DbType dbType, int nSize)
+    /// <param name="parameterType">The data type</param>
+    /// <param name="parameterSize">The size of the parameter</param>
+    public SQLiteParameter(DbType parameterType, int parameterSize)
     {
-      Initialize(null, (int)dbType, nSize, null, DataRowVersion.Current);
+      Initialize(null, (int)parameterType, parameterSize, null, DataRowVersion.Current);
     }
 
     /// <summary>
     /// Constructs an unnamed parameter of the specified type, size, and source column
     /// </summary>
-    /// <param name="dbType">The data type</param>
-    /// <param name="nSize">The size of the parameter</param>
+    /// <param name="parameterType">The data type</param>
+    /// <param name="parameterSize">The size of the parameter</param>
     /// <param name="sourceColumn">The source column</param>
-    public SQLiteParameter(DbType dbType, int nSize, string sourceColumn)
+    public SQLiteParameter(DbType parameterType, int parameterSize, string sourceColumn)
     {
-      Initialize(null, (int)dbType, nSize, sourceColumn, DataRowVersion.Current);
+      Initialize(null, (int)parameterType, parameterSize, sourceColumn, DataRowVersion.Current);
     }
 
     /// <summary>
     /// Constructs an unnamed parameter of the specified type, size, source column and row version
     /// </summary>
-    /// <param name="dbType">The data type</param>
-    /// <param name="nSize">The size of the parameter</param>
+    /// <param name="parameterType">The data type</param>
+    /// <param name="parameterSize">The size of the parameter</param>
     /// <param name="sourceColumn">The source column</param>
     /// <param name="rowVersion">The row version information</param>
-    public SQLiteParameter(DbType dbType, int nSize, string sourceColumn, DataRowVersion rowVersion)
+    public SQLiteParameter(DbType parameterType, int parameterSize, string sourceColumn, DataRowVersion rowVersion)
     {
-      Initialize(null, (int)dbType, nSize, sourceColumn, rowVersion);
+      Initialize(null, (int)parameterType, parameterSize, sourceColumn, rowVersion);
     }
 
     /// <summary>
     /// Initializes the parameter member variables
     /// </summary>
     /// <param name="parameterName">The parameter name</param>
-    /// <param name="dbType">The data type</param>
+    /// <param name="paramType">The data type</param>
     /// <param name="nSize">The size</param>
     /// <param name="sourceColumn">The source column</param>
     /// <param name="rowVersion">The row version</param>
-    private void Initialize(string parameterName, int dbType, int nSize, string sourceColumn, DataRowVersion rowVersion)
+    private void Initialize(string parameterName, int paramType, int nSize, string sourceColumn, DataRowVersion rowVersion)
     {
       _columnName = parameterName;
-      _dbType = dbType;
+      _dbType = paramType;
       _sourceColumn = sourceColumn;
       _rowVersion = rowVersion;
       _objValue = null;
@@ -250,7 +293,7 @@ namespace System.Data.SQLite
       set
       {
         if (value != ParameterDirection.Input)
-          throw new NotImplementedException();
+          throw new NotSupportedException();
       }
     }
 

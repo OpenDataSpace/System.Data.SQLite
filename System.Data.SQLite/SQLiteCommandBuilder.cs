@@ -59,7 +59,7 @@ namespace System.Data.SQLite
     /// <summary>
     /// Not implemented.
     /// </summary>
-    /// <param name="parameterOrdinal">The ordinal of the parameter</param>
+    /// <param name="parameterOrdinal">The i of the parameter</param>
     /// <returns>Error</returns>
     protected override string GetParameterName(int parameterOrdinal)
     {
@@ -67,7 +67,7 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// Returns a placeholder character for the specified parameter ordinal.
+    /// Returns a placeholder character for the specified parameter i.
     /// </summary>
     /// <param name="parameterOrdinal">The index of the parameter to provide a placeholder for</param>
     /// <returns>Returns a "?" character, used for all placeholders.</returns>

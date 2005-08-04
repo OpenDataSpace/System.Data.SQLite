@@ -87,7 +87,7 @@ namespace System.Data.SQLite
     /// Finalizes a prepared statement.
     /// </summary>
     /// <param name="stmt">The statement to finalize</param>
-    internal abstract void Finalize(SQLiteStatement stmt);
+    internal abstract void FinalizeStatement(SQLiteStatement stmt);
     /// <summary>
     /// Resets a prepared statement so it can be executed again.  If the error returned is SQLITE_SCHEMA, 
     /// transparently attempt to rebuild the SQL statement and throw an error if that was not possible.
@@ -186,6 +186,7 @@ namespace System.Data.SQLite
     protected virtual void Dispose(bool bDisposing)
     {
     }
+
     public void Dispose()
     {
       Dispose(true);

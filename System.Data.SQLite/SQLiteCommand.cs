@@ -64,30 +64,42 @@ namespace System.Data.SQLite
     /// <summary>
     /// Initializes the command with the given command text
     /// </summary>
-    /// <param name="strSql">The SQL command text</param>
-    public SQLiteCommand(string strSql)
+    /// <param name="commandText">The SQL command text</param>
+    public SQLiteCommand(string commandText)
     {
-      Initialize(strSql, null);
+      Initialize(commandText, null);
     }
 
     /// <summary>
     /// Initializes the command with the given SQL command text and attach the command to the specified
     /// connection.
     /// </summary>
-    /// <param name="strSql">The SQL command text</param>
+    /// <param name="commandText">The SQL command text</param>
     /// <param name="cnn">The connection to associate with the command</param>
-    public SQLiteCommand(string strSql, SQLiteConnection cnn)
+    public SQLiteCommand(string commandText, SQLiteConnection cnn)
     {
-      Initialize(strSql, cnn);
+      Initialize(commandText, cnn);
     }
 
     /// <summary>
     /// Initializes the command and associates it with the specified connection.
     /// </summary>
-    /// <param name="cnn"></param>
+    /// <param name="cnn">The connection to associate with the command</param>
     public SQLiteCommand(SQLiteConnection cnn)
     {
       Initialize(null, cnn);
+    }
+
+    /// <summary>
+    /// Initializes a command with the given SQL, connection and transaction
+    /// </summary>
+    /// <param name="commandText">The SQL command text</param>
+    /// <param name="cnn">The connection to associate with the command</param>
+    /// <param name="trans">The transaction the command should be associated with</param>
+    public SQLiteCommand(string commandText, SQLiteConnection cnn, SQLiteTransaction trans)
+    {
+      Initialize(commandText, cnn);
+      Transaction = trans;
     }
 
     /// <summary>
@@ -166,10 +178,10 @@ namespace System.Data.SQLite
           }
         }
       }
-      catch (Exception e)
+      catch (Exception)
       {
         ClearCommands();
-        throw (e);
+        throw;
       }
       _statementList = new SQLiteStatement[lst.Count];
       lst.CopyTo(_statementList, 0);
@@ -199,9 +211,6 @@ namespace System.Data.SQLite
         {
           throw new InvalidOperationException("Cannot set CommandText while a DataReader is active");
         }
-
-//        if (value == null)
-//          throw new ArgumentNullException();
 
         ClearCommands();
         _commandText = value;
@@ -238,7 +247,7 @@ namespace System.Data.SQLite
       {
         if (value != CommandType.Text)
         {
-          throw new NotImplementedException();
+          throw new NotSupportedException();
         }
       }
     }
@@ -274,9 +283,6 @@ namespace System.Data.SQLite
 
         _cnn = (SQLiteConnection)value;
         _cnn._commandList.Add(this);
-
-        if (_commandText != null)
-          BuildCommands();
       }
     }
 
@@ -303,12 +309,13 @@ namespace System.Data.SQLite
       }
       set
       {
-        if (_cnn == null) return;
-
-        if (value != _cnn._activeTransaction && value != null)
+        if (_cnn != null)
         {
-          throw new ArgumentOutOfRangeException();
+          if (value != _cnn._activeTransaction && value != null)
+            throw new ArgumentOutOfRangeException("DbTransaction", "Transaction is for a different connection than the one associated with this Command");
         }
+        else if (value != null)
+          throw new ArgumentOutOfRangeException("DbTransaction", "Not associated with a connection");
       }
     }
 
@@ -328,18 +335,22 @@ namespace System.Data.SQLite
       if (_cnn.State != ConnectionState.Open)
         throw new InvalidOperationException("Database is not open");
 
-      int n;
-      int x;
-
+      // Make sure all statements are prepared
       Prepare();
 
       // Make sure all parameters are mapped properly to associated statement(s)
       _parameterCollection.MapParameters();
 
-      x = _statementList.Length;
       // Bind all parameters to their statements
+      int n;
+      int x;
+
+      x = _statementList.Length;
       for (n = 0; n < x; n++)
         _statementList[n].BindParameters();
+
+      // Set the default command timeout
+      _cnn._sql.SetTimeout(_commandTimeout * 1000);
     }
 
     /// <summary>
@@ -350,8 +361,6 @@ namespace System.Data.SQLite
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
     {
       InitializeForReader();
-
-      _cnn._sql.SetTimeout(_commandTimeout * 1000);
 
       SQLiteDataReader rd = new SQLiteDataReader(this, behavior);
       _isReaderOpen = true;
@@ -373,14 +382,7 @@ namespace System.Data.SQLite
     /// <returns></returns>
     public override int ExecuteNonQuery()
     {
-      //using (DbDataReader rd = ExecuteDbDataReader(CommandBehavior.Default))
-      //{
-      //  rd.Close();
-      //  return rd.RecordsAffected;
-      //}
       InitializeForReader();
-
-      _cnn._sql.SetTimeout(_commandTimeout * 1000);
 
       int nAffected = 0;
       int n;
@@ -399,21 +401,13 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// Execute the command and return the first column of the first row of the resultset (if present), or null if no resultset was returned.
+    /// Execute the command and return the first column of the first row of the resultset
+    /// (if present), or null if no resultset was returned.
     /// </summary>
     /// <returns></returns>
     public override object ExecuteScalar()
     {
-      //using (DbDataReader rd = ExecuteDbDataReader(CommandBehavior.Default))
-      //{
-      //  if (rd.Read())
-      //    return rd[0];
-      //}
-      //return null;
-
       InitializeForReader();
-
-      _cnn._sql.SetTimeout(_commandTimeout * 1000);
 
       int n;
       int x;

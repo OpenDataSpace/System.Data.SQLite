@@ -205,10 +205,10 @@ namespace System.Data.SQLite
     /// <summary>
     /// Disposes of the SQLiteConnection, closing it if it is active.
     /// </summary>
-    /// <param name="bDisposing">True if the connection is being explicitly closed.</param>
-    protected override void Dispose(bool bDisposing)
+    /// <param name="disposing">True if the connection is being explicitly closed.</param>
+    protected override void Dispose(bool disposing)
     {
-      base.Dispose(bDisposing);
+      base.Dispose(disposing);
       Close();
     }
 
@@ -414,7 +414,7 @@ namespace System.Data.SQLite
     /// <param name="key">The key to find</param>
     /// <param name="defValue">The default value to return if the key is not found</param>
     /// <returns>The value corresponding to the specified key, or the default value if not found.</returns>
-    internal string FindKey(KeyValuePair<string, string>[] opts, string key, string defValue)
+    static internal string FindKey(KeyValuePair<string, string>[] opts, string key, string defValue)
     {
       int x = opts.Length;
       for (int n = 0; n < x; n++)
@@ -440,7 +440,7 @@ namespace System.Data.SQLite
       KeyValuePair<string, string>[] opts = ParseConnectionString();
 
       if (Convert.ToInt32(FindKey(opts, "Version", "3")) != 3)
-        throw new NotImplementedException("Only SQLite Version 3 is supported at this time");
+        throw new NotSupportedException("Only SQLite Version 3 is supported at this time");
 
       try
       {
@@ -464,10 +464,10 @@ namespace System.Data.SQLite
         if (String.Compare(strFile, ":MEMORY:", true) != 0)
           _sql.Execute(String.Format("PRAGMA Page_Size={0}", FindKey(opts, "Page Size", "1024")));
       }
-      catch (SQLiteException e)
+      catch (SQLiteException)
       {
         OnStateChange(ConnectionState.Broken);
-        throw (e);
+        throw;
       }
       OnStateChange(ConnectionState.Open);
     }
@@ -579,7 +579,7 @@ namespace System.Data.SQLite
     /// Builds a MetaDataCollections schema datatable
     /// </summary>
     /// <returns>DataTable</returns>
-    private DataTable Schema_MetaDataCollections()
+    private static DataTable Schema_MetaDataCollections()
     {
       DataTable tbl = new DataTable("MetaDataCollections");
       DataRow row;
@@ -725,7 +725,7 @@ namespace System.Data.SQLite
 
       tbl.BeginLoadData();
 
-      if (strCatalog == null || strCatalog == "") strCatalog = "main";
+      if (String.IsNullOrEmpty(strCatalog)) strCatalog = "main";
 
       using (SQLiteCommand cmd = new SQLiteCommand(String.Format("SELECT * FROM [{0}].[{1}]", strCatalog, strTable), this))
       {
@@ -802,7 +802,7 @@ namespace System.Data.SQLite
 
       tbl.BeginLoadData();
 
-      if (strCatalog == null || strCatalog == "") strCatalog = "main";
+      if (String.IsNullOrEmpty(strCatalog)) strCatalog = "main";
 
       using (SQLiteCommand cmd = new SQLiteCommand(String.Format("SELECT * FROM [{0}].[sqlite_master] WHERE [type] = 'index'", strCatalog), this))
       {
@@ -857,7 +857,7 @@ namespace System.Data.SQLite
 
       tbl.BeginLoadData();
 
-      if (strCatalog == null || strCatalog == "") strCatalog = "main";
+      if (String.IsNullOrEmpty(strCatalog)) strCatalog = "main";
 
       using (SQLiteCommand cmd = new SQLiteCommand(String.Format("SELECT * FROM [{0}].[sqlite_master] WHERE [type] NOT LIKE 'index'", strCatalog), this))
       {
@@ -916,7 +916,7 @@ namespace System.Data.SQLite
 
       tbl.BeginLoadData();
 
-      if (strCatalog == null || strCatalog == "") strCatalog = "main";
+      if (String.IsNullOrEmpty(strCatalog)) strCatalog = "main";
 
       using (SQLiteCommand cmd = new SQLiteCommand(String.Format("SELECT * FROM [{0}].[sqlite_master] WHERE [type] LIKE 'view'", strCatalog), this))
       {

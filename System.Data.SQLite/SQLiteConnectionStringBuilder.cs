@@ -30,10 +30,10 @@ namespace System.Data.SQLite
     /// <summary>
     /// Constructs a new instance of the class using the specified connection string.
     /// </summary>
-    /// <param name="cnnString">The connection string to parse</param>
-    public SQLiteConnectionStringBuilder(string cnnString)
+    /// <param name="connectionString">The connection string to parse</param>
+    public SQLiteConnectionStringBuilder(string connectionString)
     {
-      Initialize(cnnString);
+      Initialize(connectionString);
     }
 
     /// <summary>
@@ -82,7 +82,7 @@ namespace System.Data.SQLite
       set
       {
         if (value != 3)
-          throw new NotImplementedException();
+          throw new NotSupportedException();
 
         this["Version"] = value;
       }

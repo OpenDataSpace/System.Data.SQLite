@@ -165,18 +165,18 @@ namespace System.Data.SQLite
     /// <returns>
     /// This function throws an InvalidTypeCast() exception if the requested type doesn't match the column's definition or affinity.
     /// </returns>
-    /// <param name="ordinal">The index of the column to type-check</param>
+    /// <param name="i">The index of the column to type-check</param>
     /// <param name="typ">The type we want to get out of the column</param>
-    private void VerifyType(int ordinal, DbType typ)
+    private void VerifyType(int i, DbType typ)
     {
-      SQLiteType t = GetSQLiteType(ordinal);
+      SQLiteType t = GetSQLiteType(i);
 
       if (t.Type == typ) return;
 
       if (t.Type != DbType.Object)
       {
         // Coercable type, usually a literal of some kind
-        switch (_fieldTypeArray[ordinal].Affinity)
+        switch (_fieldTypeArray[i].Affinity)
         {
           case TypeAffinity.Int64:
             if (typ == DbType.Int16) return;
@@ -210,201 +210,201 @@ namespace System.Data.SQLite
     /// <summary>
     /// Retrieves the column as a boolean value
     /// </summary>
-    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <param name="i">The index of the column to retrieve</param>
     /// <returns>bool</returns>
-    public override bool GetBoolean(int ordinal)
+    public override bool GetBoolean(int i)
     {
-      VerifyType(ordinal, DbType.Boolean);
-      return Convert.ToBoolean(GetValue(ordinal));
+      VerifyType(i, DbType.Boolean);
+      return Convert.ToBoolean(GetValue(i));
     }
 
     /// <summary>
     /// Retrieves the column as a single byte value
     /// </summary>
-    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <param name="i">The index of the column to retrieve</param>
     /// <returns>byte</returns>
-    public override byte GetByte(int ordinal)
+    public override byte GetByte(int i)
     {
-      VerifyType(ordinal, DbType.Byte);
-      return Convert.ToByte(_activeStatement._sql.GetInt32(_activeStatement, ordinal));
+      VerifyType(i, DbType.Byte);
+      return Convert.ToByte(_activeStatement._sql.GetInt32(_activeStatement, i));
     }
 
     /// <summary>
     /// Retrieves a column as an array of bytes (blob)
     /// </summary>
-    /// <param name="ordinal">The index of the column to retrieve</param>
-    /// <param name="dataOffset">The zero-based index of where to begin reading the data</param>
+    /// <param name="i">The index of the column to retrieve</param>
+    /// <param name="fieldOffset">The zero-based index of where to begin reading the data</param>
     /// <param name="buffer">The buffer to write the bytes into</param>
-    /// <param name="bufferOffset">The zero-based index of where to begin writing into the array</param>
+    /// <param name="bufferoffset">The zero-based index of where to begin writing into the array</param>
     /// <param name="length">The number of bytes to retrieve</param>
     /// <returns>The actual number of bytes written into the array</returns>
     /// <remarks>
     /// To determine the number of bytes in the column, pass a null value for the buffer.  The total length will be returned.
     /// </remarks>
-    public override long GetBytes(int ordinal, long dataOffset, byte[] buffer, int bufferOffset, int length)
+    public override long GetBytes(int i, long fieldOffset, byte[] buffer, int bufferoffset, int length)
     {
-      VerifyType(ordinal, DbType.Binary);
-      return _activeStatement._sql.GetBytes(_activeStatement, ordinal, (int)dataOffset, buffer, bufferOffset, length);
+      VerifyType(i, DbType.Binary);
+      return _activeStatement._sql.GetBytes(_activeStatement, i, (int)fieldOffset, buffer, bufferoffset, length);
     }
 
     /// <summary>
     /// Returns the column as a single character
     /// </summary>
-    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <param name="i">The index of the column to retrieve</param>
     /// <returns>char</returns>
-    public override char GetChar(int ordinal)
+    public override char GetChar(int i)
     {
-      VerifyType(ordinal, DbType.SByte);
-      return Convert.ToChar(_activeStatement._sql.GetInt32(_activeStatement, ordinal));
+      VerifyType(i, DbType.SByte);
+      return Convert.ToChar(_activeStatement._sql.GetInt32(_activeStatement, i));
     }
 
     /// <summary>
     /// Retrieves a column as an array of chars (blob)
     /// </summary>
-    /// <param name="ordinal">The index of the column to retrieve</param>
-    /// <param name="dataOffset">The zero-based index of where to begin reading the data</param>
+    /// <param name="i">The index of the column to retrieve</param>
+    /// <param name="fieldoffset">The zero-based index of where to begin reading the data</param>
     /// <param name="buffer">The buffer to write the characters into</param>
-    /// <param name="bufferOffset">The zero-based index of where to begin writing into the array</param>
+    /// <param name="bufferoffset">The zero-based index of where to begin writing into the array</param>
     /// <param name="length">The number of bytes to retrieve</param>
     /// <returns>The actual number of characters written into the array</returns>
     /// <remarks>
     /// To determine the number of characters in the column, pass a null value for the buffer.  The total length will be returned.
     /// </remarks>
-    public override long GetChars(int ordinal, long dataOffset, char[] buffer, int bufferOffset, int length)
+    public override long GetChars(int i, long fieldoffset, char[] buffer, int bufferoffset, int length)
     {
-      VerifyType(ordinal, DbType.String);
-      return _activeStatement._sql.GetChars(_activeStatement, ordinal, (int)dataOffset, buffer, bufferOffset, length);
+      VerifyType(i, DbType.String);
+      return _activeStatement._sql.GetChars(_activeStatement, i, (int)fieldoffset, buffer, bufferoffset, length);
     }
 
     /// <summary>
     /// Retrieves the name of the back-end datatype of the column
     /// </summary>
-    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <param name="i">The index of the column to retrieve</param>
     /// <returns>string</returns>
-    public override string GetDataTypeName(int ordinal)
+    public override string GetDataTypeName(int i)
     {
       CheckClosed();
-      SQLiteType typ = GetSQLiteType(ordinal);
+      SQLiteType typ = GetSQLiteType(i);
 
       if (typ.Type == DbType.Object) return SQLiteConvert.SQLiteTypeToType(typ).Name;
 
-      return _activeStatement._sql.ColumnType(_activeStatement, ordinal, out typ.Affinity);
+      return _activeStatement._sql.ColumnType(_activeStatement, i, out typ.Affinity);
     }
 
     /// <summary>
     /// Retrieve the column as a date/time value
     /// </summary>
-    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <param name="i">The index of the column to retrieve</param>
     /// <returns>DateTime</returns>
-    public override DateTime GetDateTime(int ordinal)
+    public override DateTime GetDateTime(int i)
     {
-      VerifyType(ordinal, DbType.DateTime);
-      return _activeStatement._sql.GetDateTime(_activeStatement, ordinal);
+      VerifyType(i, DbType.DateTime);
+      return _activeStatement._sql.GetDateTime(_activeStatement, i);
     }
 
     /// <summary>
     /// Retrieve the column as a decimal value
     /// </summary>
-    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <param name="i">The index of the column to retrieve</param>
     /// <returns>decimal</returns>
-    public override decimal GetDecimal(int ordinal)
+    public override decimal GetDecimal(int i)
     {
-      VerifyType(ordinal, DbType.Decimal);
-      return Convert.ToDecimal(_activeStatement._sql.GetDouble(_activeStatement, ordinal));
+      VerifyType(i, DbType.Decimal);
+      return Convert.ToDecimal(_activeStatement._sql.GetDouble(_activeStatement, i));
     }
 
     /// <summary>
     /// Returns the column as a double
     /// </summary>
-    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <param name="i">The index of the column to retrieve</param>
     /// <returns>double</returns>
-    public override double GetDouble(int ordinal)
+    public override double GetDouble(int i)
     {
-      VerifyType(ordinal, DbType.Double);
-      return _activeStatement._sql.GetDouble(_activeStatement, ordinal);
+      VerifyType(i, DbType.Double);
+      return _activeStatement._sql.GetDouble(_activeStatement, i);
     }
 
     /// <summary>
     /// Returns the .NET type of a given column
     /// </summary>
-    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <param name="i">The index of the column to retrieve</param>
     /// <returns>Type</returns>
-    public override Type GetFieldType(int ordinal)
+    public override Type GetFieldType(int i)
     {
-      return SQLiteConvert.SQLiteTypeToType(GetSQLiteType(ordinal));
+      return SQLiteConvert.SQLiteTypeToType(GetSQLiteType(i));
     }
 
     /// <summary>
     /// Returns a column as a float value
     /// </summary>
-    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <param name="i">The index of the column to retrieve</param>
     /// <returns>float</returns>
-    public override float GetFloat(int ordinal)
+    public override float GetFloat(int i)
     {
-      VerifyType(ordinal, DbType.Single);
-      return Convert.ToSingle(_activeStatement._sql.GetDouble(_activeStatement, ordinal));
+      VerifyType(i, DbType.Single);
+      return Convert.ToSingle(_activeStatement._sql.GetDouble(_activeStatement, i));
     }
 
     /// <summary>
     /// Returns the column as a Guid
     /// </summary>
-    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <param name="i">The index of the column to retrieve</param>
     /// <returns>Guid</returns>
-    public override Guid GetGuid(int ordinal)
+    public override Guid GetGuid(int i)
     {
-      VerifyType(ordinal, DbType.Guid);
-      return new Guid(_activeStatement._sql.GetText(_activeStatement, ordinal));
+      VerifyType(i, DbType.Guid);
+      return new Guid(_activeStatement._sql.GetText(_activeStatement, i));
     }
 
     /// <summary>
     /// Returns the column as a short
     /// </summary>
-    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <param name="i">The index of the column to retrieve</param>
     /// <returns>Int16</returns>
-    public override Int16 GetInt16(int ordinal)
+    public override Int16 GetInt16(int i)
     {
-      VerifyType(ordinal, DbType.Int16);
-      return Convert.ToInt16(_activeStatement._sql.GetInt32(_activeStatement, ordinal));
+      VerifyType(i, DbType.Int16);
+      return Convert.ToInt16(_activeStatement._sql.GetInt32(_activeStatement, i));
     }
 
     /// <summary>
     /// Retrieves the column as an int
     /// </summary>
-    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <param name="i">The index of the column to retrieve</param>
     /// <returns>Int32</returns>
-    public override Int32 GetInt32(int ordinal)
+    public override Int32 GetInt32(int i)
     {
-      VerifyType(ordinal, DbType.Int32);
-      return _activeStatement._sql.GetInt32(_activeStatement, ordinal);
+      VerifyType(i, DbType.Int32);
+      return _activeStatement._sql.GetInt32(_activeStatement, i);
     }
 
     /// <summary>
     /// Retrieves the column as a long
     /// </summary>
-    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <param name="i">The index of the column to retrieve</param>
     /// <returns>Int64</returns>
-    public override Int64 GetInt64(int ordinal)
+    public override Int64 GetInt64(int i)
     {
-      VerifyType(ordinal, DbType.Int64);
-      return _activeStatement._sql.GetInt64(_activeStatement, ordinal);
+      VerifyType(i, DbType.Int64);
+      return _activeStatement._sql.GetInt64(_activeStatement, i);
     }
 
     /// <summary>
     /// Retrieves the name of the column
     /// </summary>
-    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <param name="i">The index of the column to retrieve</param>
     /// <returns>string</returns>
-    public override string GetName(int ordinal)
+    public override string GetName(int i)
     {
       CheckClosed();
-      return _activeStatement._sql.ColumnName(_activeStatement, ordinal);
+      return _activeStatement._sql.ColumnName(_activeStatement, i);
     }
 
     /// <summary>
-    /// Retrieves the ordinal of a column, given its name
+    /// Retrieves the i of a column, given its name
     /// </summary>
     /// <param name="name">The name of the column to retrieve</param>
-    /// <returns>The int ordinal of the column</returns>
+    /// <returns>The int i of the column</returns>
     public override int GetOrdinal(string name)
     {
       CheckClosed();
@@ -567,24 +567,24 @@ namespace System.Data.SQLite
     /// <summary>
     /// Retrieves the column as a string
     /// </summary>
-    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <param name="i">The index of the column to retrieve</param>
     /// <returns>string</returns>
-    public override string GetString(int ordinal)
+    public override string GetString(int i)
     {
-      VerifyType(ordinal, DbType.String);
-      return _activeStatement._sql.GetText(_activeStatement, ordinal);
+      VerifyType(i, DbType.String);
+      return _activeStatement._sql.GetText(_activeStatement, i);
     }
 
     /// <summary>
     /// Retrieves the column as an object corresponding to the underlying datatype of the column
     /// </summary>
-    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <param name="i">The index of the column to retrieve</param>
     /// <returns>object</returns>
-    public override object GetValue(int ordinal)
+    public override object GetValue(int i)
     {
-      SQLiteType typ = GetSQLiteType(ordinal);
+      SQLiteType typ = GetSQLiteType(i);
 
-      return _activeStatement._sql.GetValue(_activeStatement, ordinal, ref typ);
+      return _activeStatement._sql.GetValue(_activeStatement, i, ref typ);
     }
 
     /// <summary>
@@ -629,12 +629,12 @@ namespace System.Data.SQLite
     /// <summary>
     /// Returns True if the specified column is null
     /// </summary>
-    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <param name="i">The index of the column to retrieve</param>
     /// <returns>True or False</returns>
-    public override bool IsDBNull(int ordinal)
+    public override bool IsDBNull(int i)
     {
       CheckClosed();
-      return _activeStatement._sql.IsNull(_activeStatement, ordinal);
+      return _activeStatement._sql.IsNull(_activeStatement, i);
     }
 
     /// <summary>
@@ -716,16 +716,16 @@ namespace System.Data.SQLite
     /// <summary>
     /// Retrieves the SQLiteType for a given column, and caches it to avoid repetetive interop calls.
     /// </summary>
-    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <param name="i">The index of the column to retrieve</param>
     /// <returns>A SQLiteType structure</returns>
-    private SQLiteType GetSQLiteType(int ordinal)
+    private SQLiteType GetSQLiteType(int i)
     {
       CheckClosed();
       if (_fieldTypeArray == null) _fieldTypeArray = new SQLiteType[_fieldCount];
 
-      if (_fieldTypeArray[ordinal].Affinity == 0)
-        _fieldTypeArray[ordinal].Type = SQLiteConvert.TypeNameToDbType(_activeStatement._sql.ColumnType(_activeStatement, ordinal, out _fieldTypeArray[ordinal].Affinity));
-      return _fieldTypeArray[ordinal];
+      if (_fieldTypeArray[i].Affinity == 0)
+        _fieldTypeArray[i].Type = SQLiteConvert.TypeNameToDbType(_activeStatement._sql.ColumnType(_activeStatement, i, out _fieldTypeArray[i].Affinity));
+      return _fieldTypeArray[i];
     }
 
     /// <summary>
@@ -771,13 +771,13 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// Indexer to retrieve data from a column given its ordinal
+    /// Indexer to retrieve data from a column given its i
     /// </summary>
-    /// <param name="ordinal">The index of the column to retrieve</param>
+    /// <param name="i">The index of the column to retrieve</param>
     /// <returns>The value contained in the column</returns>
-    public override object this[int ordinal]
+    public override object this[int i]
     {
-      get { return GetValue(ordinal); }
+      get { return GetValue(i); }
     }
   }
 }

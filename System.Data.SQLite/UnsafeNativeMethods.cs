@@ -14,13 +14,17 @@ namespace System.Data.SQLite
 #if !PLATFORM_COMPACTFRAMEWORK
   [SuppressUnmanagedCodeSecurity]
 #endif
-  internal class UnsafeNativeMethods
+  internal sealed class UnsafeNativeMethods
   {
-#if !PLATFORM_COMPACTFRAMEWORK
+#if !PLATFORM_COMPACTFRAMEWORK && !USE_INTEROP_DLL
     private const string SQLITE_DLL = "System.Data.SQLite.DLL";
 #else
     private const string SQLITE_DLL = "SQLite.Interop.DLL";
 #endif
+
+    private UnsafeNativeMethods()
+    {
+    }
 
     [DllImport("kernel32.dll")]
     internal static extern void Sleep(uint dwMilliseconds);

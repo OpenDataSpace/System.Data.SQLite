@@ -27,6 +27,7 @@ System.Data.SQLite.SQLiteCommandConstructor1.html
 System.Data.SQLite.SQLiteCommandConstructor2.html
 System.Data.SQLite.SQLiteCommandConstructor3.html
 System.Data.SQLite.SQLiteCommandConstructor4.html
+System.Data.SQLite.SQLiteCommandConstructor5.html
 System.Data.SQLite.SQLiteCommandProperties.html
 System.Data.SQLite.SQLiteCommand.CommandText.html
 System.Data.SQLite.SQLiteCommand.CommandTimeout.html
@@ -90,7 +91,6 @@ System.Data.SQLite.SQLiteConvert.ToString_overload_1.html
 System.Data.SQLite.SQLiteConvert.ToUTF8_overloads.html
 System.Data.SQLite.SQLiteConvert.ToUTF8_overload_2.html
 System.Data.SQLite.SQLiteConvert.ToUTF8_overload_1.html
-System.Data.SQLite.SQLiteConvert.TryToDateTime.html
 System.Data.SQLite.SQLiteDataAdapter.html
 System.Data.SQLite.SQLiteDataAdapterMembers.html
 System.Data.SQLite.SQLiteDataAdapterConstructor.html
@@ -144,8 +144,6 @@ System.Data.SQLite.SQLiteFactoryMembers.html
 System.Data.SQLite.SQLiteFactoryConstructor.html
 System.Data.SQLite.SQLiteFactoryFields.html
 System.Data.SQLite.SQLiteFactory.Instance.html
-System.Data.SQLite.SQLiteFactoryProperties.html
-System.Data.SQLite.SQLiteFactory.SupportedClasses.html
 System.Data.SQLite.SQLiteFactoryMethods.html
 System.Data.SQLite.SQLiteFactory.CreateCommand.html
 System.Data.SQLite.SQLiteFactory.CreateCommandBuilder.html
@@ -165,7 +163,6 @@ System.Data.SQLite.SQLiteFunction.Dispose_overload_2.html
 System.Data.SQLite.SQLiteFunction.Dispose_overload_1.html
 System.Data.SQLite.SQLiteFunction.Final.html
 System.Data.SQLite.SQLiteFunction.Invoke.html
-System.Data.SQLite.SQLiteFunction.RegisterFunction.html
 System.Data.SQLite.SQLiteFunction.Step.html
 System.Data.SQLite.SQLiteFunctionAttribute.html
 System.Data.SQLite.SQLiteFunctionAttributeMembers.html
@@ -191,6 +188,9 @@ System.Data.SQLite.SQLiteParameterConstructor11.html
 System.Data.SQLite.SQLiteParameterConstructor12.html
 System.Data.SQLite.SQLiteParameterConstructor13.html
 System.Data.SQLite.SQLiteParameterConstructor14.html
+System.Data.SQLite.SQLiteParameterConstructor15.html
+System.Data.SQLite.SQLiteParameterConstructor16.html
+System.Data.SQLite.SQLiteParameterConstructor17.html
 System.Data.SQLite.SQLiteParameterProperties.html
 System.Data.SQLite.SQLiteParameter.DbType.html
 System.Data.SQLite.SQLiteParameter.Direction.html
@@ -203,7 +203,6 @@ System.Data.SQLite.SQLiteParameter.SourceColumnNullMapping.html
 System.Data.SQLite.SQLiteParameter.SourceVersion.html
 System.Data.SQLite.SQLiteParameter.Value.html
 System.Data.SQLite.SQLiteParameterMethods.html
-System.Data.SQLite.SQLiteParameter.CopyTo.html
 System.Data.SQLite.SQLiteParameter.ResetDbType.html
 System.Data.SQLite.SQLiteParameterCollection.html
 System.Data.SQLite.SQLiteParameterCollectionMembers.html
@@ -255,14 +254,14 @@ Compiling c:\src\SQLite.NET\Doc\ndoc_msdn_temp\SQLite.NET.chm
 
 
 Compile time: 0 minutes, 3 seconds
-233	Topics
-1,346	Local links
+232	Topics
+1,341	Local links
 0	Internet links
 8	Graphics
 
 
-Created c:\src\SQLite.NET\Doc\ndoc_msdn_temp\SQLite.NET.chm, 138,849 bytes
-Compression decreased file by 749,742 bytes.
+Created c:\src\SQLite.NET\Doc\ndoc_msdn_temp\SQLite.NET.chm, 142,903 bytes
+Compression decreased file by 746,084 bytes.
 
 Html Help compile complete
 Done.

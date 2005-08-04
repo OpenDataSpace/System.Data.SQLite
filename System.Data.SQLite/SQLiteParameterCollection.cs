@@ -85,14 +85,14 @@ namespace System.Data.SQLite
     /// <summary>
     /// Adds a parameter to the collection
     /// </summary>
-    /// <param name="paramName">The parameter name</param>
-    /// <param name="dbType">The data type</param>
-    /// <param name="nSize">The size of the value</param>
+    /// <param name="parameterName">The parameter name</param>
+    /// <param name="parameterType">The data type</param>
+    /// <param name="parameterSize">The size of the value</param>
     /// <param name="sourceColumn">The source column</param>
     /// <returns>A SQLiteParameter object</returns>
-    public SQLiteParameter Add(string paramName, DbType dbType, int nSize, string sourceColumn)
+    public SQLiteParameter Add(string parameterName, DbType parameterType, int parameterSize, string sourceColumn)
     {
-      SQLiteParameter param = new SQLiteParameter(paramName, dbType, nSize, sourceColumn);
+      SQLiteParameter param = new SQLiteParameter(parameterName, parameterType, parameterSize, sourceColumn);
       Add(param);
 
       return param;
@@ -101,13 +101,13 @@ namespace System.Data.SQLite
     /// <summary>
     /// Adds a parameter to the collection
     /// </summary>
-    /// <param name="paramName">The parameter name</param>
-    /// <param name="dbType">The data type</param>
-    /// <param name="nSize">The size of the value</param>
+    /// <param name="parameterName">The parameter name</param>
+    /// <param name="parameterType">The data type</param>
+    /// <param name="parameterSize">The size of the value</param>
     /// <returns>A SQLiteParameter object</returns>
-    public SQLiteParameter Add(string paramName, DbType dbType, int nSize)
+    public SQLiteParameter Add(string parameterName, DbType parameterType, int parameterSize)
     {
-      SQLiteParameter param = new SQLiteParameter(paramName, dbType, nSize);
+      SQLiteParameter param = new SQLiteParameter(parameterName, parameterType, parameterSize);
       Add(param);
 
       return param;
@@ -116,12 +116,12 @@ namespace System.Data.SQLite
     /// <summary>
     /// Adds a parameter to the collection
     /// </summary>
-    /// <param name="paramName">The parameter name</param>
-    /// <param name="dbType">The data type</param>
+    /// <param name="parameterName">The parameter name</param>
+    /// <param name="parameterType">The data type</param>
     /// <returns>A SQLiteParameter object</returns>
-    public SQLiteParameter Add(string paramName, DbType dbType)
+    public SQLiteParameter Add(string parameterName, DbType parameterType)
     {
-      SQLiteParameter param = new SQLiteParameter(paramName, dbType);
+      SQLiteParameter param = new SQLiteParameter(parameterName, parameterType);
       Add(param);
 
       return param;
@@ -130,24 +130,24 @@ namespace System.Data.SQLite
     /// <summary>
     /// Adds a parameter to the collection
     /// </summary>
-    /// <param name="p">The parameter to add</param>
+    /// <param name="parameter">The parameter to add</param>
     /// <returns>A zero-based index of where the parameter is located in the array</returns>
-    public int Add(SQLiteParameter p)
+    public int Add(SQLiteParameter parameter)
     {
       int n = -1;
 
-      if (p.ParameterName != null)
+      if (parameter.ParameterName != null)
       {
-        n = IndexOf(p.ParameterName);
+        n = IndexOf(parameter.ParameterName);
       }
 
       if (n == -1)
       {
         n = _parameterList.Count;
-        _parameterList.Add(p);
+        _parameterList.Add(parameter);
       }
 
-      SetParameter(n, p);
+      SetParameter(n, parameter);
 
       return n;
     }
@@ -196,11 +196,11 @@ namespace System.Data.SQLite
     /// <summary>
     /// Determines if the named parameter exists in the collection
     /// </summary>
-    /// <param name="value">The name of the parameter to check</param>
+    /// <param name="parameterName">The name of the parameter to check</param>
     /// <returns>True if the parameter is in the collection</returns>
-    public override bool Contains(string value)
+    public override bool Contains(string parameterName)
     {
-      return (IndexOf(value) != -1);
+      return (IndexOf(parameterName) != -1);
     }
 
     /// <summary>

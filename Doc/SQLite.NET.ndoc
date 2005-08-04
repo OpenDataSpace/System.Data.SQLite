@@ -1,6 +1,6 @@
 <project SchemaVersion="1.3">
     <assemblies>
-        <assembly location="..\bin\System.Data.SQLite.dll" documentation="..\bin\System.Data.SQLite.XML" />
+        <assembly location="..\bin\System.Data.SQLite.dll" documentation=".\System.Data.SQLite.XML" />
     </assemblies>
     <documenters>
         <documenter name="JavaDoc">

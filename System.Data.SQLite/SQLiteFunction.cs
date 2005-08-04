@@ -111,10 +111,6 @@ namespace System.Data.SQLite
     protected SQLiteFunction()
     {
       _contextDataList = new SortedList<int, object>();
-      _InvokeFunc = null;
-      _StepFunc = null;
-      _FinalFunc = null;
-      _CompareFunc = null;
     }
 
     /// <summary>
@@ -153,9 +149,9 @@ namespace System.Data.SQLite
     /// Typically you'll be updating whatever you've placed in the contextData field and returning as quickly as possible.
     /// </remarks>
     /// <param name="args">The arguments for the command to process</param>
-    /// <param name="nStep">The 1-based step number.  This is incrememted each time the step method is called.</param>
+    /// <param name="stepNumber">The 1-based step number.  This is incrememted each time the step method is called.</param>
     /// <param name="contextData">A placeholder for implementers to store contextual data pertaining to the current context.</param>
-    public virtual void Step(object[] args, int nStep, ref object contextData)
+    public virtual void Step(object[] args, int stepNumber, ref object contextData)
     {
     }
 
@@ -250,25 +246,30 @@ namespace System.Data.SQLite
     /// Takes the return value from Invoke() and Final() and figures out how to return it to SQLite's context.
     /// </summary>
     /// <param name="context">The context the return value applies to</param>
-    /// <param name="obj">The parameter to return to SQLite</param>
-    void SetReturnValue(int context, object obj)
+    /// <param name="returnValue">The parameter to return to SQLite</param>
+    void SetReturnValue(int context, object returnValue)
     {
-      if (obj == null || obj == DBNull.Value)
+      if (returnValue == null || returnValue == DBNull.Value)
       {
         _base.ReturnNull(context);
         return;
       }
 
-      Type t = obj.GetType();
+      Type t = returnValue.GetType();
       if (t == typeof(DateTime))
       {
-        _base.ReturnText(context, _base.ToString((DateTime)obj));
+        _base.ReturnText(context, _base.ToString((DateTime)returnValue));
         return;
       }
-      else if (obj as Exception != null)
+      else
       {
-        _base.ReturnError(context, ((Exception)obj).Message);
-        return;
+        Exception r = returnValue as Exception;
+
+        if (r != null)
+        {
+          _base.ReturnError(context, r.Message);
+          return;
+        }
       }
 
       switch (SQLiteConvert.TypeToAffinity(t))
@@ -277,16 +278,16 @@ namespace System.Data.SQLite
           _base.ReturnNull(context);
           return;
         case TypeAffinity.Int64:
-          _base.ReturnInt64(context, Convert.ToInt64(obj));
+          _base.ReturnInt64(context, Convert.ToInt64(returnValue));
           return;
         case TypeAffinity.Double:
-          _base.ReturnDouble(context, Convert.ToDouble(obj));
+          _base.ReturnDouble(context, Convert.ToDouble(returnValue));
           return;
         case TypeAffinity.Text:
-          _base.ReturnText(context, obj.ToString());
+          _base.ReturnText(context, returnValue.ToString());
           return;
         case TypeAffinity.Blob:
-          _base.ReturnBlob(context, (byte[])obj);
+          _base.ReturnBlob(context, (byte[])returnValue);
           return;
       }
     }
@@ -361,8 +362,8 @@ namespace System.Data.SQLite
     /// <summary>
     /// Placeholder for a user-defined disposal routine
     /// </summary>
-    /// <param name="bDisposing">True if the object is being disposed explicitly</param>
-    protected virtual void Dispose(bool bDisposing)
+    /// <param name="disposing">True if the object is being disposed explicitly</param>
+    protected virtual void Dispose(bool disposing)
     {
     }
 
@@ -418,7 +419,7 @@ namespace System.Data.SQLite
             at = arAtt[y] as SQLiteFunctionAttribute;
             if (at != null)
             {
-              at.InstanceType = arTypes[x];
+              at._instanceType = arTypes[x];
               _registeredFunctions.Add(at);
             }
           }
@@ -442,7 +443,7 @@ namespace System.Data.SQLite
         at = arAtt[y] as SQLiteFunctionAttribute;
         if (at != null)
         {
-          at.InstanceType = typ;
+          at._instanceType = typ;
           _registeredFunctions.Add(at);
         }
       }
@@ -467,7 +468,7 @@ namespace System.Data.SQLite
 
       foreach (SQLiteFunctionAttribute pr in _registeredFunctions)
       {
-        f = (SQLiteFunction)Activator.CreateInstance(pr.InstanceType);
+        f = (SQLiteFunction)Activator.CreateInstance(pr._instanceType);
         f._base = sqlbase;
         f._InvokeFunc = (pr.FuncType == FunctionType.Scalar) ? new SQLiteCallback(f.ScalarCallback) : null;
         f._StepFunc = (pr.FuncType == FunctionType.Aggregate) ? new SQLiteCallback(f.StepCallback) : null;

@@ -18,6 +18,10 @@ namespace System.Data.SQLite
   public enum TypeAffinity
   {
     /// <summary>
+    /// Not used
+    /// </summary>
+    Uninitialized = 0,
+    /// <summary>
     /// All integers in SQLite default to Int64
     /// </summary>
     Int64 = 1,
@@ -40,11 +44,11 @@ namespace System.Data.SQLite
     /// <summary>
     /// Used internally by this provider
     /// </summary>
-    DateTime = 128,
+    DateTime = 10,
     /// <summary>
-    /// Used internally by this provider
+    /// Used internally
     /// </summary>
-    None=256,
+    None = 256,
   }
 
   /// <summary>
@@ -89,7 +93,15 @@ namespace System.Data.SQLite
     /// <summary>
     /// An array of ISO8601 datetime formats we support conversion from
     /// </summary>
-    private static string[] _datetimeFormats;
+    private static string[] _datetimeFormats = new string[] {"yyyy-MM-dd HH:mm:ss",
+																	  "yyyyMMddHHmmss",
+																	  "yyyyMMddTHHmmssfffffff",
+																	  "yyyy-MM-dd",
+																	  "yy-MM-dd",
+																	  "yyyyMMdd",
+																	  "HH:mm:ss",
+																	  "THHmmss"
+															 };
 
     /// <summary>
     /// An UTF-8 Encoding instance, so we can convert strings to and from UTF8
@@ -99,23 +111,6 @@ namespace System.Data.SQLite
     /// The default DateTime format for this instance
     /// </summary>
     private DateTimeFormat _datetimeFormat;
-
-    /// <summary>
-    /// Static constructor, initializes the supported ISO8601 date time formats
-    /// </summary>
-    static SQLiteConvert()
-    {
-      _datetimeFormats = new string[] {"yyyy-MM-dd HH:mm:ss",
-																	  "yyyyMMddHHmmss",
-																	  "yyyyMMddTHHmmssfffffff",
-																	  "yyyy-MM-dd",
-																	  "yy-MM-dd",
-																	  "yyyyMMdd",
-																	  "HH:mm:ss",
-																	  "THHmmss"
-															 };
-    }
-
     /// <summary>
     /// Initializes the conversion class
     /// </summary>
@@ -129,18 +124,18 @@ namespace System.Data.SQLite
     /// <summary>
     /// Converts a string to a UTF-8 encoded byte array sized to include a null-terminating character.
     /// </summary>
-    /// <param name="strSrc">The string to convert to UTF-8</param>
+    /// <param name="sourceText">The string to convert to UTF-8</param>
     /// <returns>A byte array containing the converted string plus an extra 0 terminating byte at the end of the array.</returns>
-    public byte[] ToUTF8(string strSrc)
+    public static byte[] ToUTF8(string sourceText)
     {
-      Byte[] b;
-      int nlen = _utf8.GetByteCount(strSrc) + 1;
+      Byte[] byteArray;
+      int nlen = _utf8.GetByteCount(sourceText) + 1;
 
-      b = new byte[nlen];
-      nlen = _utf8.GetBytes(strSrc, 0, strSrc.Length, b, 0);
-      b[nlen] = 0;
+      byteArray = new byte[nlen];
+      nlen = _utf8.GetBytes(sourceText, 0, sourceText.Length, byteArray, 0);
+      byteArray[nlen] = 0;
 
-      return b;
+      return byteArray;
     }
 
     /// <summary>
@@ -150,29 +145,29 @@ namespace System.Data.SQLite
     /// This function is a convenience function, which first calls ToString() on the DateTime, and then calls ToUTF8() with the
     /// string result.
     /// </remarks>
-    /// <param name="dtSrc">The DateTime to convert.</param>
+    /// <param name="dateTimeValue">The DateTime to convert.</param>
     /// <returns>The UTF-8 encoded string, including a 0 terminating byte at the end of the array.</returns>
-    public byte[] ToUTF8(DateTime dtSrc)
+    public byte[] ToUTF8(DateTime dateTimeValue)
     {
-      return ToUTF8(ToString(dtSrc));
+      return ToUTF8(ToString(dateTimeValue));
     }
 
     /// <summary>
     /// Converts a UTF-8 encoded IntPtr of the specified length into a .NET string
     /// </summary>
-    /// <param name="b">The pointer to the memory where the UTF-8 string is encoded</param>
-    /// <param name="nlen">The number of bytes to decode</param>
+    /// <param name="nativestring">The pointer to the memory where the UTF-8 string is encoded</param>
+    /// <param name="nativestringlen">The number of bytes to decode</param>
     /// <returns>A string containing the translated character(s)</returns>
-    public virtual string ToString(IntPtr b, int nlen)
+    public virtual string ToString(IntPtr nativestring, int nativestringlen)
     {
-      if (nlen == 0) return "";
+      if (nativestringlen == 0) return "";
 
-      byte[] byt;
+      byte[] byteArray;
 
-      byt = new byte[nlen];
-      Marshal.Copy(b, byt, 0, nlen);
+      byteArray = new byte[nativestringlen];
+      Marshal.Copy(nativestring, byteArray, 0, nativestringlen);
 
-      return _utf8.GetString(byt, 0, nlen);
+      return _utf8.GetString(byteArray, 0, nativestringlen);
     }
 
     #endregion
@@ -192,16 +187,16 @@ namespace System.Data.SQLite
     ///   HH:mm:ss
     ///   THHmmss
     /// </remarks>
-    /// <param name="strSrc">The string containing either a Tick value or an ISO8601-format string</param>
+    /// <param name="dateText">The string containing either a Tick value or an ISO8601-format string</param>
     /// <returns>A DateTime value</returns>
-    public DateTime ToDateTime(string strSrc)
+    public DateTime ToDateTime(string dateText)
     {
       switch (_datetimeFormat)
       {
         case DateTimeFormat.Ticks:
-          return new DateTime(Convert.ToInt64(strSrc));
+          return new DateTime(Convert.ToInt64(dateText));
         default:
-          return DateTime.ParseExact(strSrc, _datetimeFormats, System.Globalization.DateTimeFormatInfo.InvariantInfo, System.Globalization.DateTimeStyles.None);
+          return DateTime.ParseExact(dateText, _datetimeFormats, System.Globalization.DateTimeFormatInfo.InvariantInfo, System.Globalization.DateTimeStyles.None);
       }
     }
 
@@ -236,16 +231,16 @@ namespace System.Data.SQLite
     /// <summary>
     /// Converts a DateTime to a string value, using the current DateTimeFormat specified for the connection when it was opened.
     /// </summary>
-    /// <param name="dtSrc">The DateTime value to convert</param>
+    /// <param name="dateValue">The DateTime value to convert</param>
     /// <returns>Either a string consisting of the tick count for DateTimeFormat.Ticks, or a date/time in ISO8601 format.</returns>
-    public string ToString(DateTime dtSrc)
+    public string ToString(DateTime dateValue)
     {
       switch (_datetimeFormat)
       {
         case DateTimeFormat.Ticks:
-          return dtSrc.Ticks.ToString();
+          return dateValue.Ticks.ToString();
         default:
-          return dtSrc.ToString(_datetimeFormats[0]);
+          return dateValue.ToString(_datetimeFormats[0]);
       }
     }
 
@@ -286,41 +281,41 @@ namespace System.Data.SQLite
     /// <br/>
     /// Note that the leading and trailing spaces were removed from each item during the split.
     /// </remarks>
-    /// <param name="src">Source string to split apart</param>
-    /// <param name="sep">Separator character</param>
+    /// <param name="source">Source string to split apart</param>
+    /// <param name="separator">Separator character</param>
     /// <returns>A string array of the split up elements</returns>
-    public static string[] Split(string src, char sep)
+    public static string[] Split(string source, char separator)
     {
-      char[] toks = new char[2] { '\"', sep };
+      char[] toks = new char[2] { '\"', separator };
       char[] quot = new char[1] { '\"' };
       int n = 0;
       List<string> ls = new List<string>();
       string s;
 
-      while (src.Length > 0)
+      while (source.Length > 0)
       {
-        n = src.IndexOfAny(toks, n);
+        n = source.IndexOfAny(toks, n);
         if (n == -1) break;
-        if (src[n] == toks[0])
+        if (source[n] == toks[0])
         {
-          src = src.Remove(n, 1);
-          n = src.IndexOfAny(quot, n);
+          source = source.Remove(n, 1);
+          n = source.IndexOfAny(quot, n);
           if (n == -1)
           {
-            src = "\"" + src;
+            source = "\"" + source;
             break;
           }
-          src = src.Remove(n, 1);
+          source = source.Remove(n, 1);
         }
         else
         {
-          s = src.Substring(0, n).Trim();
-          src = src.Substring(n + 1).Trim();
+          s = source.Substring(0, n).Trim();
+          source = source.Substring(n + 1).Trim();
           if (s.Length > 0) ls.Add(s);
           n = 0;
         }
       }
-      if (src.Length > 0) ls.Add(src);
+      if (source.Length > 0) ls.Add(source);
 
       string[] ar = new string[ls.Count];
       ls.CopyTo(ar, 0);
@@ -333,13 +328,13 @@ namespace System.Data.SQLite
     /// Determines the data type of a column in a statement
     /// </summary>
     /// <param name="stmt">The statement to retrieve information for</param>
-    /// <param name="ordinal">The column to retrieve type information on</param>
+    /// <param name="i">The column to retrieve type information on</param>
     /// <returns>Returns a SQLiteType struct</returns>
-    internal static SQLiteType ColumnToType(SQLiteStatement stmt, int ordinal)
+    internal static SQLiteType ColumnToType(SQLiteStatement stmt, int i)
     {
       SQLiteType typ;
 
-      typ.Type = TypeNameToDbType(stmt._sql.ColumnType(stmt, ordinal, out typ.Affinity));
+      typ.Type = TypeNameToDbType(stmt._sql.ColumnType(stmt, i, out typ.Affinity));
 
       return typ;
     }
