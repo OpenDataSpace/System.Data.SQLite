@@ -85,6 +85,18 @@ namespace System.Data.SQLite
     internal TypeAffinity Affinity;
   }
 
+  internal struct SQLiteTypeNames
+  {
+    internal SQLiteTypeNames(string newtypeName, DbType newdataType)
+    {
+      typeName = newtypeName;
+      dataType = newdataType;
+    }
+
+    internal string typeName;
+    internal DbType dataType;
+  }
+
   /// <summary>
   /// This base class provides datatype conversion services for the SQLite provider.
   /// </summary>
@@ -194,7 +206,7 @@ namespace System.Data.SQLite
       switch (_datetimeFormat)
       {
         case DateTimeFormat.Ticks:
-          return new DateTime(Convert.ToInt64(dateText));
+          return new DateTime(Convert.ToInt64(dateText, System.Globalization.CultureInfo.InvariantCulture));
         default:
           return DateTime.ParseExact(dateText, _datetimeFormats, System.Globalization.DateTimeFormatInfo.InvariantInfo, System.Globalization.DateTimeStyles.None);
       }
@@ -238,9 +250,9 @@ namespace System.Data.SQLite
       switch (_datetimeFormat)
       {
         case DateTimeFormat.Ticks:
-          return dateValue.Ticks.ToString();
+          return dateValue.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture);
         default:
-          return dateValue.ToString(_datetimeFormats[0]);
+          return dateValue.ToString(_datetimeFormats[0], System.Globalization.CultureInfo.InvariantCulture);
       }
     }
 
@@ -498,46 +510,52 @@ namespace System.Data.SQLite
     {
       if (Name == null) return DbType.Object;
 
-      Name = Name.ToUpper();
-
-      if (Name.IndexOf("LONGTEXT") > -1) return DbType.String;
-      if (Name.IndexOf("LONGCHAR") > -1) return DbType.String;
-      if (Name.IndexOf("SMALLINT") > -1) return DbType.Int16;
-      if (Name.IndexOf("BIGINT") > -1) return DbType.Int64;
-      if (Name.IndexOf("COUNTER") > -1) return DbType.Int64;
-      if (Name.IndexOf("AUTOINCREMENT") > -1) return DbType.Int64;
-      if (Name.IndexOf("IDENTITY") > -1) return DbType.Int64;
-      if (Name.IndexOf("LONG") > -1) return DbType.Int64;
-      if (Name.IndexOf("TINYINT") > -1) return DbType.Byte;
-      if (Name.IndexOf("INTEGER") > -1) return DbType.Int64;
-      if (Name.IndexOf("INT") > -1) return DbType.Int32;
-      if (Name.IndexOf("TEXT") > -1) return DbType.String;
-      if (Name.IndexOf("DOUBLE") > -1) return DbType.Double;
-      if (Name.IndexOf("FLOAT") > -1) return DbType.Double;
-      if (Name.IndexOf("REAL") > -1) return DbType.Single;
-      if (Name.IndexOf("BIT") > -1) return DbType.Boolean;
-      if (Name.IndexOf("YESNO") > -1) return DbType.Boolean;
-      if (Name.IndexOf("LOGICAL") > -1) return DbType.Boolean;
-      if (Name.IndexOf("BOOL") > -1) return DbType.Boolean;
-      if (Name.IndexOf("NUMERIC") > -1) return DbType.Decimal;
-      if (Name.IndexOf("DECIMAL") > -1) return DbType.Decimal;
-      if (Name.IndexOf("MONEY") > -1) return DbType.Decimal;
-      if (Name.IndexOf("CURRENCY") > -1) return DbType.Decimal;
-      if (Name.IndexOf("TIME") > -1) return DbType.DateTime;
-      if (Name.IndexOf("DATE") > -1) return DbType.DateTime;
-      if (Name.IndexOf("BLOB") > -1) return DbType.Binary;
-      if (Name.IndexOf("BINARY") > -1) return DbType.Binary;
-      if (Name.IndexOf("IMAGE") > -1) return DbType.Binary;
-      if (Name.IndexOf("GENERAL") > -1) return DbType.Binary;
-      if (Name.IndexOf("OLEOBJECT") > -1) return DbType.Binary;
-      if (Name.IndexOf("GUID") > -1) return DbType.Guid;
-      if (Name.IndexOf("UNIQUEIDENTIFIER") > -1) return DbType.Guid;
-      if (Name.IndexOf("MEMO") > -1) return DbType.String;
-      if (Name.IndexOf("NOTE") > -1) return DbType.String;
-      if (Name.IndexOf("CHAR") > -1) return DbType.String;
-
+      int x = _typeNames.Length;
+      for (int n = 0; n < x; n++)
+      {
+        if (System.Globalization.CultureInfo.InvariantCulture.CompareInfo.IndexOf(Name, _typeNames[n].typeName, System.Globalization.CompareOptions.IgnoreCase) > -1)
+          return _typeNames[n].dataType; 
+      }
       return DbType.Object;
     }
     #endregion
+
+    private static SQLiteTypeNames[] _typeNames = {
+      new SQLiteTypeNames("LONGTEXT", DbType.String),
+      new SQLiteTypeNames("LONGCHAR", DbType.String),
+      new SQLiteTypeNames("SMALLINT", DbType.Int16),
+      new SQLiteTypeNames("BIGINT", DbType.Int64),
+      new SQLiteTypeNames("COUNTER", DbType.Int64),
+      new SQLiteTypeNames("AUTOINCREMENT", DbType.Int64),
+      new SQLiteTypeNames("IDENTITY", DbType.Int64),
+      new SQLiteTypeNames("LONG", DbType.Int64),
+      new SQLiteTypeNames("TINYINT", DbType.Byte),
+      new SQLiteTypeNames("INTEGER", DbType.Int64),
+      new SQLiteTypeNames("INT", DbType.Int32),
+      new SQLiteTypeNames("TEXT", DbType.String),
+      new SQLiteTypeNames("DOUBLE", DbType.Double),
+      new SQLiteTypeNames("FLOAT", DbType.Double),
+      new SQLiteTypeNames("REAL", DbType.Single),
+      new SQLiteTypeNames("BIT", DbType.Boolean),
+      new SQLiteTypeNames("YESNO", DbType.Boolean),
+      new SQLiteTypeNames("LOGICAL", DbType.Boolean),
+      new SQLiteTypeNames("BOOL", DbType.Boolean),
+      new SQLiteTypeNames("NUMERIC", DbType.Decimal),
+      new SQLiteTypeNames("DECIMAL", DbType.Decimal),
+      new SQLiteTypeNames("MONEY", DbType.Decimal),
+      new SQLiteTypeNames("CURRENCY", DbType.Decimal),
+      new SQLiteTypeNames("TIME", DbType.DateTime),
+      new SQLiteTypeNames("DATE", DbType.DateTime),
+      new SQLiteTypeNames("BLOB", DbType.Binary),
+      new SQLiteTypeNames("BINARY", DbType.Binary),
+      new SQLiteTypeNames("IMAGE", DbType.Binary),
+      new SQLiteTypeNames("GENERAL", DbType.Binary),
+      new SQLiteTypeNames("OLEOBJECT", DbType.Binary),
+      new SQLiteTypeNames("GUID", DbType.Guid),
+      new SQLiteTypeNames("UNIQUEIDENTIFIER", DbType.Guid),
+      new SQLiteTypeNames("MEMO", DbType.String),
+      new SQLiteTypeNames("NOTE", DbType.String),
+      new SQLiteTypeNames("CHAR", DbType.String),
+    };
   }
 }

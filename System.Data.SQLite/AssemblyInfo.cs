@@ -1,7 +1,11 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System;
+
+#if !PLATFORM_COMPACTFRAMEWORK
+using System.Runtime.ConstrainedExecution;
+#endif
 
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
@@ -21,6 +25,10 @@ using System;
 [assembly: ComVisible(false)]
 
 [assembly: CLSCompliant(true)]
+
+#if !PLATFORM_COMPACTFRAMEWORK
+[assembly: ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
+#endif
 
 // Version information for an assembly consists of the following four values:
 //

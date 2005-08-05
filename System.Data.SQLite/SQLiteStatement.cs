@@ -73,7 +73,7 @@ namespace System.Data.SQLite
           s = _sql.Bind_ParamName(this, x + 1);
           if (String.IsNullOrEmpty(s))
           {
-            s = String.Format(";{0}", nCmdStart);
+            s = String.Format(System.Globalization.CultureInfo.InvariantCulture, ";{0}", nCmdStart);
             nCmdStart++;
           }
           _paramNames[x] = s;
@@ -95,7 +95,7 @@ namespace System.Data.SQLite
       int x = _paramNames.Length;
       for (int n = 0; n < x; n++)
       {
-        if (String.Compare(_paramNames[n], s, true) == 0)
+        if (String.Compare(_paramNames[n], s, true, System.Globalization.CultureInfo.CurrentCulture) == 0)
         {
           _paramValues[n] = p;
           break;
@@ -154,11 +154,11 @@ namespace System.Data.SQLite
         case DbType.Date:
         case DbType.Time:
         case DbType.DateTime:
-            _sql.Bind_DateTime(this, index, Convert.ToDateTime(obj));
+          _sql.Bind_DateTime(this, index, Convert.ToDateTime(obj, System.Globalization.CultureInfo.CurrentCulture));
           break;
         case DbType.Int64:
         case DbType.UInt64:
-          _sql.Bind_Int64(this, index, Convert.ToInt64(obj));
+          _sql.Bind_Int64(this, index, Convert.ToInt64(obj, System.Globalization.CultureInfo.CurrentCulture));
           break;
         case DbType.Boolean:
         case DbType.Int16:
@@ -167,13 +167,13 @@ namespace System.Data.SQLite
         case DbType.UInt32:
         case DbType.SByte:
         case DbType.Byte:
-            _sql.Bind_Int32(this, index, Convert.ToInt32(obj));
+          _sql.Bind_Int32(this, index, Convert.ToInt32(obj, System.Globalization.CultureInfo.CurrentCulture));
           break;
         case DbType.Single:
         case DbType.Double:
         case DbType.Currency:
         case DbType.Decimal:
-          _sql.Bind_Double(this, index, Convert.ToDouble(obj));
+          _sql.Bind_Double(this, index, Convert.ToDouble(obj, System.Globalization.CultureInfo.CurrentCulture));
           break;
         case DbType.Binary:
           _sql.Bind_Blob(this, index, (byte[])obj);

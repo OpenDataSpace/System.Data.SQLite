@@ -278,10 +278,10 @@ namespace System.Data.SQLite
           _base.ReturnNull(context);
           return;
         case TypeAffinity.Int64:
-          _base.ReturnInt64(context, Convert.ToInt64(returnValue));
+          _base.ReturnInt64(context, Convert.ToInt64(returnValue, System.Globalization.CultureInfo.CurrentCulture));
           return;
         case TypeAffinity.Double:
-          _base.ReturnDouble(context, Convert.ToDouble(returnValue));
+          _base.ReturnDouble(context, Convert.ToDouble(returnValue, System.Globalization.CultureInfo.CurrentCulture));
           return;
         case TypeAffinity.Text:
           _base.ReturnText(context, returnValue.ToString());

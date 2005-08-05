@@ -5,7 +5,7 @@
   </head>
   <body>
     ADO.NET 2.0 SQLite Data Provider<br>
-    Version 1.0.12 - Aug 3, 2005<br>
+    Version 1.0.12 - Aug 5, 2005<br>
     Interop using SQLite 3.22<br>
     Written by Robert Simpson (<a href="mailto:robert@blackcastlesoft.com">robert@blackcastlesoft.com</a>)<br>
     Released to the public domain, use at your own risk!<br>
@@ -128,18 +128,28 @@
     <h2>
       <b>Version History</b></h2>
     <b>1.0.12 - August 2, 2005</b><br>
-    <ul>
-      <li>
+    <UL>
+      <LI>
         Full support for the Compact Framework.&nbsp; Each build (Debug/Release) now 
         has a&nbsp;platform, either Win32 or Compact Framework.&nbsp; The correct 
-        projects are built accordingly.&nbsp; See the&nbsp;<a href="#redist">Distributing 
-          SQLite</a> section for information on what files need to be distributed for 
-        each platform.&nbsp;</li>
-      <li>
-        Modified SQLite3.Reset() and Step() functions to transparently handle timeouts
-        while waiting on the database to become available (typically when a writer is waiting
-        on a reader to finish, or a reader is waiting on a writer to finish).</li>
-    </ul>
+        projects are built accordingly.&nbsp; See the&nbsp;<A href="#redist">Distributing 
+          SQLite</A>
+      section for information on what files need to be distributed for each 
+      platform.&nbsp;
+      <LI>
+      Modified SQLite3.Reset() and Step() functions to transparently handle timeouts 
+      while waiting on the database to become available (typically when a writer is 
+      waiting on a reader to finish, or a reader is waiting on a writer to finish).
+      <LI>
+      Lots of code cleanup&nbsp;as suggested&nbsp;by the Code Analyzer (FxCop).
+      <LI>
+      Lots of updates to the helpfile.
+      <LI>
+        Statements&nbsp;were already prepared lazily&nbsp;in a SQLiteCommand, but 
+        things are relaxed even more now.&nbsp; Statements are now only prepared if the 
+        statements haven't been previously prepared and a Prepare() function is called 
+        (and the command is associated with a connection) or just prior to the command 
+        being executed.&nbsp;</LI></UL>
     <b>1.0.11 - August 1, 2005</b><br>
     <ul>
       <li>

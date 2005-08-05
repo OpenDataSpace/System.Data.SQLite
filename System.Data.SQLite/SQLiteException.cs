@@ -17,6 +17,129 @@ namespace System.Data.SQLite
 #endif
 
   /// <summary>
+  /// SQLite error codes
+  /// </summary>
+  public enum SQLiteErrorCode
+  {
+    /// <summary>
+    /// Success
+    /// </summary>
+    Ok = 0,
+    /// <summary>
+    /// SQL error or missing database
+    /// </summary>
+    Error,
+    /// <summary>
+    /// Internal logic error in SQLite
+    /// </summary>
+    Internal,
+    /// <summary>
+    /// Access permission denied
+    /// </summary>
+    Perm,
+    /// <summary>
+    /// Callback routine requested an abort
+    /// </summary>
+    Abort,
+    /// <summary>
+    /// The database file is locked
+    /// </summary>
+    Busy,
+    /// <summary>
+    /// A table in the database is locked
+    /// </summary>
+    Locked,
+    /// <summary>
+    /// malloc() failed
+    /// </summary>
+    NoMem,
+    /// <summary>
+    /// Attempt to write a read-only database
+    /// </summary>
+    ReadOnly,
+    /// <summary>
+    /// Operation terminated by sqlite3_interrupt()
+    /// </summary>
+    Interrupt,
+    /// <summary>
+    /// Some kind of disk I/O error occurred
+    /// </summary>
+    IOErr,
+    /// <summary>
+    /// The database disk image is malformed
+    /// </summary>
+    Corrupt,
+    /// <summary>
+    /// Table or record not found
+    /// </summary>
+    NotFound,
+    /// <summary>
+    /// Insertion failed because database is full
+    /// </summary>
+    Full,
+    /// <summary>
+    /// Unable to open the database file
+    /// </summary>
+    CantOpen,
+    /// <summary>
+    /// Database lock protocol error
+    /// </summary>
+    Protocol,
+    /// <summary>
+    /// Database is empty
+    /// </summary>
+    Empty,
+    /// <summary>
+    /// The database schema changed
+    /// </summary>
+    Schema,
+    /// <summary>
+    /// Too much data for one row of a table
+    /// </summary>
+    TooBig,
+    /// <summary>
+    /// Abort due to constraint violation
+    /// </summary>
+    Constraint,
+    /// <summary>
+    /// Data type mismatch
+    /// </summary>
+    Mismatch,
+    /// <summary>
+    /// Library used incorrectly
+    /// </summary>
+    Misuse,
+    /// <summary>
+    /// Uses OS features not supported on host
+    /// </summary>
+    NOLFS,
+    /// <summary>
+    /// Authorization denied
+    /// </summary>
+    Auth,
+    /// <summary>
+    /// Auxiliary database format error
+    /// </summary>
+    Format,
+    /// <summary>
+    /// 2nd parameter to sqlite3_bind out of range
+    /// </summary>
+    Range,
+    /// <summary>
+    /// File opened that is not a database file
+    /// </summary>
+    NotADatabase,
+    /// <summary>
+    /// sqlite3_step() has another row ready
+    /// </summary>
+    Row = 100,
+    /// <summary>
+    /// sqlite3_step() has finished executing
+    /// </summary>
+    Done = 101,
+  }
+
+  /// <summary>
   /// SQLite exception class.
   /// </summary>
 #if !PLATFORM_COMPACTFRAMEWORK
@@ -24,38 +147,46 @@ namespace System.Data.SQLite
 #endif
   public sealed class SQLiteException : Exception
   {
-    internal SQLiteException(int nCode, string strMessage) : base(Initialize(nCode, strMessage))
-    {
-      HResult = (int)((uint)0x800F0000 | (uint)nCode);
-    }
+    private SQLiteErrorCode _errorCode;
 
 #if !PLATFORM_COMPACTFRAMEWORK
-
-    private SQLiteException(SerializationInfo info, StreamingContext context) : base(info, context)
+    private SQLiteException(SerializationInfo info, StreamingContext context)
+      : base(info, context)
     {
     }
 #endif
 
     /// <summary>
-    /// Various public constructors that just pass along to the base DbException
+    /// Public constructor for generating a SQLite error given the base error code
     /// </summary>
-    /// <param name="message">Passed verbatim to DbException</param>
+    /// <param name="errorCode">The SQLite error code to report</param>
+    /// <param name="extendedInformation">Extra text to go along with the error message text</param>
+    public SQLiteException(int errorCode, string extendedInformation)
+      : base(Initialize(errorCode, extendedInformation))
+    {
+      _errorCode = (SQLiteErrorCode)errorCode;
+    }
+
+    /// <summary>
+    /// Various public constructors that just pass along to the base Exception
+    /// </summary>
+    /// <param name="message">Passed verbatim to Exception</param>
     public SQLiteException(string message)
       : base(message)
     {
     }
 
     /// <summary>
-    /// Various public constructors that just pass along to the base DbException
+    /// Various public constructors that just pass along to the base Exception
     /// </summary>
     public SQLiteException()
     {
     }
 
     /// <summary>
-    /// Various public constructors that just pass along to the base DbException
-    /// <param name="message">Passed to DbException</param>
-    /// <param name="innerException">Passed to DbException</param>
+    /// Various public constructors that just pass along to the base Exception
+    /// <param name="message">Passed to Exception</param>
+    /// <param name="innerException">Passed to Exception</param>
     /// </summary>
     public SQLiteException(string message, Exception innerException)
       : base(message, innerException)
@@ -63,77 +194,59 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
+    /// Retrieves the underlying SQLite error code for this exception
+    /// </summary>
+    public SQLiteErrorCode ErrorCode
+    {
+      get { return _errorCode; }
+    }
+
+    /// <summary>
     /// Initializes the exception class with the SQLite error code.
     /// </summary>
-    /// <param name="nCode">The SQLite error code</param>
-    /// <param name="strMessage">A detailed error message</param>
+    /// <param name="errorCode">The SQLite error code</param>
+    /// <param name="errorMessage">A detailed error message</param>
     /// <returns>An error message string</returns>
     /// <remarks>
     /// The SQLite error code is OR'd with 0x800F0000 to generate an HResult
     /// </remarks>
-    private static string Initialize(int nCode, string strMessage)
+    private static string Initialize(int errorCode, string errorMessage)
     {
-      if (strMessage == null) strMessage = "";
+      if (errorMessage == null) errorMessage = "";
 
-      if (strMessage.Length > 0)
-        strMessage = "\r\n" + strMessage;
+      if (errorMessage.Length > 0)
+        errorMessage = "\r\n" + errorMessage;
 
-      switch (nCode)
-      {
-        case 1:
-          return "SQLite error" + strMessage;
-        case 2:
-          return "An internal logic error in SQLite" + strMessage;
-        case 3:
-          return "Access permission denied" + strMessage;
-        case 4:
-          return "Callback routine requested an abort" + strMessage;
-        case 5:
-          return "The database file is locked" + strMessage;
-        case 6:
-          return "A table in the database is locked" + strMessage;
-        case 7:
-          return "A malloc() failed" + strMessage;
-        case 8:
-          return "Attempt to write a readonly database" + strMessage;
-        case 9:
-          return "Operation terminated by sqlite3_interrupt()" + strMessage;
-        case 10:
-          return "Some kind of disk I/O error occurred" + strMessage;
-        case 11:
-          return "The database disk image is malformed" + strMessage;
-        case 12:
-          return "Table or record not found" + strMessage;
-        case 13:
-          return "Insertion failed because database is full" + strMessage;
-        case 14:
-          return "Unable to open the database file" + strMessage;
-        case 15:
-          return "Database lock protocol error" + strMessage;
-        case 16:
-          return "Database is empty" + strMessage;
-        case 17:
-          return "The database schema changed" + strMessage;
-        case 18:
-          return "Too much data for one row of a table" + strMessage;
-        case 19:
-          return "Abort due to constraint violation" + strMessage;
-        case 20:
-          return "Data type mismatch" + strMessage;
-        case 21:
-          return "Library used incorrectly" + strMessage;
-        case 22:
-          return "Uses OS features not supported on host" + strMessage;
-        case 23:
-          return "Authorization denied" + strMessage;
-        case 24:
-          return "Auxiliary database format error" + strMessage;
-        case 25:
-          return "2nd parameter to sqlite3_bind() out of range" + strMessage;
-        case 26:
-          return "File opened that is not a database file" + strMessage;
-      }
-      return strMessage;
+      return _errorMessages[errorCode] + errorMessage;
     }
+
+    private static string[] _errorMessages = {
+      "SQLite OK",
+      "SQLite error",
+      "An internal logic error in SQLite",
+      "Access permission denied",
+      "Callback routine requested an abort",
+      "The database file is locked",
+      "malloc() failed",
+      "Atempt to write a read-only database",
+      "Operation terminated by sqlite3_interrupt()",
+      "Some kind of disk I/O error occurred",
+      "The database disk image is malformed",
+      "Table or record not found",
+      "Insertion failed because the database is full",
+      "Unable to open the database file",
+      "Database lock protocol error",
+      "Database is empty",
+      "The database schema changed",
+      "Too much data for one row of a table",
+      "Abort due to constraint violation",
+      "Data type mismatch",
+      "Library used incorrectly",
+      "Uses OS features not supported on host",
+      "Authorization denied",
+      "Auxiliary database format error",
+      "2nd parameter to sqlite3_bind() out of range",
+      "File opened that is not a database file",
+    };
   }
 }

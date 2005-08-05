@@ -77,7 +77,7 @@ namespace System.Data.SQLite
     {
       get
       {
-        return Convert.ToInt32(this["Version"]);
+        return Convert.ToInt32(this["Version"], System.Globalization.CultureInfo.InvariantCulture);
       }
       set
       {
@@ -95,7 +95,7 @@ namespace System.Data.SQLite
     {
       get
       {
-        string s = this["Synchronous"].ToString().ToUpper();
+        string s = this["Synchronous"].ToString().ToUpper(System.Globalization.CultureInfo.CurrentCulture);
         switch (s)
         {
           case "FULL":
@@ -123,7 +123,7 @@ namespace System.Data.SQLite
     {
       get
       {
-        return (this["UseUTF16Encoding"].ToString().ToUpper() == "TRUE");
+        return (String.Compare(this["UseUTF16Encoding"].ToString(), "True", true, System.Globalization.CultureInfo.InvariantCulture) == 0);
       }
       set
       {
@@ -153,7 +153,7 @@ namespace System.Data.SQLite
     {
       get
       {
-        return Convert.ToInt32(this["Page Size"]);
+        return Convert.ToInt32(this["Page Size"], System.Globalization.CultureInfo.InvariantCulture);
       }
       set
       {
@@ -168,7 +168,7 @@ namespace System.Data.SQLite
     {
       get
       {
-        return Convert.ToInt32(this["Cache Size"]);
+        return Convert.ToInt32(this["Cache Size"], System.Globalization.CultureInfo.InvariantCulture);
       }
       set
       {
@@ -183,7 +183,7 @@ namespace System.Data.SQLite
     {
       get
       {
-        switch(this["DateTimeFormat"].ToString().ToUpper())
+        switch (this["DateTimeFormat"].ToString().ToUpper(System.Globalization.CultureInfo.InvariantCulture))
         {
           case "TICKS":
             return DateTimeFormat.Ticks;

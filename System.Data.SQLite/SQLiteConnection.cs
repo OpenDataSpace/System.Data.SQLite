@@ -158,9 +158,10 @@ namespace System.Data.SQLite
           foreach (DataRow row in tbl.Rows)
           {
             str = row[0].ToString();
-            if (String.Compare(str, "MAIN", true) != 0 && String.Compare(str, "TEMP", true) != 0)
+            if (String.Compare(str, "MAIN", true, System.Globalization.CultureInfo.InvariantCulture) != 0
+              && String.Compare(str, "TEMP", true, System.Globalization.CultureInfo.InvariantCulture) != 0)
             {
-              _sql.Execute(String.Format("ATTACH DATABASE '{0}' AS [{1}]", row[1], row[0]));
+              _sql.Execute(String.Format(System.Globalization.CultureInfo.InvariantCulture, "ATTACH DATABASE '{0}' AS [{1}]", row[1], row[0]));
             }
           }
         }
@@ -419,7 +420,7 @@ namespace System.Data.SQLite
       int x = opts.Length;
       for (int n = 0; n < x; n++)
       {
-        if (String.Compare(opts[n].Key, key, true) == 0)
+        if (String.Compare(opts[n].Key, key, true, System.Globalization.CultureInfo.InvariantCulture) == 0)
         {
           return opts[n].Value;
         }
@@ -439,18 +440,18 @@ namespace System.Data.SQLite
 
       KeyValuePair<string, string>[] opts = ParseConnectionString();
 
-      if (Convert.ToInt32(FindKey(opts, "Version", "3")) != 3)
+      if (Convert.ToInt32(FindKey(opts, "Version", "3"), System.Globalization.CultureInfo.InvariantCulture) != 3)
         throw new NotSupportedException("Only SQLite Version 3 is supported at this time");
 
       try
       {
         string strFile = FindKey(opts, "Data Source", "");
-        bool bUTF16 = (Convert.ToBoolean(FindKey(opts, "UseUTF16Encoding", "False")) == true);
+        bool bUTF16 = (Convert.ToBoolean(FindKey(opts, "UseUTF16Encoding", "False"), System.Globalization.CultureInfo.InvariantCulture) == true);
 
         if (bUTF16)
-          _sql = new SQLite3_UTF16(String.Compare(FindKey(opts, "DateTimeFormat", "ISO8601"), "TICKS") == 0 ? DateTimeFormat.Ticks : DateTimeFormat.ISO8601);
+          _sql = new SQLite3_UTF16(String.Compare(FindKey(opts, "DateTimeFormat", "ISO8601"), "TICKS", true, System.Globalization.CultureInfo.InvariantCulture) == 0 ? DateTimeFormat.Ticks : DateTimeFormat.ISO8601);
         else
-          _sql = new SQLite3(String.Compare(FindKey(opts, "DateTimeFormat", "ISO8601"), "TICKS") == 0 ? DateTimeFormat.Ticks : DateTimeFormat.ISO8601);
+          _sql = new SQLite3(String.Compare(FindKey(opts, "DateTimeFormat", "ISO8601"), "TICKS", true, System.Globalization.CultureInfo.InvariantCulture) == 0 ? DateTimeFormat.Ticks : DateTimeFormat.ISO8601);
 
         _sql.Open(strFile);
 
@@ -459,10 +460,10 @@ namespace System.Data.SQLite
         else
           _sql.Execute("PRAGMA encoding = 'UTF-8'");
 
-        _sql.Execute(String.Format("PRAGMA Synchronous={0}", FindKey(opts, "Synchronous", "Normal")));
-        _sql.Execute(String.Format("PRAGMA Cache_Size={0}", FindKey(opts, "Cache Size", "2000")));
-        if (String.Compare(strFile, ":MEMORY:", true) != 0)
-          _sql.Execute(String.Format("PRAGMA Page_Size={0}", FindKey(opts, "Page Size", "1024")));
+        _sql.Execute(String.Format(System.Globalization.CultureInfo.InvariantCulture, "PRAGMA Synchronous={0}", FindKey(opts, "Synchronous", "Normal")));
+        _sql.Execute(String.Format(System.Globalization.CultureInfo.InvariantCulture, "PRAGMA Cache_Size={0}", FindKey(opts, "Cache Size", "2000")));
+        if (String.Compare(strFile, ":MEMORY:", true, System.Globalization.CultureInfo.InvariantCulture) != 0)
+          _sql.Execute(String.Format(System.Globalization.CultureInfo.InvariantCulture, "PRAGMA Page_Size={0}", FindKey(opts, "Page Size", "1024")));
       }
       catch (SQLiteException)
       {
@@ -555,7 +556,7 @@ namespace System.Data.SQLite
       restrictionValues.CopyTo(parms, 0);
 
       if (restrictionValues == null) restrictionValues = new string[0];
-      switch (collectionName.ToUpper())
+      switch (collectionName.ToUpper(System.Globalization.CultureInfo.InvariantCulture))
       {
         case "METADATACOLLECTIONS":
           return Schema_MetaDataCollections();
@@ -584,6 +585,7 @@ namespace System.Data.SQLite
       DataTable tbl = new DataTable("MetaDataCollections");
       DataRow row;
 
+      tbl.Locale = System.Globalization.CultureInfo.InvariantCulture;
       tbl.Columns.Add("CollectionName", typeof(string));
       tbl.Columns.Add("NumberOfRestrictions", typeof(int));
       tbl.Columns.Add("NumberOfIdentifierParts", typeof(int));
@@ -633,6 +635,7 @@ namespace System.Data.SQLite
       DataTable tbl = new DataTable("DataSourceInformation");
       DataRow row;
 
+      tbl.Locale = System.Globalization.CultureInfo.InvariantCulture;
       tbl.Columns.Add("CompositeIdentifierSeparatorPattern", typeof(string));
       tbl.Columns.Add("DataSourceProductName", typeof(string));
       tbl.Columns.Add("DataSourceProductVersion", typeof(string));
@@ -695,6 +698,7 @@ namespace System.Data.SQLite
       DataTable tbl = new DataTable("Columns");
       DataRow row;
 
+      tbl.Locale = System.Globalization.CultureInfo.InvariantCulture;
       tbl.Columns.Add("TABLE_CATALOG", typeof(string));
       tbl.Columns.Add("TABLE_SCHEMA", typeof(string));
       tbl.Columns.Add("TABLE_NAME", typeof(string));
@@ -727,7 +731,7 @@ namespace System.Data.SQLite
 
       if (String.IsNullOrEmpty(strCatalog)) strCatalog = "main";
 
-      using (SQLiteCommand cmd = new SQLiteCommand(String.Format("SELECT * FROM [{0}].[{1}]", strCatalog, strTable), this))
+      using (SQLiteCommand cmd = new SQLiteCommand(String.Format(System.Globalization.CultureInfo.CurrentCulture, "SELECT * FROM [{0}].[{1}]", strCatalog, strTable), this))
       {
         using (SQLiteDataReader rd = (SQLiteDataReader)cmd.ExecuteReader(CommandBehavior.SchemaOnly))
         {
@@ -735,7 +739,7 @@ namespace System.Data.SQLite
           {
             foreach (DataRow schemaRow in tblSchema.Rows)
             {
-              if (String.Compare(schemaRow[SchemaTableColumn.ColumnName].ToString(), strColumn, true) == 0 || strColumn == null)
+              if (String.Compare(schemaRow[SchemaTableColumn.ColumnName].ToString(), strColumn, true, System.Globalization.CultureInfo.CurrentCulture) == 0 || strColumn == null)
               {
                 row = tbl.NewRow();
 
@@ -774,6 +778,7 @@ namespace System.Data.SQLite
       DataTable tbl = new DataTable("Indexes");
       DataRow row;
 
+      tbl.Locale = System.Globalization.CultureInfo.InvariantCulture;
       tbl.Columns.Add("TABLE_CATALOG", typeof(string));
       tbl.Columns.Add("TABLE_SCHEMA", typeof(string));
       tbl.Columns.Add("TABLE_NAME", typeof(string));
@@ -804,15 +809,15 @@ namespace System.Data.SQLite
 
       if (String.IsNullOrEmpty(strCatalog)) strCatalog = "main";
 
-      using (SQLiteCommand cmd = new SQLiteCommand(String.Format("SELECT * FROM [{0}].[sqlite_master] WHERE [type] = 'index'", strCatalog), this))
+      using (SQLiteCommand cmd = new SQLiteCommand(String.Format(System.Globalization.CultureInfo.CurrentCulture, "SELECT * FROM [{0}].[sqlite_master] WHERE [type] = 'index'", strCatalog), this))
       {
         using (SQLiteDataReader rd = (SQLiteDataReader)cmd.ExecuteReader())
         {
           while (rd.Read())
           {
-            if (String.Compare(rd.GetString(1), strIndex, true) == 0 || strIndex == null)
+            if (String.Compare(rd.GetString(1), strIndex, true, System.Globalization.CultureInfo.CurrentCulture) == 0 || strIndex == null)
             {
-              if (String.Compare(rd.GetString(2), strTable, true) == 0 || strTable == null)
+              if (String.Compare(rd.GetString(2), strTable, true, System.Globalization.CultureInfo.CurrentCulture) == 0 || strTable == null)
               {
                 row = tbl.NewRow();
                 row["TABLE_CATALOG"] = strCatalog;
@@ -845,6 +850,7 @@ namespace System.Data.SQLite
       DataRow row;
       string strItem;
 
+      tbl.Locale = System.Globalization.CultureInfo.InvariantCulture;
       tbl.Columns.Add("TABLE_CATALOG", typeof(string));
       tbl.Columns.Add("TABLE_SCHEMA", typeof(string));
       tbl.Columns.Add("TABLE_NAME", typeof(string));
@@ -859,19 +865,19 @@ namespace System.Data.SQLite
 
       if (String.IsNullOrEmpty(strCatalog)) strCatalog = "main";
 
-      using (SQLiteCommand cmd = new SQLiteCommand(String.Format("SELECT * FROM [{0}].[sqlite_master] WHERE [type] NOT LIKE 'index'", strCatalog), this))
+      using (SQLiteCommand cmd = new SQLiteCommand(String.Format(System.Globalization.CultureInfo.CurrentCulture, "SELECT * FROM [{0}].[sqlite_master] WHERE [type] NOT LIKE 'index'", strCatalog), this))
       {
         using (SQLiteDataReader rd = (SQLiteDataReader)cmd.ExecuteReader())
         {
           while (rd.Read())
           {
-            strItem = rd.GetString(0).ToUpper();
-            if (rd.GetString(2).ToUpper().IndexOf("SQLITE_") == 0)
+            strItem = rd.GetString(0).ToUpper(System.Globalization.CultureInfo.CurrentCulture);
+            if (rd.GetString(2).ToUpper(System.Globalization.CultureInfo.CurrentCulture).IndexOf("SQLITE_") == 0)
               strItem = "SYSTEM TABLE";
 
-            if (String.Compare(strItem, strType, true) == 0 || strType == null)
+            if (String.Compare(strItem, strType, true, System.Globalization.CultureInfo.CurrentCulture) == 0 || strType == null)
             {
-              if (String.Compare(rd.GetString(2), strTable, true) == 0 || strTable == null)
+              if (String.Compare(rd.GetString(2), strTable, true, System.Globalization.CultureInfo.CurrentCulture) == 0 || strTable == null)
               {
                 row = tbl.NewRow();
                 row["TABLE_CATALOG"] = strCatalog;
@@ -904,6 +910,7 @@ namespace System.Data.SQLite
       string strItem;
       int nPos;
 
+      tbl.Locale = System.Globalization.CultureInfo.InvariantCulture;
       tbl.Columns.Add("TABLE_CATALOG", typeof(string));
       tbl.Columns.Add("TABLE_SCHEMA", typeof(string));
       tbl.Columns.Add("TABLE_NAME", typeof(string));
@@ -918,13 +925,13 @@ namespace System.Data.SQLite
 
       if (String.IsNullOrEmpty(strCatalog)) strCatalog = "main";
 
-      using (SQLiteCommand cmd = new SQLiteCommand(String.Format("SELECT * FROM [{0}].[sqlite_master] WHERE [type] LIKE 'view'", strCatalog), this))
+      using (SQLiteCommand cmd = new SQLiteCommand(String.Format(System.Globalization.CultureInfo.CurrentCulture, "SELECT * FROM [{0}].[sqlite_master] WHERE [type] LIKE 'view'", strCatalog), this))
       {
         using (SQLiteDataReader rd = (SQLiteDataReader)cmd.ExecuteReader())
         {
           while (rd.Read())
           {
-            if (String.Compare(rd.GetString(1), strView, true) == 0 || strView == null)
+            if (String.Compare(rd.GetString(1), strView, true, System.Globalization.CultureInfo.CurrentCulture) == 0 || strView == null)
             {
               strItem = rd.GetString(4);
               nPos = Globalization.CultureInfo.InvariantCulture.CompareInfo.IndexOf(strItem, " AS ");
@@ -960,6 +967,7 @@ namespace System.Data.SQLite
       DataTable tbl = new DataTable("Catalogs");
       DataRow row;
 
+      tbl.Locale = System.Globalization.CultureInfo.InvariantCulture;
       tbl.Columns.Add("CATALOG_NAME", typeof(string));
       tbl.Columns.Add("DESCRIPTION", typeof(string));
 
@@ -971,7 +979,7 @@ namespace System.Data.SQLite
         {
           while (rd.Read())
           {
-            if (strCatalog == null || String.Compare(rd.GetString(1), strCatalog, true) == 0)
+            if (strCatalog == null || String.Compare(rd.GetString(1), strCatalog, true, System.Globalization.CultureInfo.CurrentCulture) == 0)
             {
               row = tbl.NewRow();
               row["CATALOG_NAME"] = rd.GetString(1);

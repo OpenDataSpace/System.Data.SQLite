@@ -318,7 +318,7 @@ namespace System.Data.SQLite
 
       for (int n = 0; n < x; n++)
       {
-        if (String.Compare(columnName, ColumnName(stmt, n), true) == 0) return n;
+        if (String.Compare(columnName, ColumnName(stmt, n), true, System.Globalization.CultureInfo.CurrentCulture) == 0) return n;
       }
       return -1;
     }

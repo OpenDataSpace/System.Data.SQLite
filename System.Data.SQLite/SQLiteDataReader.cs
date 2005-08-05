@@ -215,7 +215,7 @@ namespace System.Data.SQLite
     public override bool GetBoolean(int i)
     {
       VerifyType(i, DbType.Boolean);
-      return Convert.ToBoolean(GetValue(i));
+      return Convert.ToBoolean(GetValue(i), System.Globalization.CultureInfo.CurrentCulture);
     }
 
     /// <summary>
@@ -433,6 +433,7 @@ namespace System.Data.SQLite
       string strCatalog;
       DataRow row;
 
+      tbl.Locale = System.Globalization.CultureInfo.InvariantCulture;
       tbl.Columns.Add(SchemaTableColumn.ColumnName, typeof(String));
       tbl.Columns.Add(SchemaTableColumn.ColumnOrdinal, typeof(Int32));
       tbl.Columns.Add(SchemaTableColumn.ColumnSize, typeof(Int32));
@@ -506,7 +507,7 @@ namespace System.Data.SQLite
               // If we have a table-bound column, extract the extra information from it
               if (arName.Length > 1)
               {
-                using (SQLiteCommand cmdTable = new SQLiteCommand(String.Format("PRAGMA [{1}].TABLE_INFO([{0}])", strTable, strCatalog), cnn))
+                using (SQLiteCommand cmdTable = new SQLiteCommand(String.Format(System.Globalization.CultureInfo.CurrentCulture, "PRAGMA [{1}].TABLE_INFO([{0}])", strTable, strCatalog), cnn))
                 {
                   if (arName.Length < 3) strCatalog = "";
 
@@ -514,7 +515,7 @@ namespace System.Data.SQLite
                   {
                     while (rdTable.Read())
                     {
-                      if (String.Compare(arName[arName.Length - 1], rdTable.GetString(1), true) == 0)
+                      if (String.Compare(arName[arName.Length - 1], rdTable.GetString(1), true, System.Globalization.CultureInfo.CurrentCulture) == 0)
                       {
                         string strType = rdTable.GetString(2);
                         string[] arSize = strType.Split('(');
@@ -522,7 +523,7 @@ namespace System.Data.SQLite
                         {
                           arSize = arSize[1].Split(')');
                           if (arSize.Length > 1)
-                            row["ColumnSize"] = Convert.ToInt32(arSize[0]);
+                            row["ColumnSize"] = Convert.ToInt32(arSize[0], System.Globalization.CultureInfo.InvariantCulture);
                         }
                         bool bNotNull = rdTable.GetBoolean(3);
                         bool bPrimaryKey = rdTable.GetBoolean(5);
@@ -538,7 +539,7 @@ namespace System.Data.SQLite
                         row[SchemaTableColumn.AllowDBNull] = (!bNotNull && !bPrimaryKey);
                         row[SchemaTableColumn.IsUnique] = bPrimaryKey;
                         row[SchemaTableColumn.IsKey] = bPrimaryKey;
-                        row[SchemaTableOptionalColumn.IsAutoIncrement] = (bPrimaryKey && String.Compare(strType, "Integer", true) == 0);
+                        row[SchemaTableOptionalColumn.IsAutoIncrement] = (bPrimaryKey && String.Compare(strType, "Integer", true, System.Globalization.CultureInfo.InvariantCulture) == 0);
                         row[SchemaTableOptionalColumn.IsReadOnly] = !(bool)row[SchemaTableOptionalColumn.IsAutoIncrement];
                         if (rdTable.IsDBNull(4) == false)
                           row[SchemaTableOptionalColumn.DefaultValue] = rdTable[4];

@@ -132,7 +132,7 @@ namespace System.Data.SQLite
     /// </summary>
     /// <param name="parameter">The parameter to add</param>
     /// <returns>A zero-based index of where the parameter is located in the array</returns>
-    public int Add(SQLiteParameter parameter)
+    public int Add(DbParameter parameter)
     {
       int n = -1;
 
@@ -144,7 +144,7 @@ namespace System.Data.SQLite
       if (n == -1)
       {
         n = _parameterList.Count;
-        _parameterList.Add(parameter);
+        _parameterList.Add((SQLiteParameter)parameter);
       }
 
       SetParameter(n, parameter);
@@ -166,7 +166,7 @@ namespace System.Data.SQLite
     /// Adds an array of parameters to the collection
     /// </summary>
     /// <param name="values">The array of parameters to add</param>
-    public void AddRange(SQLiteParameter[] values)
+    public void AddRange(DbParameter[] values)
     {
       int x = values.Length;
       for (int n = 0; n < x; n++)
@@ -261,7 +261,7 @@ namespace System.Data.SQLite
       int x = _parameterList.Count;
       for (int n = 0; n < x; n++)
       {
-        if (String.Compare(parameterName, _parameterList[n].ParameterName, true) == 0) return n;
+        if (String.Compare(parameterName, _parameterList[n].ParameterName, true, System.Globalization.CultureInfo.CurrentCulture) == 0) return n;
       }
       return -1;
     }
@@ -364,7 +364,7 @@ namespace System.Data.SQLite
         s = p.ParameterName;
         if (s == null)
         {
-          s = String.Format(";{0}", nUnnamed);
+          s = String.Format(System.Globalization.CultureInfo.InvariantCulture, ";{0}", nUnnamed);
           nUnnamed++;
         }
 
