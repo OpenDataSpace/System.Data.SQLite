@@ -212,34 +212,6 @@ namespace System.Data.SQLite
       }
     }
 
-    ///// <summary>
-    ///// Attempt to convert the specified string to a datetime value.
-    ///// </summary>
-    ///// <param name="strSrc">The string to parse into a datetime</param>
-    ///// <param name="result">If successful, a valid datetime structure</param>
-    ///// <returns>Returns true if the string was a valid ISO8601 datetime, false otherwise.</returns>
-    //public bool TryToDateTime(string strSrc, out DateTime result)
-    //{
-    //  switch (_datetimeFormat)
-    //  {
-    //    case DateTimeFormat.ISO8601:
-    //      return DateTime.TryParseExact(strSrc, _datetimeFormats, System.Globalization.DateTimeFormatInfo.InvariantInfo, System.Globalization.DateTimeStyles.None, out result);
-    //    case DateTimeFormat.Ticks:
-    //      {
-    //        long n;
-    //        if (long.TryParse(strSrc, out n) == true)
-    //        {
-    //          result = new DateTime(n);
-    //          return true;
-    //        }
-    //      }
-    //      break;
-    //  }
-
-    //  result = DateTime.Now;
-    //  return false;
-    //}
-
     /// <summary>
     /// Converts a DateTime to a string value, using the current DateTimeFormat specified for the connection when it was opened.
     /// </summary>
@@ -361,20 +333,22 @@ namespace System.Data.SQLite
       if (t.Type != DbType.Object)
         return SQLiteConvert.DbTypeToType(t.Type);
 
-      switch (t.Affinity)
-      {
-        case TypeAffinity.Null:
-          return typeof(DBNull);
-        case TypeAffinity.Int64:
-          return typeof(Int64);
-        case TypeAffinity.Double:
-          return typeof(Double);
-        case TypeAffinity.Blob:
-          return typeof(byte[]);
-        default:
-          return typeof(string);
-      }
+      return _typeaffinities[(int)t.Affinity];
     }
+
+    static Type[] _typeaffinities = {
+      null,
+      typeof(Int64),
+      typeof(Double),
+      typeof(string),
+      typeof(byte[]),
+      typeof(DBNull),
+      null,
+      null,
+      null,
+      null,
+      typeof(DateTime),
+    };
 
     /// <summary>
     /// For a given intrinsic type, return a DbType
@@ -383,43 +357,37 @@ namespace System.Data.SQLite
     /// <returns>The corresponding (closest match) DbType</returns>
     internal static DbType TypeToDbType(Type typ)
     {
-      switch (Type.GetTypeCode(typ))
+      TypeCode tc = Type.GetTypeCode(typ);
+      if (tc == TypeCode.Object)
       {
-        case TypeCode.Int16:
-          return DbType.Int16;
-        case TypeCode.Int32:
-          return DbType.Int32;
-        case TypeCode.Int64:
-          return DbType.Int64;
-        case TypeCode.UInt16:
-          return DbType.UInt16;
-        case TypeCode.UInt32:
-          return DbType.UInt32;
-        case TypeCode.UInt64:
-          return DbType.UInt64;
-        case TypeCode.Double:
-          return DbType.Double;
-        case TypeCode.Single:
-          return DbType.Single;
-        case TypeCode.Decimal:
-          return DbType.Decimal;
-        case TypeCode.Boolean:
-          return DbType.Boolean;
-        case TypeCode.SByte:
-        case TypeCode.Char:
-          return DbType.SByte;
-        case TypeCode.DateTime:
-          return DbType.DateTime;
-        case TypeCode.String:
-          return DbType.String;
-        case TypeCode.Object:
-          if (typ == typeof(byte[])) return DbType.Binary;
-          if (typ == typeof(Guid)) return DbType.Guid;
-          return DbType.String;
+        if (typ == typeof(byte[])) return DbType.Binary;
+        if (typ == typeof(Guid)) return DbType.Guid;
+        return DbType.String;
       }
-
-      return DbType.String;
+      return _typetodbtype[(int)tc];
     }
+
+    private static DbType[] _typetodbtype = {
+      DbType.Object,
+      DbType.Binary,
+      DbType.Object,
+      DbType.Boolean,
+      DbType.SByte,
+      DbType.SByte,
+      DbType.Byte,
+      DbType.Int16, // 7
+      DbType.UInt16,
+      DbType.Int32,
+      DbType.UInt32,
+      DbType.Int64, // 11
+      DbType.UInt64,
+      DbType.Single,
+      DbType.Double,
+      DbType.Decimal,
+      DbType.DateTime,
+      DbType.Object,
+      DbType.String,
+    };
 
     /// <summary>
     /// Convert a DbType to a Type
@@ -428,41 +396,37 @@ namespace System.Data.SQLite
     /// <returns>The closest-match .NET type</returns>
     internal static Type DbTypeToType(DbType typ)
     {
-      switch (typ)
-      {
-        case DbType.Binary:
-          return typeof(byte[]);
-        case DbType.Boolean:
-          return typeof(bool);
-        case DbType.Byte:
-          return typeof(byte);
-        case DbType.Currency:
-        case DbType.Decimal:
-          return typeof(decimal);
-        case DbType.DateTime:
-          return typeof(DateTime);
-        case DbType.Double:
-          return typeof(double);
-        case DbType.Guid:
-          return typeof(Guid);
-        case DbType.Int16:
-        case DbType.UInt16:
-          return typeof(Int16);
-        case DbType.Int32:
-        case DbType.UInt32:
-          return typeof(Int32);
-        case DbType.Int64:
-        case DbType.UInt64:
-          return typeof(Int64);
-        case DbType.String:
-          return typeof(string);
-        case DbType.SByte:
-          return typeof(char);
-        case DbType.Single:
-          return typeof(float);
-      }
-      return typeof(string);
+      return _dbtypeToType[(int)typ];
     }
+
+    private static Type[] _dbtypeToType = {
+      typeof(string),   // 0
+      typeof(byte[]),   // 1
+      typeof(byte),     // 2
+      typeof(bool),     // 3
+      typeof(decimal),  // 4
+      typeof(DateTime), // 5
+      typeof(DateTime), // 6
+      typeof(decimal),  // 7
+      typeof(double),   // 8
+      typeof(Guid),     // 9
+      typeof(Int16),
+      typeof(Int32),
+      typeof(Int64),
+      typeof(object),
+      typeof(sbyte),
+      typeof(float),
+      typeof(string),
+      typeof(DateTime),
+      typeof(UInt16),
+      typeof(UInt32),
+      typeof(UInt64),
+      typeof(double),
+      typeof(string),
+      typeof(string),
+      typeof(string),
+      typeof(string),   // 25 (Xml)
+    };
 
     /// <summary>
     /// For a given type, return the closest-match SQLite TypeAffinity, which only understands a very limited subset of types.
@@ -471,35 +435,38 @@ namespace System.Data.SQLite
     /// <returns>The SQLite type affinity for that type.</returns>
     internal static TypeAffinity TypeToAffinity(Type typ)
     {
-      switch (Type.GetTypeCode(typ))
+      TypeCode tc = Type.GetTypeCode(typ);
+      if (tc == TypeCode.Object)
       {
-        case TypeCode.DBNull:
-          return TypeAffinity.Null;
-        case TypeCode.String:
+        if (typ == typeof(byte[]))
+          return TypeAffinity.Blob;
+        else
           return TypeAffinity.Text;
-        case TypeCode.DateTime:
-          return TypeAffinity.DateTime;
-        case TypeCode.Int16:
-        case TypeCode.Int32:
-        case TypeCode.Int64:
-        case TypeCode.UInt16:
-        case TypeCode.UInt32:
-        case TypeCode.UInt64:
-        case TypeCode.Char:
-        case TypeCode.SByte:
-        case TypeCode.Byte:
-        case TypeCode.Boolean:
-          return TypeAffinity.Int64;
-        case TypeCode.Double:
-        case TypeCode.Single:
-        case TypeCode.Decimal:
-          return TypeAffinity.Double;
-        case TypeCode.Object:
-          if (typ == typeof(byte[])) return TypeAffinity.Blob;
-          else return TypeAffinity.Text;
       }
-      return TypeAffinity.Text;
+      return _typecodeAffinities[(int)tc];
     }
+
+    private static TypeAffinity[] _typecodeAffinities = {
+      TypeAffinity.Null,
+      TypeAffinity.Blob,
+      TypeAffinity.Null,
+      TypeAffinity.Int64,
+      TypeAffinity.Int64,
+      TypeAffinity.Int64,
+      TypeAffinity.Int64,
+      TypeAffinity.Int64, // 7
+      TypeAffinity.Int64,
+      TypeAffinity.Int64,
+      TypeAffinity.Int64,
+      TypeAffinity.Int64, // 11
+      TypeAffinity.Int64,
+      TypeAffinity.Double,
+      TypeAffinity.Double,
+      TypeAffinity.Double,
+      TypeAffinity.DateTime,
+      TypeAffinity.Null,
+      TypeAffinity.Text,
+    };
 
     /// <summary>
     /// For a given type name, return a closest-match .NET type

@@ -252,9 +252,11 @@ __declspec(dllexport) const char * __stdcall sqlite3_errmsg_interop(sqlite3 *db,
   return pval;
 }
 
-__declspec(dllexport) const void * __stdcall sqlite3_errmsg16_interop(sqlite3 *db)
+__declspec(dllexport) const void * __stdcall sqlite3_errmsg16_interop(sqlite3 *db, int *plen)
 {
-  return sqlite3_errmsg16(db);
+  const void *pval = sqlite3_errmsg16(db);
+  *plen = (pval != 0) ? wcslen((wchar_t *)pval) * sizeof(wchar_t): 0;
+  return pval;
 }
 
 __declspec(dllexport) int __stdcall sqlite3_prepare_interop(sqlite3 *db, const char *sql, int nbytes, sqlite3_stmt **ppstmt, const char **pztail, int *plen)
@@ -264,9 +266,11 @@ __declspec(dllexport) int __stdcall sqlite3_prepare_interop(sqlite3 *db, const c
   return n;
 }
 
-__declspec(dllexport) int __stdcall sqlite3_prepare16_interop(sqlite3 *db, const void *sql, int nbytes, sqlite3_stmt **ppstmt, const void **pztail)
+__declspec(dllexport) int __stdcall sqlite3_prepare16_interop(sqlite3 *db, const void *sql, int nbytes, sqlite3_stmt **ppstmt, const void **pztail, int *plen)
 {
-  return sqlite3_prepare16(db, sql, nbytes, ppstmt, pztail);
+  int n = sqlite3_prepare16(db, sql, nbytes, ppstmt, pztail);
+  *plen = (*pztail != 0) ? wcslen((wchar_t *)*pztail) * sizeof(wchar_t) : 0;
+  return n;
 }
 
 __declspec(dllexport) int __stdcall sqlite3_bind_blob_interop(sqlite3_stmt *stmt, int iCol, const void *pv, int n, void(*cb)(void*))
@@ -333,9 +337,11 @@ __declspec(dllexport) const char * __stdcall sqlite3_column_name_interop(sqlite3
   return pval;
 }
 
-__declspec(dllexport) const void * __stdcall sqlite3_column_name16_interop(sqlite3_stmt *stmt, int iCol)
+__declspec(dllexport) const void * __stdcall sqlite3_column_name16_interop(sqlite3_stmt *stmt, int iCol, int *plen)
 {
-  return sqlite3_column_name16(stmt, iCol);
+  const void *pval = sqlite3_column_name16(stmt, iCol);
+  *plen = (pval != 0) ? wcslen((wchar_t *)pval) * sizeof(wchar_t) : 0;
+  return pval;
 }
 
 __declspec(dllexport) const char * __stdcall sqlite3_column_decltype_interop(sqlite3_stmt *stmt, int iCol, int *plen)
@@ -345,9 +351,11 @@ __declspec(dllexport) const char * __stdcall sqlite3_column_decltype_interop(sql
   return pval;
 }
 
-__declspec(dllexport) const void * __stdcall sqlite3_column_decltype16_interop(sqlite3_stmt *stmt, int iCol)
+__declspec(dllexport) const void * __stdcall sqlite3_column_decltype16_interop(sqlite3_stmt *stmt, int iCol, int *plen)
 {
-  return sqlite3_column_decltype16(stmt, iCol);
+  const void *pval = sqlite3_column_decltype16(stmt, iCol);
+  *plen = (pval != 0) ? wcslen((wchar_t *)pval) * sizeof(wchar_t) : 0;
+  return pval;
 }
 
 __declspec(dllexport) int __stdcall sqlite3_step_interop(sqlite3_stmt *stmt)
@@ -397,9 +405,11 @@ __declspec(dllexport) const unsigned char * __stdcall sqlite3_column_text_intero
   return pval;
 }
 
-__declspec(dllexport) const void * __stdcall sqlite3_column_text16_interop(sqlite3_stmt *stmt, int iCol)
+__declspec(dllexport) const void * __stdcall sqlite3_column_text16_interop(sqlite3_stmt *stmt, int iCol, int *plen)
 {
-  return sqlite3_column_text16(stmt, iCol);
+  const void *pval = sqlite3_column_text16(stmt, iCol);
+  *plen = (pval != 0) ? wcslen((wchar_t *)pval) * sizeof(wchar_t): 0;
+  return pval;
 }
 
 __declspec(dllexport) int __stdcall sqlite3_column_type_interop(sqlite3_stmt *stmt, int iCol)
@@ -535,9 +545,11 @@ __declspec(dllexport) const unsigned char * __stdcall sqlite3_value_text_interop
   return pval;
 }
 
-__declspec(dllexport) const void * __stdcall sqlite3_value_text16_interop(sqlite3_value *val)
+__declspec(dllexport) const void * __stdcall sqlite3_value_text16_interop(sqlite3_value *val, int *plen)
 {
-  return sqlite3_value_text16(val);
+  const void *pval = sqlite3_value_text16(val);
+  *plen = (pval != 0) ? wcslen((wchar_t *)pval) * sizeof(wchar_t) : 0;
+  return pval;
 }
 
 __declspec(dllexport) int __stdcall sqlite3_value_type_interop(sqlite3_value *val)

@@ -32,15 +32,13 @@ namespace System.Data.SQLite
       return Marshal.PtrToStringUni(b, nbytelen / 2);
     }
 
-    /// <summary>
-    /// Another custom string marshaling function
-    /// </summary>
-    /// <param name="b">A pointer to a zero-terminated UTF-16 string</param>
-    /// <returns>A .NET string</returns>
-    internal static string ToString(IntPtr b)
+    internal override string Version
     {
-      if (b == IntPtr.Zero) return "";
-      return Marshal.PtrToStringUni(b);
+      get
+      {
+        int len;
+        return base.ToString(UnsafeNativeMethods.sqlite3_libversion_interop(out len), len);
+      }
     }
 
     internal override void Open(string strFilename)
@@ -54,18 +52,20 @@ namespace System.Data.SQLite
 
     internal override string SQLiteLastError()
     {
-      return ToString(UnsafeNativeMethods.sqlite3_errmsg16_interop(_sql));
+      int len;
+      return ToString(UnsafeNativeMethods.sqlite3_errmsg16_interop(_sql, out len), len);
     }
 
     internal override SQLiteStatement Prepare(string strSql, ref int nParamStart, out string strRemain)
     {
       int stmt;
       IntPtr ptr;
+      int len;
 
-      int n = UnsafeNativeMethods.sqlite3_prepare16_interop(_sql, strSql, strSql.Length, out stmt, out ptr);
+      int n = UnsafeNativeMethods.sqlite3_prepare16_interop(_sql, strSql, strSql.Length, out stmt, out ptr, out len);
       if (n > 0) throw new SQLiteException(n, SQLiteLastError());
 
-      strRemain = ToString(ptr);
+      strRemain = ToString(ptr, len);
 
       SQLiteStatement cmd = new SQLiteStatement(this, stmt, strSql.Substring(0, strSql.Length - strRemain.Length), ref nParamStart);
 
@@ -77,6 +77,12 @@ namespace System.Data.SQLite
       Bind_Text(stmt, index, ToString(dt));
     }
 
+    internal override string Bind_ParamName(SQLiteStatement stmt, int index)
+    {
+      int len;
+      return base.ToString(UnsafeNativeMethods.sqlite3_bind_parameter_name_interop(stmt._sqlite_stmt, index, out len), len);
+    }
+
     internal override void Bind_Text(SQLiteStatement stmt, int index, string value)
     {
       int n = UnsafeNativeMethods.sqlite3_bind_text16_interop(stmt._sqlite_stmt, index, value, value.Length * 2, -1);
@@ -85,7 +91,8 @@ namespace System.Data.SQLite
 
     internal override string ColumnName(SQLiteStatement stmt, int index)
     {
-      return ToString(UnsafeNativeMethods.sqlite3_column_name16_interop(stmt._sqlite_stmt, index));
+      int len;
+      return ToString(UnsafeNativeMethods.sqlite3_column_name16_interop(stmt._sqlite_stmt, index, out len), len);
     }
 
     internal override DateTime GetDateTime(SQLiteStatement stmt, int index)
@@ -94,15 +101,18 @@ namespace System.Data.SQLite
     }
     internal override string GetText(SQLiteStatement stmt, int index)
     {
-      return ToString(UnsafeNativeMethods.sqlite3_column_text16_interop(stmt._sqlite_stmt, index));
+      int len;
+      return ToString(UnsafeNativeMethods.sqlite3_column_text16_interop(stmt._sqlite_stmt, index, out len), len);
     }
 
     internal override string ColumnType(SQLiteStatement stmt, int index, out TypeAffinity nAffinity)
     {
       nAffinity = TypeAffinity.None;
+      
+      int len;
+      IntPtr p = UnsafeNativeMethods.sqlite3_column_decltype16_interop(stmt._sqlite_stmt, index, out len);
 
-      IntPtr p = UnsafeNativeMethods.sqlite3_column_decltype16_interop(stmt._sqlite_stmt, index);
-      if (p != IntPtr.Zero) return ToString(p);
+      if (p != IntPtr.Zero) return ToString(p, len);
       else
       {
         nAffinity = UnsafeNativeMethods.sqlite3_column_type_interop(stmt._sqlite_stmt, index);
@@ -142,7 +152,8 @@ namespace System.Data.SQLite
 
     internal override string GetParamValueText(int ptr)
     {
-      return ToString(UnsafeNativeMethods.sqlite3_value_text16_interop(ptr));
+      int len;
+      return ToString(UnsafeNativeMethods.sqlite3_value_text16_interop(ptr, out len), len);
     }
 
     internal override void ReturnError(int context, string value)

@@ -186,25 +186,25 @@ namespace System.Data.SQLite
     internal static extern void sqlite3_realcolnames(int db, int bset);
 
     [DllImport(SQLITE_DLL)]
-    internal static extern IntPtr sqlite3_column_text16_interop(int stmt, int index);
+    internal static extern IntPtr sqlite3_column_text16_interop(int stmt, int index, out int len);
 
     [DllImport(SQLITE_DLL, CharSet = CharSet.Unicode)]
     internal static extern int sqlite3_open16_interop(string utf16Filename, out int db);
 
     [DllImport(SQLITE_DLL)]
-    internal static extern IntPtr sqlite3_errmsg16_interop(int db);
+    internal static extern IntPtr sqlite3_errmsg16_interop(int db, out int len);
 
     [DllImport(SQLITE_DLL, CharSet = CharSet.Unicode)]
-    internal static extern int sqlite3_prepare16_interop(int db, string strSql, int sqlLen, out int stmt, out IntPtr ptrRemain);
+    internal static extern int sqlite3_prepare16_interop(int db, string strSql, int sqlLen, out int stmt, out IntPtr ptrRemain, out int len);
 
     [DllImport(SQLITE_DLL, CharSet = CharSet.Unicode)]
     internal static extern int sqlite3_bind_text16_interop(int stmt, int index, string value, int nlen, int nTransient);
 
     [DllImport(SQLITE_DLL)]
-    internal static extern IntPtr sqlite3_column_name16_interop(int stmt, int index);
+    internal static extern IntPtr sqlite3_column_name16_interop(int stmt, int index, out int len);
 
     [DllImport(SQLITE_DLL)]
-    internal static extern IntPtr sqlite3_column_decltype16_interop(int stmt, int index);
+    internal static extern IntPtr sqlite3_column_decltype16_interop(int stmt, int index, out int len);
 
     [DllImport(SQLITE_DLL, CharSet = CharSet.Unicode)]
     internal static extern int sqlite3_create_collation16_interop(int db, string strName, int nType, int nArgs, SQLiteCollation func, out int nCookie);
@@ -213,7 +213,7 @@ namespace System.Data.SQLite
     internal static extern int sqlite3_create_function16_interop(int db, string strName, int nArgs, int nType, SQLiteCallback func, SQLiteCallback funcstep, SQLiteCallback funcfinal, out int nCookie);
 
     [DllImport(SQLITE_DLL)]
-    internal static extern IntPtr sqlite3_value_text16_interop(int p);
+    internal static extern IntPtr sqlite3_value_text16_interop(int p, out int len);
 
     [DllImport(SQLITE_DLL, CharSet = CharSet.Unicode)]
     internal static extern void sqlite3_result_error16_interop(int context, string strName, int nLen);
