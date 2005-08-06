@@ -162,7 +162,7 @@ namespace System.Data.SQLite
     /// <param name="errorCode">The SQLite error code to report</param>
     /// <param name="extendedInformation">Extra text to go along with the error message text</param>
     public SQLiteException(int errorCode, string extendedInformation)
-      : base(Initialize(errorCode, extendedInformation))
+      : base(GetStockErrorMessage(errorCode, extendedInformation))
     {
       _errorCode = (SQLiteErrorCode)errorCode;
     }
@@ -207,15 +207,15 @@ namespace System.Data.SQLite
     /// <param name="errorCode">The SQLite error code</param>
     /// <param name="errorMessage">A detailed error message</param>
     /// <returns>An error message string</returns>
-    /// <remarks>
-    /// The SQLite error code is OR'd with 0x800F0000 to generate an HResult
-    /// </remarks>
-    private static string Initialize(int errorCode, string errorMessage)
+    private static string GetStockErrorMessage(int errorCode, string errorMessage)
     {
       if (errorMessage == null) errorMessage = "";
 
       if (errorMessage.Length > 0)
         errorMessage = "\r\n" + errorMessage;
+
+      if (errorCode < 0 || errorCode >= _errorMessages.Length)
+        errorCode = 1;
 
       return _errorMessages[errorCode] + errorMessage;
     }
@@ -227,6 +227,7 @@ namespace System.Data.SQLite
       "Access permission denied",
       "Callback routine requested an abort",
       "The database file is locked",
+      "A table in the database is locked",
       "malloc() failed",
       "Atempt to write a read-only database",
       "Operation terminated by sqlite3_interrupt()",
