@@ -1,0 +1,410 @@
+﻿<?xml version="1.0" encoding="utf-8"?> 
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+         Copyright (c) Microsoft Corporation, All rights reserved.
+    This code sample is provided "AS IS" without warranty of any kind,
+    it is not recommended for use in a production environment.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  -->
+
+<VSDataObjectSupport xmlns="http://tempuri.org/VSDataObjectSupport.xsd">
+	<Types>
+		<!--
+			The root type provides a single object with no identifier.  Properties
+			on this object are global to a connection.
+		-->
+		<RootType>
+			<Properties>
+        <Property name="Server" type="System.String" itemName="DataSource"/>
+        <Property name="Database" type="System.String" itemName="Database"/>
+      </Properties>
+			<Actions>
+				<!--
+					This enumerator provides access to properties on the ADO .NET
+					DbConnection object as well as access to each connection string
+					keyword value.
+				-->
+				<Action name="Enumerate" guid="61CC0372-384D-42e5-9707-6D7C8DC5287A" handler="Microsoft.VisualStudio.Data.AdoDotNet.AdoDotNetRootObjectEnumerator"/>
+			</Actions>
+		</RootType>
+
+		<!--
+			Defines a type that represents a table.
+		-->
+		<Type name="Table" defaultSort="Database, Schema, Name">
+			<Concepts>
+				<!--
+					This type maps to the "Table" concept.  The restrictions attribute
+					specifies how to map the generic restrictions for the concept (catalog,
+					schema and name) into the specific restrictions for this type.  In this
+					case the generic and specific restrictions are identical.  The filter
+					indicates that generic enumerations should only get BASE TABLE rows.
+				-->
+				<Concept name="Table" restrictions="{Catalog},null,{Name},TABLE"/>
+			</Concepts>
+			<Identifier>
+				<!--
+					The concepts here specify which data represents the generic identifier
+					of the table (catalog, schema and name).  In this case the generic and
+					specific identifier are identical.
+				-->
+				<Part name="Database" itemName="table_catalog">
+					<Concepts>
+						<Concept name="Identifier0"/>
+					</Concepts>
+				</Part>
+				<Part name="Schema" itemName="table_schema">
+					<Concepts>
+						<Concept name="Identifier1"/>
+					</Concepts>
+				</Part>
+				<Part name="Name" itemName="table_name">
+					<Concepts>
+						<Concept name="Identifier2"/>
+					</Concepts>
+				</Part>
+			</Identifier>
+			<Restrictions>
+				<!--
+					Since the set of restrictions available for this type are different from
+					the set of identifier parts, we explicitly specify what data can be
+					restricted on here.
+				-->
+				<Restriction name="Database"/>
+				<Restriction name="Schema"/>
+				<Restriction name="Name"/>
+				<Restriction name="Type"/>
+			</Restrictions>
+			<Properties>
+				<Property name="Name" type="System.String" itemName="table_name"/>
+				<Property name="Schema" type="System.String" itemName="table_schema"/>
+				<Property name="Type" type="System.String" itemName="table_type"/>
+			</Properties>
+			<Actions>
+				<Action name="Enumerate" guid="61CC0372-384D-42e5-9707-6D7C8DC5287A" handler="Microsoft.VisualStudio.Data.AdoDotNet.AdoDotNetObjectEnumerator">
+					<Parameter value="Tables"/>
+				</Action>
+				<!--
+					The BuildDSRef action allows objects to be dragged from the server
+					explorer to various built in data designers.  The parameters to the
+					base DSRefBuilder implementation specify how to build the DSRef tree
+					given parts of an identifier of this object type.
+				-->
+				<Action name="BuildDSRef" guid="7C030900-E8DD-471b-8F18-D83DA7036144" handler="Microsoft.VisualStudio.Data.DSRefBuilder">
+					<Parameter>
+						<Parameter value="{2}"/>
+						<Parameter value="{1}"/>
+						<Parameter value="Table"/>
+						<Parameter/>
+						<Parameter>
+							<!-- GUID_DSRefProperty_PreciseType -->
+							<Parameter value="39A5A7E7-513F-44a4-B79D-7652CD8962D9">
+								<Parameter value="101" type="System.Int32"/> <!-- Table -->
+							</Parameter>
+						</Parameter>
+					</Parameter>
+				</Action>
+			</Actions>
+		</Type>
+
+		<!--
+			Defines a type that represents a table column.
+		-->
+		<Type name="TableColumn" defaultSort="Database, Schema, Table, Ordinal">
+			<Concepts>
+				<Concept name="TableColumn" restrictions="{Catalog}, null,{Table}, {Name}"/>
+			</Concepts>
+			<Identifier>
+				<Part name="Database" itemName="table_catalog">
+					<Concepts>
+						<Concept name="Identifier0"/>
+					</Concepts>
+				</Part>
+				<Part name="Schema" itemName="table_schema">
+					<Concepts>
+						<Concept name="Identifier1"/>
+					</Concepts>
+				</Part>
+				<Part name="Table" itemName="table_name">
+					<Concepts>
+						<Concept name="Identifier2"/>
+					</Concepts>
+				</Part>
+				<Part name="Name" itemName="column_name">
+					<Concepts>
+						<Concept name="Identifier3"/>
+					</Concepts>
+				</Part>
+			</Identifier>
+			<Properties>
+				<Property name="Name" type="System.String" itemName="column_name"/>
+				<Property name="Ordinal" type="System.Int32" itemName="ordinal_position">
+					<Concepts>
+						<Concept name="Ordinal">
+							<!--
+								The Ordinal concept is defined as an Int32 so we must convert it to
+								the expected type.
+							-->
+						</Concept>
+					</Concepts>
+				</Property>
+				<Property name="SystemType" type="System.String" itemName="data_type">
+					<Concepts>
+						<!--
+							We can produce reasonable values for all data type concepts given just
+							the system type.  The default ADO .NET object concept mapper uses the
+							ADO .NET DataTypes schema collection to map underlying system type
+							to the provider specific type and framework data type.  The
+							System.Data.DbType is then inferred from the framework type.
+						-->
+						<Concept name="UserDataType"/>
+						<Concept name="NativeDataType"/>
+						<Concept name="ProviderDataType">
+							<Conversion mapper="Microsoft.VisualStudio.Data.AdoDotNet.AdoDotNetObjectConceptMapper"/>
+						</Concept>
+						<Concept name="ProviderDbType">
+							<Conversion mapper="Microsoft.VisualStudio.Data.AdoDotNet.AdoDotNetObjectConceptMapper"/>
+						</Concept>
+						<Concept name="FrameworkDataType">
+							<Conversion mapper="Microsoft.VisualStudio.Data.AdoDotNet.AdoDotNetObjectConceptMapper"/>
+						</Concept>
+					</Concepts>
+				</Property>
+				<Property name="Length" type="System.Int32" itemName='character_maximum_length'>
+					<Concepts>
+						<Concept name="Length"/>
+					</Concepts>
+				</Property>
+				<Property name="Precision" type="System.Int32" itemName="numeric_precision">
+					<Concepts>
+						<Concept name="Precision">
+						</Concept>
+					</Concepts>
+				</Property>
+				<Property name="Scale" type="System.Int32" itemName="numeric_scale">
+					<Concepts>
+						<Concept name="Scale"/>
+					</Concepts>
+				</Property>
+				<Property name="Nullable" type="System.Boolean" itemName="is_nullable">
+					<Concepts>
+						<!--
+							The nullable concept is defined as a boolean value but the enumeration
+							returns a 'YES' or 'NO' string.  We can do the conversion inline using
+							an expression.
+						-->
+						<Concept name="Nullable">
+						</Concept>
+					</Concepts>
+				</Property>
+				<Property name="Default" type="System.String" itemName="column_default">
+					<Concepts>
+						<Concept name="Default"/>
+					</Concepts>
+				</Property>
+			</Properties>
+			<Actions>
+				<Action name="Enumerate" guid="61CC0372-384D-42e5-9707-6D7C8DC5287A" handler="Microsoft.VisualStudio.Data.AdoDotNet.AdoDotNetObjectEnumerator">
+					<Parameter value="Columns"/>
+				</Action>
+				<Action name="BuildDSRef" guid="7C030900-E8DD-471b-8F18-D83DA7036144" handler="Microsoft.VisualStudio.Data.DSRefBuilder">
+					<Parameter>
+						<Parameter value="{2}"/>
+						<Parameter value="{1}"/>
+						<Parameter value="Table"/>
+						<Parameter/>
+						<Parameter>
+							<!-- GUID_DSRefProperty_PreciseType -->
+							<Parameter value="39A5A7E7-513F-44a4-B79D-7652CD8962D9">
+								<Parameter value="101" type="System.Int32"/> <!-- Table -->
+							</Parameter>
+						</Parameter>
+						<Parameter>
+							<Parameter>
+								<Parameter value="{3}"/>
+								<Parameter/>
+								<Parameter value="Field"/>
+								<Parameter/>
+								<Parameter>
+									<!-- GUID_DSRefProperty_PreciseType -->
+									<Parameter value="39A5A7E7-513F-44a4-B79D-7652CD8962D9">
+										<Parameter value="102" type="System.Int32"/> <!-- Table_Column -->
+									</Parameter>
+								</Parameter>
+							</Parameter>
+						</Parameter>
+					</Parameter>
+				</Action>
+			</Actions>
+		</Type>
+
+    <!--
+			Defines a type that represents a view.
+		-->
+		<Type name="View" defaultSort="Database, Schema, Name">
+			<Concepts>
+				<Concept name="View" restrictions="{Catalog}, null,{Name}"/>
+			</Concepts>
+			<Identifier>
+				<Part name="Database" itemName="table_catalog">
+					<Concepts>
+						<Concept name="Identifier0"/>
+					</Concepts>
+				</Part>
+				<Part name="Schema" itemName="table_schema">
+					<Concepts>
+						<Concept name="Identifier1"/>
+					</Concepts>
+				</Part>
+				<Part name="Name" itemName="table_name">
+					<Concepts>
+						<Concept name="Identifier2"/>
+					</Concepts>
+				</Part>
+			</Identifier>
+			<Properties>
+				<Property name="Name" type="System.String" itemName="table_name"/>
+				<Property name="Schema" type="System.String" itemName="table_schema">
+					<Concepts>
+						<Concept name="Schema"/>
+					</Concepts>
+				</Property>
+				<Property name="CheckOption" type="System.Boolean" itemName="check_option"/>
+				<Property name="IsUpdatable" type="System.Boolean" itemName="is_updatable"/>
+			</Properties>
+			<Actions>
+				<Action name="Enumerate" guid="61CC0372-384D-42e5-9707-6D7C8DC5287A" handler="Microsoft.VisualStudio.Data.AdoDotNet.AdoDotNetObjectEnumerator">
+					<Parameter value="Views"/>
+				</Action>
+				<Action name="BuildDSRef" guid="7C030900-E8DD-471b-8F18-D83DA7036144" handler="Microsoft.VisualStudio.Data.DSRefBuilder">
+					<Parameter>
+						<Parameter value="{2}"/>
+						<Parameter value="{1}"/>
+						<Parameter value="View"/>
+						<Parameter/>
+						<Parameter>
+							<!-- GUID_DSRefProperty_PreciseType -->
+							<Parameter value="39A5A7E7-513F-44a4-B79D-7652CD8962D9">
+								<Parameter value="301" type="System.Int32"/> <!-- View -->
+							</Parameter>
+						</Parameter>
+					</Parameter>
+				</Action>
+			</Actions>
+		</Type>
+
+		<!--
+			Defines a type that represents a view column.
+		-->
+		<Type name="ViewColumn" defaultSort="Database, Schema, View, Ordinal">
+			<Concepts>
+				<Concept name="ViewColumn" restrictions="{Catalog},null,{View},{Name}"/>
+			</Concepts>
+			<Identifier>
+				<Part name="Database" itemName="table_catalog">
+					<Concepts>
+						<Concept name="Identifier0"/>
+					</Concepts>
+				</Part>
+				<Part name="Schema" itemName="table_schema">
+					<Concepts>
+						<Concept name="Identifier1"/>
+					</Concepts>
+				</Part>
+				<Part name="View" itemName="table_name">
+					<Concepts>
+						<Concept name="Identifier2"/>
+					</Concepts>
+				</Part>
+				<Part name="Name" itemName="column_name">
+					<Concepts>
+						<Concept name="Identifier3"/>
+					</Concepts>
+				</Part>
+			</Identifier>
+			<Properties>
+				<Property name="Name" type="System.String" itemName="column_name"/>
+				<Property name="Ordinal" type="System.Int32" itemName="ordinal_position">
+					<Concepts>
+						<Concept name="Ordinal">
+						</Concept>
+					</Concepts>
+				</Property>
+				<Property name="SystemType" type="System.String" itemName="data_type">
+					<Concepts>
+						<Concept name="UserDataType"/>
+						<Concept name="NativeDataType"/>
+						<Concept name="ProviderDataType">
+							<Conversion mapper="Microsoft.VisualStudio.Data.AdoDotNet.AdoDotNetObjectConceptMapper"/>
+						</Concept>
+						<Concept name="ProviderDbType">
+							<Conversion mapper="Microsoft.VisualStudio.Data.AdoDotNet.AdoDotNetObjectConceptMapper"/>
+						</Concept>
+						<Concept name="FrameworkDataType">
+							<Conversion mapper="Microsoft.VisualStudio.Data.AdoDotNet.AdoDotNetObjectConceptMapper"/>
+						</Concept>
+					</Concepts>
+				</Property>
+				<Property name="Length" type="System.Int32" itemName='character_maximum_length'>
+					<Concepts>
+						<Concept name="Length"/>
+					</Concepts>
+				</Property>
+				<Property name="Precision" type="System.Int32" itemName="numeric_precision">
+					<Concepts>
+						<Concept name="Precision">
+						</Concept>
+					</Concepts>
+				</Property>
+				<Property name="Scale" type="System.Int32" itemName="numeric_scale">
+					<Concepts>
+						<Concept name="Scale"/>
+					</Concepts>
+				</Property>
+				<Property name="Nullable" type="System.Boolean" itemName="is_nullable">
+					<Concepts>
+						<Concept name="Nullable">
+						</Concept>
+					</Concepts>
+				</Property>
+				<Property name="Default" type="System.String" itemName="column_default">
+					<Concepts>
+						<Concept name="Default"/>
+					</Concepts>
+				</Property>
+			</Properties>
+			<Actions>
+				<Action name="Enumerate" guid="61CC0372-384D-42e5-9707-6D7C8DC5287A" handler="Microsoft.VisualStudio.Data.AdoDotNet.AdoDotNetObjectEnumerator">
+					<Parameter value="Columns"/>
+				</Action>
+				<Action name="BuildDSRef" guid="7C030900-E8DD-471b-8F18-D83DA7036144" handler="Microsoft.VisualStudio.Data.DSRefBuilder">
+					<Parameter>
+						<Parameter value="{2}"/>
+						<Parameter value="{1}"/>
+						<Parameter value="View"/>
+						<Parameter/>
+						<Parameter>
+							<!-- GUID_DSRefProperty_PreciseType -->
+							<Parameter value="39A5A7E7-513F-44a4-B79D-7652CD8962D9">
+								<Parameter value="301" type="System.Int32"/> <!-- View -->
+							</Parameter>
+						</Parameter>
+						<Parameter>
+							<Parameter>
+								<Parameter value="{3}"/>
+								<Parameter/>
+								<Parameter value="Field"/>
+								<Parameter/>
+								<Parameter>
+									<!-- GUID_DSRefProperty_PreciseType -->
+									<Parameter value="39A5A7E7-513F-44a4-B79D-7652CD8962D9">
+										<Parameter value="302" type="System.Int32"/> <!-- View_Column -->
+									</Parameter>
+								</Parameter>
+							</Parameter>
+						</Parameter>
+					</Parameter>
+				</Action>
+			</Actions>
+		</Type>
+	</Types>
+</VSDataObjectSupport>
