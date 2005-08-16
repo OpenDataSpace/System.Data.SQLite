@@ -10,6 +10,12 @@ namespace System.Data.SQLite
   using System;
   using System.Runtime.InteropServices;
   using System.Collections.Generic;
+  using System.ComponentModel;
+  using System.Globalization;
+
+#if !PLATFORM_COMPACTFRAMEWORK 
+  using System.ComponentModel.Design;
+#endif
 
   /// <summary>
   /// SQLite has very limited types, and is inherently text-based.  The first 5 types below represent the sum of all types SQLite
@@ -57,7 +63,7 @@ namespace System.Data.SQLite
   /// unreadable without post-processing.
   /// ISO8601 is more compatible, readable, fully-processable, but less accurate as it doesn't provide time down to fractions of a second.
   /// </summary>
-  public enum DateTimeFormat
+  public enum SQLiteDateFormats
   {
     /// <summary>
     /// Using ticks is more accurate but less compatible with other viewers and utilities that access your database.
@@ -122,12 +128,12 @@ namespace System.Data.SQLite
     /// <summary>
     /// The default DateTime format for this instance
     /// </summary>
-    private DateTimeFormat _datetimeFormat;
+    private SQLiteDateFormats _datetimeFormat;
     /// <summary>
     /// Initializes the conversion class
     /// </summary>
     /// <param name="fmt">The default date/time format to use for this instance</param>
-    internal SQLiteConvert(DateTimeFormat fmt)
+    internal SQLiteConvert(SQLiteDateFormats fmt)
     {
       _datetimeFormat = fmt;
     }
@@ -205,7 +211,7 @@ namespace System.Data.SQLite
     {
       switch (_datetimeFormat)
       {
-        case DateTimeFormat.Ticks:
+        case SQLiteDateFormats.Ticks:
           return new DateTime(Convert.ToInt64(dateText, System.Globalization.CultureInfo.InvariantCulture));
         default:
           return DateTime.ParseExact(dateText, _datetimeFormats, System.Globalization.DateTimeFormatInfo.InvariantInfo, System.Globalization.DateTimeStyles.None);
@@ -221,7 +227,7 @@ namespace System.Data.SQLite
     {
       switch (_datetimeFormat)
       {
-        case DateTimeFormat.Ticks:
+        case SQLiteDateFormats.Ticks:
           return dateValue.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture);
         default:
           return dateValue.ToString(_datetimeFormats[0], System.Globalization.CultureInfo.InvariantCulture);
@@ -475,12 +481,14 @@ namespace System.Data.SQLite
     /// <returns>The .NET DBType the text evaluates to.</returns>
     internal static DbType TypeNameToDbType(string Name)
     {
-      if (Name == null) return DbType.Object;
+      if (String.IsNullOrEmpty(Name)) return DbType.Object;
+
+      Name = Name.ToUpper(CultureInfo.InvariantCulture);
 
       int x = _typeNames.Length;
       for (int n = 0; n < x; n++)
       {
-        if (System.Globalization.CultureInfo.InvariantCulture.CompareInfo.IndexOf(Name, _typeNames[n].typeName, System.Globalization.CompareOptions.IgnoreCase) > -1)
+        if (Name.StartsWith(_typeNames[n].typeName))
           return _typeNames[n].dataType; 
       }
       return DbType.Object;
@@ -488,10 +496,6 @@ namespace System.Data.SQLite
     #endregion
 
     private static SQLiteTypeNames[] _typeNames = {
-      new SQLiteTypeNames("LONGTEXT", DbType.String),
-      new SQLiteTypeNames("LONGCHAR", DbType.String),
-      new SQLiteTypeNames("SMALLINT", DbType.Int16),
-      new SQLiteTypeNames("BIGINT", DbType.Int64),
       new SQLiteTypeNames("COUNTER", DbType.Int64),
       new SQLiteTypeNames("AUTOINCREMENT", DbType.Int64),
       new SQLiteTypeNames("IDENTITY", DbType.Int64),
@@ -499,10 +503,13 @@ namespace System.Data.SQLite
       new SQLiteTypeNames("TINYINT", DbType.Byte),
       new SQLiteTypeNames("INTEGER", DbType.Int64),
       new SQLiteTypeNames("INT", DbType.Int32),
+      new SQLiteTypeNames("VARCHAR", DbType.String),
+      new SQLiteTypeNames("NVARCHAR", DbType.String),
+      new SQLiteTypeNames("CHAR", DbType.String),
       new SQLiteTypeNames("TEXT", DbType.String),
       new SQLiteTypeNames("DOUBLE", DbType.Double),
       new SQLiteTypeNames("FLOAT", DbType.Double),
-      new SQLiteTypeNames("REAL", DbType.Single),
+      new SQLiteTypeNames("REAL", DbType.Single),          
       new SQLiteTypeNames("BIT", DbType.Boolean),
       new SQLiteTypeNames("YESNO", DbType.Boolean),
       new SQLiteTypeNames("LOGICAL", DbType.Boolean),
@@ -515,6 +522,7 @@ namespace System.Data.SQLite
       new SQLiteTypeNames("DATE", DbType.DateTime),
       new SQLiteTypeNames("BLOB", DbType.Binary),
       new SQLiteTypeNames("BINARY", DbType.Binary),
+      new SQLiteTypeNames("VARBINARY", DbType.Binary),
       new SQLiteTypeNames("IMAGE", DbType.Binary),
       new SQLiteTypeNames("GENERAL", DbType.Binary),
       new SQLiteTypeNames("OLEOBJECT", DbType.Binary),
@@ -522,7 +530,10 @@ namespace System.Data.SQLite
       new SQLiteTypeNames("UNIQUEIDENTIFIER", DbType.Guid),
       new SQLiteTypeNames("MEMO", DbType.String),
       new SQLiteTypeNames("NOTE", DbType.String),
-      new SQLiteTypeNames("CHAR", DbType.String),
+      new SQLiteTypeNames("LONGTEXT", DbType.String),
+      new SQLiteTypeNames("LONGCHAR", DbType.String),
+      new SQLiteTypeNames("SMALLINT", DbType.Int16),
+      new SQLiteTypeNames("BIGINT", DbType.Int64),
     };
   }
 }

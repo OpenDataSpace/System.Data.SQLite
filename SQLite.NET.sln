@@ -20,6 +20,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SQLite.Interop", "SQLite.In
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "testce", "testce\testce.csproj", "{B86CE504-C4E4-496F-A0F0-E613BCFD3DF7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SQLite.Designer", "SQLite.Designer\SQLite.Designer.csproj", "{9B4A5CF6-5BE5-4926-ACC7-B729A8C05198}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Compact Framework = Debug|Compact Framework
@@ -46,6 +48,7 @@ Global
 		{10B51CE8-A838-44DE-BD82-B658F0296F80}.Debug|Compact Framework.Build.0 = Release|Pocket PC 2003 (ARMV4)
 		{10B51CE8-A838-44DE-BD82-B658F0296F80}.Debug|Compact Framework.Deploy.0 = Release|Pocket PC 2003 (ARMV4)
 		{10B51CE8-A838-44DE-BD82-B658F0296F80}.Debug|Win32.ActiveCfg = Release|Win32
+		{10B51CE8-A838-44DE-BD82-B658F0296F80}.Debug|Win32.Build.0 = Release|Win32
 		{10B51CE8-A838-44DE-BD82-B658F0296F80}.Release|Compact Framework.ActiveCfg = Release|Pocket PC 2003 (ARMV4)
 		{10B51CE8-A838-44DE-BD82-B658F0296F80}.Release|Compact Framework.Build.0 = Release|Pocket PC 2003 (ARMV4)
 		{10B51CE8-A838-44DE-BD82-B658F0296F80}.Release|Compact Framework.Deploy.0 = Release|Pocket PC 2003 (ARMV4)
@@ -59,6 +62,14 @@ Global
 		{B86CE504-C4E4-496F-A0F0-E613BCFD3DF7}.Release|Compact Framework.Build.0 = Release|Any CPU
 		{B86CE504-C4E4-496F-A0F0-E613BCFD3DF7}.Release|Compact Framework.Deploy.0 = Release|Any CPU
 		{B86CE504-C4E4-496F-A0F0-E613BCFD3DF7}.Release|Win32.ActiveCfg = Release|Any CPU
+		{9B4A5CF6-5BE5-4926-ACC7-B729A8C05198}.Debug|Compact Framework.ActiveCfg = Debug|Any CPU
+		{9B4A5CF6-5BE5-4926-ACC7-B729A8C05198}.Debug|Compact Framework.Build.0 = Debug|Any CPU
+		{9B4A5CF6-5BE5-4926-ACC7-B729A8C05198}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{9B4A5CF6-5BE5-4926-ACC7-B729A8C05198}.Debug|Win32.Build.0 = Debug|Any CPU
+		{9B4A5CF6-5BE5-4926-ACC7-B729A8C05198}.Release|Compact Framework.ActiveCfg = Release|Any CPU
+		{9B4A5CF6-5BE5-4926-ACC7-B729A8C05198}.Release|Compact Framework.Build.0 = Release|Any CPU
+		{9B4A5CF6-5BE5-4926-ACC7-B729A8C05198}.Release|Win32.ActiveCfg = Release|Any CPU
+		{9B4A5CF6-5BE5-4926-ACC7-B729A8C05198}.Release|Win32.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

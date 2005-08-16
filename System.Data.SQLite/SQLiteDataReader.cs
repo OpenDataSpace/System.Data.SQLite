@@ -11,6 +11,7 @@ namespace System.Data.SQLite
   using System.Data;
   using System.Data.Common;
   using System.Collections.Generic;
+  using System.Globalization;
 
   /// <summary>
   /// SQLite implementation of DbDataReader.
@@ -215,7 +216,7 @@ namespace System.Data.SQLite
     public override bool GetBoolean(int i)
     {
       VerifyType(i, DbType.Boolean);
-      return Convert.ToBoolean(GetValue(i), System.Globalization.CultureInfo.CurrentCulture);
+      return Convert.ToBoolean(GetValue(i), CultureInfo.CurrentCulture);
     }
 
     /// <summary>
@@ -427,32 +428,36 @@ namespace System.Data.SQLite
     {
       CheckClosed();
 
-      DataTable tbl = new DataTable("Schema");
+      DataTable tbl = new DataTable("SchemaTable");
       string[] arName;
       string strTable;
       string strCatalog;
       DataRow row;
 
-      tbl.Locale = System.Globalization.CultureInfo.InvariantCulture;
+      tbl.Locale = CultureInfo.InvariantCulture;
       tbl.Columns.Add(SchemaTableColumn.ColumnName, typeof(String));
-      tbl.Columns.Add(SchemaTableColumn.ColumnOrdinal, typeof(Int32));
-      tbl.Columns.Add(SchemaTableColumn.ColumnSize, typeof(Int32));
-      tbl.Columns.Add(SchemaTableColumn.NumericPrecision, typeof(Int32));
-      tbl.Columns.Add(SchemaTableColumn.NumericScale, typeof(Int32));
-      tbl.Columns.Add(SchemaTableColumn.DataType, typeof(Type));
-      tbl.Columns.Add(SchemaTableColumn.ProviderType, typeof(Int32));
-      tbl.Columns.Add(SchemaTableColumn.IsLong, typeof(Boolean));
-      tbl.Columns.Add(SchemaTableColumn.AllowDBNull, typeof(Boolean));
-      tbl.Columns.Add(SchemaTableOptionalColumn.IsReadOnly, typeof(Boolean));
-      tbl.Columns.Add(SchemaTableOptionalColumn.IsRowVersion, typeof(Boolean));
+      tbl.Columns.Add(SchemaTableColumn.ColumnOrdinal, typeof(int));
+      tbl.Columns.Add(SchemaTableColumn.ColumnSize, typeof(int));
+      tbl.Columns.Add(SchemaTableColumn.NumericPrecision, typeof(short));
+      tbl.Columns.Add(SchemaTableColumn.NumericScale, typeof(short));
       tbl.Columns.Add(SchemaTableColumn.IsUnique, typeof(Boolean));
       tbl.Columns.Add(SchemaTableColumn.IsKey, typeof(Boolean));
-      tbl.Columns.Add(SchemaTableOptionalColumn.IsAutoIncrement, typeof(Boolean));
-      tbl.Columns.Add(SchemaTableColumn.BaseSchemaName, typeof(String));
+      tbl.Columns.Add(SchemaTableOptionalColumn.BaseServerName, typeof(string));
       tbl.Columns.Add(SchemaTableOptionalColumn.BaseCatalogName, typeof(String));
-      tbl.Columns.Add(SchemaTableColumn.BaseTableName, typeof(String));
       tbl.Columns.Add(SchemaTableColumn.BaseColumnName, typeof(String));
-      tbl.Columns.Add(SchemaTableOptionalColumn.BaseColumnNamespace, typeof(string));
+      tbl.Columns.Add(SchemaTableColumn.BaseSchemaName, typeof(String));
+      tbl.Columns.Add(SchemaTableColumn.BaseTableName, typeof(String));
+      tbl.Columns.Add(SchemaTableColumn.DataType, typeof(Type));
+      tbl.Columns.Add(SchemaTableColumn.AllowDBNull, typeof(Boolean));
+      tbl.Columns.Add(SchemaTableColumn.ProviderType, typeof(int));
+      tbl.Columns.Add(SchemaTableColumn.IsAliased, typeof(Boolean));
+      tbl.Columns.Add(SchemaTableColumn.IsExpression, typeof(Boolean));
+      tbl.Columns.Add(SchemaTableOptionalColumn.IsAutoIncrement, typeof(Boolean));
+      tbl.Columns.Add(SchemaTableOptionalColumn.IsRowVersion, typeof(Boolean));
+      tbl.Columns.Add(SchemaTableOptionalColumn.IsHidden, typeof(Boolean));
+      tbl.Columns.Add(SchemaTableColumn.IsLong, typeof(Boolean));
+      tbl.Columns.Add(SchemaTableOptionalColumn.IsReadOnly, typeof(Boolean));
+      tbl.Columns.Add(SchemaTableOptionalColumn.ProviderSpecificDataType, typeof(Type));
       tbl.Columns.Add(SchemaTableOptionalColumn.DefaultValue, typeof(object));
 
       tbl.BeginLoadData();
@@ -483,7 +488,6 @@ namespace System.Data.SQLite
               row[SchemaTableColumn.ColumnSize] = 0;
               row[SchemaTableColumn.NumericPrecision] = 0;
               row[SchemaTableColumn.NumericScale] = 0;
-              row[SchemaTableColumn.DataType] = GetFieldType(n);
               row[SchemaTableColumn.ProviderType] = GetSQLiteType(n).Type;
               row[SchemaTableColumn.IsLong] = false;
               row[SchemaTableColumn.AllowDBNull] = true;
@@ -507,40 +511,43 @@ namespace System.Data.SQLite
               // If we have a table-bound column, extract the extra information from it
               if (arName.Length > 1)
               {
-                using (SQLiteCommand cmdTable = new SQLiteCommand(String.Format(System.Globalization.CultureInfo.CurrentCulture, "PRAGMA [{1}].TABLE_INFO([{0}])", strTable, strCatalog), cnn))
+                using (SQLiteCommand cmdTable = new SQLiteCommand(String.Format(CultureInfo.CurrentCulture, "PRAGMA [{1}].TABLE_INFO([{0}])", strTable, strCatalog), cnn))
                 {
-                  if (arName.Length < 3) strCatalog = "";
+                  if (arName.Length < 3) strCatalog = "main";
 
                   using (DbDataReader rdTable = cmdTable.ExecuteReader())
                   {
                     while (rdTable.Read())
                     {
-                      if (String.Compare(arName[arName.Length - 1], rdTable.GetString(1), true, System.Globalization.CultureInfo.CurrentCulture) == 0)
+                      if (String.Compare(arName[arName.Length - 1], rdTable.GetString(1), true, CultureInfo.CurrentCulture) == 0)
                       {
                         string strType = rdTable.GetString(2);
                         string[] arSize = strType.Split('(');
                         if (arSize.Length > 1)
                         {
+                          strType = arSize[0];
                           arSize = arSize[1].Split(')');
                           if (arSize.Length > 1)
-                            row["ColumnSize"] = Convert.ToInt32(arSize[0], System.Globalization.CultureInfo.InvariantCulture);
+                            row[SchemaTableColumn.ColumnSize] = Convert.ToInt32(arSize[0], CultureInfo.InvariantCulture);
                         }
+
                         bool bNotNull = rdTable.GetBoolean(3);
                         bool bPrimaryKey = rdTable.GetBoolean(5);
 
+                        row[SchemaTableColumn.DataType] = GetFieldType(n);
                         row[SchemaTableColumn.BaseTableName] = strTable;
                         row[SchemaTableColumn.BaseColumnName] = rdTable.GetString(1);
-                        if (strCatalog.Length > 0)
+                        if (String.IsNullOrEmpty(strCatalog) == false)
                         {
-                          row[SchemaTableOptionalColumn.BaseColumnNamespace] = strCatalog;
-                          row[SchemaTableColumn.BaseSchemaName] = strCatalog;
+                          row[SchemaTableOptionalColumn.BaseCatalogName] = strCatalog;
                         }
 
                         row[SchemaTableColumn.AllowDBNull] = (!bNotNull && !bPrimaryKey);
                         row[SchemaTableColumn.IsUnique] = bPrimaryKey;
                         row[SchemaTableColumn.IsKey] = bPrimaryKey;
-                        row[SchemaTableOptionalColumn.IsAutoIncrement] = (bPrimaryKey && String.Compare(strType, "Integer", true, System.Globalization.CultureInfo.InvariantCulture) == 0);
-                        row[SchemaTableOptionalColumn.IsReadOnly] = !(bool)row[SchemaTableOptionalColumn.IsAutoIncrement];
+                        row[SchemaTableOptionalColumn.IsAutoIncrement] = (bPrimaryKey &&
+                            String.Compare(strType, "integer", true, CultureInfo.InvariantCulture) == 0);
+                        row[SchemaTableOptionalColumn.IsReadOnly] = (bool)row[SchemaTableOptionalColumn.IsAutoIncrement];
                         if (rdTable.IsDBNull(4) == false)
                           row[SchemaTableOptionalColumn.DefaultValue] = rdTable[4];
                         break;

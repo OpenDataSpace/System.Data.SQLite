@@ -9,13 +9,23 @@ namespace System.Data.SQLite
 {
   using System;
   using System.Data.Common;
-
+  using System.ComponentModel;
+  using System.Collections;
+  
 #if !PLATFORM_COMPACTFRAMEWORK
+  using System.ComponentModel.Design;
+
   /// <summary>
   /// SQLite implementation of DbConnectionStringBuilder.
   /// </summary>
+  [DefaultProperty("DataSource")]
   public sealed class SQLiteConnectionStringBuilder : DbConnectionStringBuilder
   {
+    /// <summary>
+    /// Properties of this class
+    /// </summary>
+    private Hashtable _properties;
+
     /// <overloads>
     /// Constructs a new instance of the class
     /// </overloads>
@@ -42,41 +52,24 @@ namespace System.Data.SQLite
     /// <param name="cnnString">The connection string to assign</param>
     private void Initialize(string cnnString)
     {
-      ConnectionString = cnnString;
-      Reset();
-    }
+      _properties = new Hashtable();
+      base.GetProperties(_properties);
 
-    /// <summary>
-    /// Resets the builder to the default settings
-    /// </summary>
-    internal void Reset()
-    {
-      if (this.ContainsKey("Version") == false)
-        Version = 3;
-
-      if (ContainsKey("UseUTF16Encoding") == false)
-        UseUTF16Encoding = false;
-
-      if (ContainsKey("Cache Size") == false)
-        CacheSize = 2000;
-
-      if (ContainsKey("Synchronous") == false)
-        SyncMode = SyncMode.Normal;
-
-      if (ContainsKey("DateTimeFormat") == false)
-        DateTimeFormat = DateTimeFormat.ISO8601;
-
-      if (ContainsKey("Page Size") == false)
-        PageSize = 4096;
+      if (String.IsNullOrEmpty(cnnString) == false)
+        ConnectionString = cnnString;
     }
 
     /// <summary>
     /// Gets/Sets the default version of the SQLite engine to instantiate.  Currently the only valid value is 3, indicating version 3 of the sqlite library.
     /// </summary>
+    [Browsable(true)]
+    [DefaultValue(3)]
     public int Version
     {
       get
       {
+        if (ContainsKey("Version") == false) return 3;
+
         return Convert.ToInt32(this["Version"], System.Globalization.CultureInfo.InvariantCulture);
       }
       set
@@ -91,53 +84,49 @@ namespace System.Data.SQLite
     /// <summary>
     /// Gets/Sets the synchronous mode of the connection string.  Default is "Normal".
     /// </summary>
-    public SyncMode SyncMode
+    [DisplayName("Synchronous")]
+    [Browsable(true)]
+    [DefaultValue(SynchronizationModes.Normal)]
+    public SynchronizationModes SyncMode
     {
       get
       {
-        string s = this["Synchronous"].ToString().ToUpper(System.Globalization.CultureInfo.CurrentCulture);
-        switch (s)
-        {
-          case "FULL":
-            return SyncMode.Full;
-          case "OFF":
-            return SyncMode.Off;
-          default:
-            return SyncMode.Normal;
-        }
+        return (SynchronizationModes)TypeDescriptor.GetConverter(typeof(SynchronizationModes)).ConvertFrom(this["Synchronous"]);
       }
       set
       {
-        string s = "Normal";
-        if (value == SyncMode.Full) s = "Full";
-        else if (value == SyncMode.Off) s = "Off";
-
-        this["Synchronous"] = s;
+        this["Synchronous"] = value;
       }
     }
 
     /// <summary>
     /// Gets/Sets the encoding for the connection string.  The default is "False" which indicates UTF-8 encoding.
     /// </summary>
+    [Browsable(true)]
+    [DefaultValue(false)]
     public bool UseUTF16Encoding
     {
       get
       {
-        return (String.Compare(this["UseUTF16Encoding"].ToString(), "True", true, System.Globalization.CultureInfo.InvariantCulture) == 0);
+        return Convert.ToBoolean(this["UseUTF16Encoding"]);
       }
       set
       {
-        this["UseUTF16Encoding"] = ((value == true) ? "True" : "False");
+        this["UseUTF16Encoding"] = value;
       }
     }
 
     /// <summary>
     /// Gets/Sets the filename to open on the connection string.
     /// </summary>
+    [DisplayName("Data Source")]
+    [Browsable(true)]
     public string DataSource
     {
       get
       {
+        if (ContainsKey("Data Source") == false) return "";
+
         return this["Data Source"].ToString();
       }
       set
@@ -149,10 +138,14 @@ namespace System.Data.SQLite
     /// <summary>
     /// Gets/Sets the page size for the connection.
     /// </summary>
+    [DisplayName("Page Size")]
+    [Browsable(true)]
+    [DefaultValue(1024)]
     public int PageSize
     {
       get
       {
+        if (ContainsKey("Page Size") == false) return 1024;
         return Convert.ToInt32(this["Page Size"], System.Globalization.CultureInfo.InvariantCulture);
       }
       set
@@ -164,10 +157,14 @@ namespace System.Data.SQLite
     /// <summary>
     /// Gets/Sets the cache size for the connection.
     /// </summary>
+    [DisplayName("Cache Size")]
+    [Browsable(true)]
+    [DefaultValue(2000)]
     public int CacheSize
     {
       get
       {
+        if (ContainsKey("Cache Size") == false) return 2000;
         return Convert.ToInt32(this["Cache Size"], System.Globalization.CultureInfo.InvariantCulture);
       }
       set
@@ -179,30 +176,52 @@ namespace System.Data.SQLite
     /// <summary>
     /// Gets/Sets the datetime format for the connection.
     /// </summary>
-    public DateTimeFormat DateTimeFormat
+    [Browsable(true)]
+    [DefaultValue(SQLiteDateFormats.ISO8601)]
+    public SQLiteDateFormats DateTimeFormat
     {
       get
       {
-        switch (this["DateTimeFormat"].ToString().ToUpper(System.Globalization.CultureInfo.InvariantCulture))
-        {
-          case "TICKS":
-            return DateTimeFormat.Ticks;
-          default:
-            return DateTimeFormat.ISO8601;
-        }
+        if (ContainsKey("DateTimeFormat") == false) return SQLiteDateFormats.ISO8601;
+
+        return (SQLiteDateFormats)TypeDescriptor.GetConverter(typeof(SQLiteDateFormats)).ConvertFrom(this["DateTimeFormat"]);
       }
       set
       {
-        switch (value)
+        this["DateTimeFormat"] = value;
+      }
+    }
+
+    /// <summary>
+    /// Helper function for retrieving values from the connectionstring
+    /// </summary>
+    /// <param name="keyword">The keyword to retrieve settings for</param>
+    /// <param name="value">The resulting parameter value</param>
+    /// <returns>Returns true if the value was found and returned</returns>
+    public override bool TryGetValue(string keyword, out object value)
+    {
+      bool b = base.TryGetValue(keyword, out value);
+
+      if (!_properties.ContainsKey(keyword)) return b;
+
+      PropertyDescriptor pd = _properties[keyword] as PropertyDescriptor;
+
+      if (pd == null) return b;
+
+      if (b)
+      {
+        value = TypeDescriptor.GetConverter(pd.PropertyType).ConvertFrom(value);
+      }
+      else
+      {
+        DefaultValueAttribute att = pd.Attributes[typeof(DefaultValueAttribute)] as DefaultValueAttribute;
+        if (att != null)
         {
-          case DateTimeFormat.Ticks:
-            this["DateTimeFormat"] = "Ticks";
-            break;
-          case DateTimeFormat.ISO8601:
-            this["DateTimeFormat"] = "ISO8601";
-            break;
+          value = att.Value;
+          b = true;
         }
       }
+      return b;
     }
   }
 #endif

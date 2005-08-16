@@ -11,11 +11,12 @@ namespace System.Data.SQLite
   using System.Data;
   using System.Data.Common;
   using System.Collections.Generic;
+  using System.Globalization;
 
   /// <summary>
   /// The I/O file cache flushing behavior for the connection
   /// </summary>
-  public enum SyncMode
+  public enum SynchronizationModes
   {
     /// <summary>
     /// Normal file flushing at critical sections of the code
@@ -109,6 +110,10 @@ namespace System.Data.SQLite
     /// Commands associated with this connection
     /// </summary>
     internal List<SQLiteCommand> _commandList;
+    /// <summary>
+    /// The database filename minus path and extension
+    /// </summary>
+    private string _dataSource;
 
     /// <event/>
     /// <summary>
@@ -158,8 +163,8 @@ namespace System.Data.SQLite
           foreach (DataRow row in tbl.Rows)
           {
             str = row[0].ToString();
-            if (String.Compare(str, "MAIN", true, System.Globalization.CultureInfo.InvariantCulture) != 0
-              && String.Compare(str, "TEMP", true, System.Globalization.CultureInfo.InvariantCulture) != 0)
+            if (String.Compare(str, "main", true, CultureInfo.InvariantCulture) != 0
+              && String.Compare(str, "temp", true, CultureInfo.InvariantCulture) != 0)
             {
               _sql.Execute(String.Format(System.Globalization.CultureInfo.InvariantCulture, "ATTACH DATABASE '{0}' AS [{1}]", row[1], row[0]));
             }
@@ -358,19 +363,25 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// Not implemented.  Returns null.
+    /// Returns the filename without extension or path
     /// </summary>
     public override string DataSource
     {
-      get { return null; }
+      get 
+      {
+        return _dataSource;
+      }
     }
 
     /// <summary>
-    /// Not implemented.  Returns null.
+    /// Returns an empty string
     /// </summary>
     public override string Database
     {
-      get { return null; }
+      get
+      {
+        return "main";
+      }
     }
 
     /// <summary>
@@ -420,7 +431,7 @@ namespace System.Data.SQLite
       int x = opts.Length;
       for (int n = 0; n < x; n++)
       {
-        if (String.Compare(opts[n].Key, key, true, System.Globalization.CultureInfo.InvariantCulture) == 0)
+        if (String.Compare(opts[n].Key, key, true, CultureInfo.InvariantCulture) == 0)
         {
           return opts[n].Value;
         }
@@ -440,30 +451,37 @@ namespace System.Data.SQLite
 
       KeyValuePair<string, string>[] opts = ParseConnectionString();
 
-      if (Convert.ToInt32(FindKey(opts, "Version", "3"), System.Globalization.CultureInfo.InvariantCulture) != 3)
+      if (Convert.ToInt32(FindKey(opts, "Version", "3"), CultureInfo.InvariantCulture) != 3)
         throw new NotSupportedException("Only SQLite Version 3 is supported at this time");
+
+      string strFile = FindKey(opts, "Data Source", "");
+
+      if (String.IsNullOrEmpty(strFile))
+        throw new ArgumentException("Data Source cannot be empty.  Use :MEMORY: to open an in-memory database");
 
       try
       {
-        string strFile = FindKey(opts, "Data Source", "");
-        bool bUTF16 = (Convert.ToBoolean(FindKey(opts, "UseUTF16Encoding", "False"), System.Globalization.CultureInfo.InvariantCulture) == true);
+        bool bUTF16 = (Convert.ToBoolean(FindKey(opts, "UseUTF16Encoding", "False"), CultureInfo.InvariantCulture) == true);
+        SQLiteDateFormats dateFormat = String.Compare(FindKey(opts, "DateTimeFormat", "ISO8601"), "ticks", true, CultureInfo.CurrentCulture) == 0 ? SQLiteDateFormats.Ticks : SQLiteDateFormats.ISO8601;
 
         if (bUTF16)
-          _sql = new SQLite3_UTF16(String.Compare(FindKey(opts, "DateTimeFormat", "ISO8601"), "TICKS", true, System.Globalization.CultureInfo.InvariantCulture) == 0 ? DateTimeFormat.Ticks : DateTimeFormat.ISO8601);
+          _sql = new SQLite3_UTF16(dateFormat);
         else
-          _sql = new SQLite3(String.Compare(FindKey(opts, "DateTimeFormat", "ISO8601"), "TICKS", true, System.Globalization.CultureInfo.InvariantCulture) == 0 ? DateTimeFormat.Ticks : DateTimeFormat.ISO8601);
+          _sql = new SQLite3(dateFormat);
 
-        _sql.Open(strFile);
+          _sql.Open(strFile);
+
+        _dataSource = System.IO.Path.GetFileNameWithoutExtension(strFile);
 
         if (bUTF16 == true)
           _sql.Execute("PRAGMA encoding = 'UTF-16'");
         else
           _sql.Execute("PRAGMA encoding = 'UTF-8'");
 
-        _sql.Execute(String.Format(System.Globalization.CultureInfo.InvariantCulture, "PRAGMA Synchronous={0}", FindKey(opts, "Synchronous", "Normal")));
-        _sql.Execute(String.Format(System.Globalization.CultureInfo.InvariantCulture, "PRAGMA Cache_Size={0}", FindKey(opts, "Cache Size", "2000")));
-        if (String.Compare(strFile, ":MEMORY:", true, System.Globalization.CultureInfo.InvariantCulture) != 0)
-          _sql.Execute(String.Format(System.Globalization.CultureInfo.InvariantCulture, "PRAGMA Page_Size={0}", FindKey(opts, "Page Size", "1024")));
+        _sql.Execute(String.Format(CultureInfo.InvariantCulture, "PRAGMA Synchronous={0}", FindKey(opts, "Synchronous", "Normal")));
+        _sql.Execute(String.Format(CultureInfo.InvariantCulture, "PRAGMA Cache_Size={0}", FindKey(opts, "Cache Size", "2000")));
+        if (String.Compare(":MEMORY:", strFile, true, CultureInfo.CurrentCulture) == 0)
+          _sql.Execute(String.Format(CultureInfo.InvariantCulture, "PRAGMA Page_Size={0}", FindKey(opts, "Page Size", "1024")));
       }
       catch (SQLiteException)
       {
@@ -492,7 +510,10 @@ namespace System.Data.SQLite
     /// </summary>
     public override ConnectionState State
     {
-      get { return _connectionState; }
+      get
+      {
+        return _connectionState;
+      }
     }
 
     ///<overloads>
@@ -556,12 +577,16 @@ namespace System.Data.SQLite
       restrictionValues.CopyTo(parms, 0);
 
       if (restrictionValues == null) restrictionValues = new string[0];
-      switch (collectionName.ToUpper(System.Globalization.CultureInfo.InvariantCulture))
+      switch (collectionName.ToUpper(CultureInfo.CurrentCulture))
       {
         case "METADATACOLLECTIONS":
           return Schema_MetaDataCollections();
         case "DATASOURCEINFORMATION":
           return Schema_DataSourceInformation();
+        //case "RESERVEDWORDS":
+        //  return Schema_ReservedWords();
+        case "DATATYPES":
+          return Schema_DataTypes();
         case "COLUMNS":
           return Schema_Columns(parms[0], parms[2], parms[3]);
         case "INDEXES":
@@ -573,7 +598,7 @@ namespace System.Data.SQLite
         case "CATALOGS":
           return Schema_Catalogs(parms[0]);
       }
-      return null;
+      throw new NotSupportedException();
     }
 
     /// <summary>
@@ -585,7 +610,7 @@ namespace System.Data.SQLite
       DataTable tbl = new DataTable("MetaDataCollections");
       DataRow row;
 
-      tbl.Locale = System.Globalization.CultureInfo.InvariantCulture;
+      tbl.Locale = CultureInfo.InvariantCulture;
       tbl.Columns.Add("CollectionName", typeof(string));
       tbl.Columns.Add("NumberOfRestrictions", typeof(int));
       tbl.Columns.Add("NumberOfIdentifierParts", typeof(int));
@@ -599,6 +624,14 @@ namespace System.Data.SQLite
       row = tbl.NewRow();
       row.ItemArray = new object[] { "DataSourceInformation", 0, 0 };
       tbl.Rows.Add(row);
+
+      row = tbl.NewRow();
+      row.ItemArray = new object[] { "DataTypes", 0, 0 };
+      tbl.Rows.Add(row);
+
+      //row = tbl.NewRow();
+      //row.ItemArray = new object[] { "ReservedWords", 0, 0 };
+      //tbl.Rows.Add(row);
 
       row = tbl.NewRow();
       row.ItemArray = new object[] { "Catalogs", 1, 1 };
@@ -635,7 +668,7 @@ namespace System.Data.SQLite
       DataTable tbl = new DataTable("DataSourceInformation");
       DataRow row;
 
-      tbl.Locale = System.Globalization.CultureInfo.InvariantCulture;
+      tbl.Locale = CultureInfo.InvariantCulture;
       tbl.Columns.Add("CompositeIdentifierSeparatorPattern", typeof(string));
       tbl.Columns.Add("DataSourceProductName", typeof(string));
       tbl.Columns.Add("DataSourceProductVersion", typeof(string));
@@ -660,23 +693,23 @@ namespace System.Data.SQLite
       // from JET's DataSourceInformation return result.
       row = tbl.NewRow();
       row.ItemArray = new object[] {
-        DBNull.Value,
+        null,
         "SQLite",
         _sql.Version,
         _sql.Version,
         3,
-        @"[^ ][^\.!`\[\]]*",
-        1,
-        DBNull.Value,
+        null,
+        2,
+        false,
         "?",
         "?",
         0,
-        DBNull.Value,
-        @"`(([^`]|``)*)`",
-        1,
-        DBNull.Value,
-        DBNull.Value,
-        DBNull.Value
+        null,
+        @"(([^\[]|\]\])*)",
+        2,
+        ";",
+        @"'(([^']|'')*)'",
+        null
       };
       tbl.Rows.Add(row);
 
@@ -698,24 +731,24 @@ namespace System.Data.SQLite
       DataTable tbl = new DataTable("Columns");
       DataRow row;
 
-      tbl.Locale = System.Globalization.CultureInfo.InvariantCulture;
+      tbl.Locale = CultureInfo.InvariantCulture;
       tbl.Columns.Add("TABLE_CATALOG", typeof(string));
       tbl.Columns.Add("TABLE_SCHEMA", typeof(string));
       tbl.Columns.Add("TABLE_NAME", typeof(string));
       tbl.Columns.Add("COLUMN_NAME", typeof(string));
       tbl.Columns.Add("COLUMN_GUID", typeof(Guid));
       tbl.Columns.Add("COLUMN_PROPID", typeof(long));
-      tbl.Columns.Add("ORDINAL_POSITION", typeof(long));
+      tbl.Columns.Add("ORDINAL_POSITION", typeof(int));
       tbl.Columns.Add("COLUMN_HASDEFAULT", typeof(bool));
       tbl.Columns.Add("COLUMN_DEFAULT", typeof(string));
       tbl.Columns.Add("COLUMN_FLAGS", typeof(long));
       tbl.Columns.Add("IS_NULLABLE", typeof(bool));
-      tbl.Columns.Add("DATA_TYPE", typeof(int));
+      tbl.Columns.Add("DATA_TYPE", typeof(string));
       tbl.Columns.Add("TYPE_GUID", typeof(Guid));
-      tbl.Columns.Add("CHARACTER_MAXIMUM_LENGTH", typeof(long));
-      tbl.Columns.Add("CHARACTER_OCTET_LENGTH", typeof(long));
+      tbl.Columns.Add("CHARACTER_MAXIMUM_LENGTH", typeof(int));
+      tbl.Columns.Add("CHARACTER_OCTET_LENGTH", typeof(int));
       tbl.Columns.Add("NUMERIC_PRECISION", typeof(int));
-      tbl.Columns.Add("NUMERIC_SCALE", typeof(short));
+      tbl.Columns.Add("NUMERIC_SCALE", typeof(int));
       tbl.Columns.Add("DATETIME_PRECISION", typeof(long));
       tbl.Columns.Add("CHARACTER_SET_CATALOG", typeof(string));
       tbl.Columns.Add("CHARACTER_SET_SCHEMA", typeof(string));
@@ -731,7 +764,7 @@ namespace System.Data.SQLite
 
       if (String.IsNullOrEmpty(strCatalog)) strCatalog = "main";
 
-      using (SQLiteCommand cmd = new SQLiteCommand(String.Format(System.Globalization.CultureInfo.CurrentCulture, "SELECT * FROM [{0}].[{1}]", strCatalog, strTable), this))
+      using (SQLiteCommand cmd = new SQLiteCommand(String.Format(CultureInfo.CurrentCulture, "SELECT * FROM [{0}].[{1}]", strCatalog, strTable), this))
       {
         using (SQLiteDataReader rd = (SQLiteDataReader)cmd.ExecuteReader(CommandBehavior.SchemaOnly))
         {
@@ -739,19 +772,21 @@ namespace System.Data.SQLite
           {
             foreach (DataRow schemaRow in tblSchema.Rows)
             {
-              if (String.Compare(schemaRow[SchemaTableColumn.ColumnName].ToString(), strColumn, true, System.Globalization.CultureInfo.CurrentCulture) == 0 || strColumn == null)
+              if (String.Compare(schemaRow[SchemaTableColumn.ColumnName].ToString(), strColumn, true, CultureInfo.CurrentCulture) == 0
+                || strColumn == null)
               {
                 row = tbl.NewRow();
 
                 row["TABLE_NAME"] = strTable;
                 row["COLUMN_NAME"] = schemaRow[SchemaTableColumn.ColumnName];
-                row["TABLE_CATALOG"] = schemaRow[SchemaTableOptionalColumn.BaseCatalogName];
+                row["TABLE_CATALOG"] = strCatalog;
                 row["ORDINAL_POSITION"] = schemaRow[SchemaTableColumn.ColumnOrdinal];
                 row["COLUMN_HASDEFAULT"] = (schemaRow[SchemaTableOptionalColumn.DefaultValue] != DBNull.Value);
                 row["COLUMN_DEFAULT"] = schemaRow[SchemaTableOptionalColumn.DefaultValue];
                 row["IS_NULLABLE"] = schemaRow[SchemaTableColumn.AllowDBNull];
-                row["DATA_TYPE"] = schemaRow[SchemaTableColumn.ProviderType];
+                row["DATA_TYPE"] = SQLiteConvert.DbTypeToType((DbType)schemaRow[SchemaTableColumn.ProviderType]).ToString();
                 row["CHARACTER_MAXIMUM_LENGTH"] = schemaRow[SchemaTableColumn.ColumnSize];
+                row["TABLE_SCHEMA"] = schemaRow[SchemaTableColumn.BaseSchemaName];
 
                 tbl.Rows.Add(row);
               }
@@ -778,7 +813,7 @@ namespace System.Data.SQLite
       DataTable tbl = new DataTable("Indexes");
       DataRow row;
 
-      tbl.Locale = System.Globalization.CultureInfo.InvariantCulture;
+      tbl.Locale = CultureInfo.InvariantCulture;
       tbl.Columns.Add("TABLE_CATALOG", typeof(string));
       tbl.Columns.Add("TABLE_SCHEMA", typeof(string));
       tbl.Columns.Add("TABLE_NAME", typeof(string));
@@ -809,17 +844,20 @@ namespace System.Data.SQLite
 
       if (String.IsNullOrEmpty(strCatalog)) strCatalog = "main";
 
-      using (SQLiteCommand cmd = new SQLiteCommand(String.Format(System.Globalization.CultureInfo.CurrentCulture, "SELECT * FROM [{0}].[sqlite_master] WHERE [type] = 'index'", strCatalog), this))
+      using (SQLiteCommand cmd = new SQLiteCommand(String.Format(CultureInfo.CurrentCulture, "SELECT * FROM [{0}].[sqlite_master] WHERE [type] = 'index'", strCatalog), this))
       {
         using (SQLiteDataReader rd = (SQLiteDataReader)cmd.ExecuteReader())
         {
           while (rd.Read())
           {
-            if (String.Compare(rd.GetString(1), strIndex, true, System.Globalization.CultureInfo.CurrentCulture) == 0 || strIndex == null)
+            if (String.Compare(rd.GetString(1), strIndex, true, CultureInfo.CurrentCulture) == 0
+            || strIndex == null)
             {
-              if (String.Compare(rd.GetString(2), strTable, true, System.Globalization.CultureInfo.CurrentCulture) == 0 || strTable == null)
+              if (String.Compare(rd.GetString(2), strTable, true, CultureInfo.CurrentCulture) == 0 
+              || strTable == null)
               {
                 row = tbl.NewRow();
+
                 row["TABLE_CATALOG"] = strCatalog;
                 row["TABLE_NAME"] = rd.GetString(2);
                 row["INDEX_NAME"] = rd.GetString(1);
@@ -850,36 +888,34 @@ namespace System.Data.SQLite
       DataRow row;
       string strItem;
 
-      tbl.Locale = System.Globalization.CultureInfo.InvariantCulture;
+      tbl.Locale = CultureInfo.InvariantCulture;
       tbl.Columns.Add("TABLE_CATALOG", typeof(string));
       tbl.Columns.Add("TABLE_SCHEMA", typeof(string));
       tbl.Columns.Add("TABLE_NAME", typeof(string));
       tbl.Columns.Add("TABLE_TYPE", typeof(string));
-      tbl.Columns.Add("TABLE_GUID", typeof(Guid));
-      tbl.Columns.Add("DESCRIPTION", typeof(string));
-      tbl.Columns.Add("TABLE_PROPID", typeof(long));
-      tbl.Columns.Add("DATE_CREATED", typeof(DateTime));
-      tbl.Columns.Add("DATE_MODIFIED", typeof(DateTime));
 
       tbl.BeginLoadData();
 
       if (String.IsNullOrEmpty(strCatalog)) strCatalog = "main";
 
-      using (SQLiteCommand cmd = new SQLiteCommand(String.Format(System.Globalization.CultureInfo.CurrentCulture, "SELECT * FROM [{0}].[sqlite_master] WHERE [type] NOT LIKE 'index'", strCatalog), this))
+      using (SQLiteCommand cmd = new SQLiteCommand(String.Format(CultureInfo.CurrentCulture, "SELECT * FROM [{0}].[sqlite_master] WHERE [type] NOT LIKE 'index'", strCatalog), this))
       {
         using (SQLiteDataReader rd = (SQLiteDataReader)cmd.ExecuteReader())
         {
           while (rd.Read())
           {
-            strItem = rd.GetString(0).ToUpper(System.Globalization.CultureInfo.CurrentCulture);
-            if (rd.GetString(2).ToUpper(System.Globalization.CultureInfo.CurrentCulture).IndexOf("SQLITE_") == 0)
-              strItem = "SYSTEM TABLE";
+            strItem = rd.GetString(0).ToUpper(CultureInfo.CurrentCulture);
+            if (rd.GetString(2).ToUpper(CultureInfo.CurrentCulture).IndexOf("SQLITE_") == 0)
+              strItem = "SYSTEM_TABLE";
 
-            if (String.Compare(strItem, strType, true, System.Globalization.CultureInfo.CurrentCulture) == 0 || strType == null)
+            if (String.Compare(strType, strItem, true, CultureInfo.CurrentCulture) == 0
+              || strType == null)
             {
-              if (String.Compare(rd.GetString(2), strTable, true, System.Globalization.CultureInfo.CurrentCulture) == 0 || strTable == null)
+              if (String.Compare(rd.GetString(2), strTable, true, CultureInfo.CurrentCulture) == 0
+                || strTable == null)
               {
                 row = tbl.NewRow();
+
                 row["TABLE_CATALOG"] = strCatalog;
                 row["TABLE_NAME"] = rd.GetString(2);
                 row["TABLE_TYPE"] = strItem;
@@ -910,13 +946,13 @@ namespace System.Data.SQLite
       string strItem;
       int nPos;
 
-      tbl.Locale = System.Globalization.CultureInfo.InvariantCulture;
+      tbl.Locale = CultureInfo.InvariantCulture;
       tbl.Columns.Add("TABLE_CATALOG", typeof(string));
       tbl.Columns.Add("TABLE_SCHEMA", typeof(string));
       tbl.Columns.Add("TABLE_NAME", typeof(string));
       tbl.Columns.Add("VIEW_DEFINITION", typeof(string));
       tbl.Columns.Add("CHECK_OPTION", typeof(bool));
-      tbl.Columns.Add("IS_UPDATEABLE", typeof(bool));
+      tbl.Columns.Add("IS_UPDATABLE", typeof(bool));
       tbl.Columns.Add("DESCRIPTION", typeof(string));
       tbl.Columns.Add("DATE_CREATED", typeof(DateTime));
       tbl.Columns.Add("DATE_MODIFIED", typeof(DateTime));
@@ -925,13 +961,14 @@ namespace System.Data.SQLite
 
       if (String.IsNullOrEmpty(strCatalog)) strCatalog = "main";
 
-      using (SQLiteCommand cmd = new SQLiteCommand(String.Format(System.Globalization.CultureInfo.CurrentCulture, "SELECT * FROM [{0}].[sqlite_master] WHERE [type] LIKE 'view'", strCatalog), this))
+      using (SQLiteCommand cmd = new SQLiteCommand(String.Format(CultureInfo.CurrentCulture, "SELECT * FROM [{0}].[sqlite_master] WHERE [type] LIKE 'view'", strCatalog), this))
       {
         using (SQLiteDataReader rd = (SQLiteDataReader)cmd.ExecuteReader())
         {
           while (rd.Read())
           {
-            if (String.Compare(rd.GetString(1), strView, true, System.Globalization.CultureInfo.CurrentCulture) == 0 || strView == null)
+            if (String.Compare(rd.GetString(1), strView, true, CultureInfo.CurrentCulture) == 0
+              || strView == null)
             {
               strItem = rd.GetString(4);
               nPos = Globalization.CultureInfo.InvariantCulture.CompareInfo.IndexOf(strItem, " AS ");
@@ -939,9 +976,10 @@ namespace System.Data.SQLite
               {
                 strItem = strItem.Substring(nPos + 4);
                 row = tbl.NewRow();
+
                 row["TABLE_CATALOG"] = strCatalog;
                 row["TABLE_NAME"] = rd.GetString(2);
-                row["IS_UPDATEABLE"] = false;
+                row["IS_UPDATABLE"] = false;
                 row["VIEW_DEFINITION"] = strItem;
 
                 tbl.Rows.Add(row);
@@ -967,7 +1005,7 @@ namespace System.Data.SQLite
       DataTable tbl = new DataTable("Catalogs");
       DataRow row;
 
-      tbl.Locale = System.Globalization.CultureInfo.InvariantCulture;
+      tbl.Locale = CultureInfo.InvariantCulture;
       tbl.Columns.Add("CATALOG_NAME", typeof(string));
       tbl.Columns.Add("DESCRIPTION", typeof(string));
 
@@ -979,15 +1017,269 @@ namespace System.Data.SQLite
         {
           while (rd.Read())
           {
-            if (strCatalog == null || String.Compare(rd.GetString(1), strCatalog, true, System.Globalization.CultureInfo.CurrentCulture) == 0)
+            if (String.Compare(rd.GetString(1), strCatalog, true, CultureInfo.CurrentCulture) == 0
+              || strCatalog == null)
             {
               row = tbl.NewRow();
+
               row["CATALOG_NAME"] = rd.GetString(1);
+
               tbl.Rows.Add(row);
             }
           }
         }
       }
+
+      tbl.AcceptChanges();
+      tbl.EndLoadData();
+
+      return tbl;
+    }
+
+    //private DataTable Schema_ReservedWords()
+    //{
+    //  DataTable tbl = new DataTable("ReservedWords");
+    //  DataRow row;
+    //  const string reservedWords = "LEFT INNER OUTER JOIN SELECT INSERT UPDATE LIKE ORDER BY INTEGER PRIMARY KEY ON AS IN BETWEEN";
+
+    //  tbl.Locale = CultureInfo.InvariantCulture;
+    //  tbl.Columns.Add("ReservedWord", typeof(String));
+
+    //  tbl.BeginLoadData();
+
+    //  string[] ar = reservedWords.Split(' ');
+
+    //  foreach (string s in ar)
+    //  {
+    //    row = tbl.NewRow();
+    //    row[0] = s;
+    //    tbl.Rows.Add(row);
+    //  }
+
+    //  tbl.AcceptChanges();
+    //  tbl.EndLoadData();
+
+    //  return tbl;
+    //}
+
+    private DataTable Schema_DataTypes()
+    {
+      DataTable tbl = new DataTable("DataTypes");
+
+      tbl.Locale = CultureInfo.InvariantCulture;
+      tbl.Columns.Add("TypeName", typeof(String));
+      tbl.Columns.Add("ProviderDbType", typeof(int));
+      tbl.Columns.Add("ColumnSize", typeof(long));
+      tbl.Columns.Add("CreateFormat", typeof(String));
+      tbl.Columns.Add("CreateParameters", typeof(String));
+      tbl.Columns.Add("DataType", typeof(String));
+      tbl.Columns.Add("IsAutoIncrementable", typeof(bool));
+      tbl.Columns.Add("IsBestMatch", typeof(bool));
+      tbl.Columns.Add("IsCaseSensitive", typeof(bool));
+      tbl.Columns.Add("IsFixedLength", typeof(bool));
+      tbl.Columns.Add("IsFixedPrecisionScale", typeof(bool));
+      tbl.Columns.Add("IsLong", typeof(bool));
+      tbl.Columns.Add("IsNullable", typeof(bool));
+      tbl.Columns.Add("IsSearchable", typeof(bool));
+      tbl.Columns.Add("IsSearchableWithLike", typeof(bool));
+      tbl.Columns.Add("IsLiteralSupported", typeof(bool));
+      tbl.Columns.Add("LiteralPrefix", typeof(String));
+      tbl.Columns.Add("LiteralSuffix", typeof(String));
+      tbl.Columns.Add("IsUnsigned", typeof(bool));
+      tbl.Columns.Add("MaximumScale", typeof(short));
+      tbl.Columns.Add("MinimumScale", typeof(short));
+      tbl.Columns.Add("IsConcurrencyType", typeof(bool));
+
+      tbl.BeginLoadData();
+      string dataTypesXml = @"<?xml version=""1.0"" standalone=""yes""?>
+<DocumentElement>
+  <DataTypes>
+    <TypeName>System.Int16</TypeName>
+    <ProviderDbType>10</ProviderDbType>
+    <ColumnSize>5</ColumnSize>
+    <DataType>System.Int16</DataType>
+    <IsAutoIncrementable>false</IsAutoIncrementable>
+    <IsCaseSensitive>false</IsCaseSensitive>
+    <IsFixedLength>true</IsFixedLength>
+    <IsFixedPrecisionScale>true</IsFixedPrecisionScale>
+    <IsLong>false</IsLong>
+    <IsNullable>true</IsNullable>
+    <IsSearchable>true</IsSearchable>
+    <IsSearchableWithLike>false</IsSearchableWithLike>
+    <IsUnsigned>false</IsUnsigned>
+  </DataTypes>
+  <DataTypes>
+    <TypeName>System.Int32</TypeName>
+    <ProviderDbType>8</ProviderDbType>
+    <ColumnSize>10</ColumnSize>
+    <DataType>System.Int32</DataType>
+    <IsAutoIncrementable>false</IsAutoIncrementable>
+    <IsCaseSensitive>false</IsCaseSensitive>
+    <IsFixedLength>true</IsFixedLength>
+    <IsFixedPrecisionScale>true</IsFixedPrecisionScale>
+    <IsLong>false</IsLong>
+    <IsNullable>true</IsNullable>
+    <IsSearchable>true</IsSearchable>
+    <IsSearchableWithLike>false</IsSearchableWithLike>
+    <IsUnsigned>false</IsUnsigned>
+  </DataTypes>
+  <DataTypes>
+    <TypeName>System.Single</TypeName>
+    <ProviderDbType>15</ProviderDbType>
+    <ColumnSize>7</ColumnSize>
+    <DataType>System.Single</DataType>
+    <IsAutoIncrementable>false</IsAutoIncrementable>
+    <IsCaseSensitive>false</IsCaseSensitive>
+    <IsFixedLength>true</IsFixedLength>
+    <IsFixedPrecisionScale>false</IsFixedPrecisionScale>
+    <IsLong>false</IsLong>
+    <IsNullable>true</IsNullable>
+    <IsSearchable>true</IsSearchable>
+    <IsSearchableWithLike>false</IsSearchableWithLike>
+    <IsUnsigned>false</IsUnsigned>
+  </DataTypes>
+  <DataTypes>
+    <TypeName>System.Double</TypeName>
+    <ProviderDbType>8</ProviderDbType>
+    <ColumnSize>6</ColumnSize>
+    <DataType>System.Double</DataType>
+    <IsAutoIncrementable>false</IsAutoIncrementable>
+    <IsCaseSensitive>false</IsCaseSensitive>
+    <IsFixedLength>true</IsFixedLength>
+    <IsFixedPrecisionScale>false</IsFixedPrecisionScale>
+    <IsLong>false</IsLong>
+    <IsNullable>true</IsNullable>
+    <IsSearchable>true</IsSearchable>
+    <IsSearchableWithLike>false</IsSearchableWithLike>
+    <IsUnsigned>false</IsUnsigned>
+  </DataTypes>
+  <DataTypes>
+    <TypeName>System.Decimal</TypeName>
+    <ProviderDbType>7</ProviderDbType>
+    <ColumnSize>19</ColumnSize>
+    <DataType>System.Decimal</DataType>
+    <IsAutoIncrementable>false</IsAutoIncrementable>
+    <IsCaseSensitive>false</IsCaseSensitive>
+    <IsFixedLength>true</IsFixedLength>
+    <IsFixedPrecisionScale>true</IsFixedPrecisionScale>
+    <IsLong>false</IsLong>
+    <IsNullable>true</IsNullable>
+    <IsSearchable>true</IsSearchable>
+    <IsSearchableWithLike>false</IsSearchableWithLike>
+    <IsUnsigned>false</IsUnsigned>
+  </DataTypes>
+  <DataTypes>
+    <TypeName>System.Boolean</TypeName>
+    <ProviderDbType>3</ProviderDbType>
+    <ColumnSize>1</ColumnSize>
+    <DataType>System.Boolean</DataType>
+    <IsAutoIncrementable>false</IsAutoIncrementable>
+    <IsCaseSensitive>false</IsCaseSensitive>
+    <IsFixedLength>true</IsFixedLength>
+    <IsFixedPrecisionScale>false</IsFixedPrecisionScale>
+    <IsLong>false</IsLong>
+    <IsNullable>true</IsNullable>
+    <IsSearchable>true</IsSearchable>
+    <IsSearchableWithLike>false</IsSearchableWithLike>
+  </DataTypes>
+  <DataTypes>
+    <TypeName>System.Byte</TypeName>
+    <ProviderDbType>2</ProviderDbType>
+    <ColumnSize>3</ColumnSize>
+    <DataType>System.Byte</DataType>
+    <IsAutoIncrementable>false</IsAutoIncrementable>
+    <IsCaseSensitive>false</IsCaseSensitive>
+    <IsFixedLength>true</IsFixedLength>
+    <IsFixedPrecisionScale>true</IsFixedPrecisionScale>
+    <IsLong>false</IsLong>
+    <IsNullable>true</IsNullable>
+    <IsSearchable>true</IsSearchable>
+    <IsSearchableWithLike>false</IsSearchableWithLike>
+    <IsUnsigned>true</IsUnsigned>
+  </DataTypes>
+  <DataTypes>
+    <TypeName>System.Int64</TypeName>
+    <ProviderDbType>12</ProviderDbType>
+    <ColumnSize>19</ColumnSize>
+    <DataType>System.Int64</DataType>
+    <IsAutoIncrementable>true</IsAutoIncrementable>
+    <IsCaseSensitive>false</IsCaseSensitive>
+    <IsFixedLength>true</IsFixedLength>
+    <IsFixedPrecisionScale>true</IsFixedPrecisionScale>
+    <IsLong>false</IsLong>
+    <IsNullable>true</IsNullable>
+    <IsSearchable>true</IsSearchable>
+    <IsSearchableWithLike>false</IsSearchableWithLike>
+    <IsUnsigned>false</IsUnsigned>
+  </DataTypes>
+  <DataTypes>
+    <TypeName>System.Byte[]</TypeName>
+    <ProviderDbType>1</ProviderDbType>
+    <ColumnSize>2147483647</ColumnSize>
+    <DataType>System.Byte[]</DataType>
+    <IsAutoIncrementable>false</IsAutoIncrementable>
+    <IsCaseSensitive>false</IsCaseSensitive>
+    <IsFixedLength>false</IsFixedLength>
+    <IsFixedPrecisionScale>false</IsFixedPrecisionScale>
+    <IsLong>true</IsLong>
+    <IsNullable>true</IsNullable>
+    <IsSearchable>false</IsSearchable>
+    <IsSearchableWithLike>false</IsSearchableWithLike>
+  </DataTypes>
+  <DataTypes>
+    <TypeName>System.String</TypeName>
+    <ProviderDbType>16</ProviderDbType>
+    <ColumnSize>2147483647</ColumnSize>
+    <CreateParameters>max length</CreateParameters>
+    <DataType>System.String</DataType>
+    <IsAutoIncrementable>false</IsAutoIncrementable>
+    <IsCaseSensitive>false</IsCaseSensitive>
+    <IsFixedLength>false</IsFixedLength>
+    <IsFixedPrecisionScale>false</IsFixedPrecisionScale>
+    <IsLong>false</IsLong>
+    <IsNullable>true</IsNullable>
+    <IsSearchable>true</IsSearchable>
+    <IsSearchableWithLike>true</IsSearchableWithLike>
+    <LiteralPrefix>'</LiteralPrefix>
+    <LiteralSuffix>'</LiteralSuffix>
+  </DataTypes>
+  <DataTypes>
+    <TypeName>System.DateTime</TypeName>
+    <ProviderDbType>6</ProviderDbType>
+    <ColumnSize>23</ColumnSize>
+    <DataType>System.DateTime</DataType>
+    <IsAutoIncrementable>false</IsAutoIncrementable>
+    <IsCaseSensitive>false</IsCaseSensitive>
+    <IsFixedLength>true</IsFixedLength>
+    <IsFixedPrecisionScale>false</IsFixedPrecisionScale>
+    <IsLong>false</IsLong>
+    <IsNullable>true</IsNullable>
+    <IsSearchable>true</IsSearchable>
+    <IsSearchableWithLike>true</IsSearchableWithLike>
+    <LiteralPrefix>'</LiteralPrefix>
+    <LiteralSuffix>'</LiteralSuffix>
+  </DataTypes>
+  <DataTypes>
+    <TypeName>System.Guid</TypeName>
+    <ProviderDbType>4</ProviderDbType>
+    <ColumnSize>16</ColumnSize>
+    <DataType>System.Guid</DataType>
+    <IsAutoIncrementable>false</IsAutoIncrementable>
+    <IsCaseSensitive>false</IsCaseSensitive>
+    <IsFixedLength>true</IsFixedLength>
+    <IsFixedPrecisionScale>false</IsFixedPrecisionScale>
+    <IsLong>false</IsLong>
+    <IsNullable>true</IsNullable>
+    <IsSearchable>true</IsSearchable>
+    <IsSearchableWithLike>false</IsSearchableWithLike>
+    <LiteralPrefix>'</LiteralPrefix>
+    <LiteralSuffix>'</LiteralSuffix>
+  </DataTypes>
+</DocumentElement>";
+
+      IO.StringReader stringReader = new System.IO.StringReader(dataTypesXml);
+      tbl.ReadXml(stringReader);
+      stringReader.Close();
 
       tbl.AcceptChanges();
       tbl.EndLoadData();

@@ -27,7 +27,7 @@ using namespace System::Runtime::InteropServices;
 // You can specify all the value or you can default the Revision and Build Numbers
 // by using the '*' as shown below:
 
-[assembly:AssemblyVersionAttribute("1.0.12.*")];
+[assembly:AssemblyVersionAttribute("1.0.14.0")];
 
 //
 // In order to sign your assembly you must specify a key to use. Refer to the
@@ -53,9 +53,9 @@ using namespace System::Runtime::InteropServices;
 //   (*) Delay Signing is an advanced option - see the Microsoft CLR Framework
 //       documentation for more information on this.
 //
-//[assembly:AssemblyDelaySignAttribute(false)];
-//[assembly:AssemblyKeyFileAttribute("")];
-//[assembly:AssemblyKeyNameAttribute("")];
+[assembly:AssemblyDelaySignAttribute(false)];
+[assembly:AssemblyKeyFileAttribute("..\\System.Data.SQLite\\System.Data.SQLite.snk")];
+[assembly:AssemblyKeyNameAttribute("")];
 
 [assembly:ComVisible(false)];
 

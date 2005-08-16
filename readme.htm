@@ -5,7 +5,7 @@
   </head>
   <body>
     ADO.NET 2.0 SQLite Data Provider<br>
-    Version 1.0.12 - Aug 5, 2005<br>
+    Version 1.0.14 - Aug 16, 2005<br>
     Interop using SQLite 3.22<br>
     Written by Robert Simpson (<a href="mailto:robert@blackcastlesoft.com">robert@blackcastlesoft.com</a>)<br>
     Released to the public domain, use at your own risk!<br>
@@ -23,6 +23,10 @@
     </h2>
     <ul>
       <li>
+      Visual Studio Design-Time Support.&nbsp; You can add a SQLite database to the 
+      Servers list, design queries with the Query Designer, drag-and-drop tables onto 
+      a Typed DataSet, etc.
+      <LI>
       DbProviderFactory support, just add the XML below at the machine.config and/or 
       app.config level.
       <li>
@@ -51,22 +55,44 @@
         implement as user-defined functions and uses the same base class.</li></ul>
     <strong></strong>
     <h2>
-      <strong>DbFactory Support (Non-Compact Framework)</strong></h2>
+      <strong>Design-Time Support (new as of 1.0.14)</strong></h2>
+    <P>Until an installer is created, the steps for registering the provider for 
+      design-time support are:</P>
+    <OL>
+      <LI>
+        Register the <STRONG>System.Data.SQLite.DLL</STRONG> in the Global Assembly 
+        Cache either by using the .Net 2.0 version of GACUTIL, or through <STRONG>Administrative 
+          Tools -&gt; Microsoft .NET Framework 2.0 Configuration</STRONG>.
+      <LI>
+        Through a command-prompt or Windows Explorer, navigate to the <STRONG>SQLite.NET\bin\Designer</STRONG>
+        folder and execute the <STRONG>INSTALL.CMD</STRONG>
+      file.
+      <LI>
+        <STRONG>NOTE:&nbsp; Enabling Design-Time support for SQLite causes the SQLite 
+          Provider to be registered in your machine.config.</STRONG>&nbsp;&nbsp; If you 
+        have already added the XML shown below to your <STRONG>app.config</STRONG> in 
+        your applications, <STRONG>you need to remove it.</STRONG>&nbsp; If you 
+      don't, it will cause a unique constraint violation when you run your program.
+      <LI>
+        Delete the <STRONG>test.exe.config</STRONG> file from the <STRONG>SQLite.NET\bin</STRONG>
+        folder -- it is no longer necessary.</LI></OL>
+    <H2><STRONG>DbFactory Support (Non-Compact Framework)</STRONG></H2>
     In order to use the SQLiteFactory and have the SQLite data provider enumerated 
     in the DbProviderFactories methods, you must add the following segment into 
     either your application's app.config or the system's machine.config located in 
     the %SystemRoot%\Microsoft.Net\Framework\v2.xxxx\Config folder:<br>
     <br>
-    <pre>
-&lt;configuration&gt;
+    <pre>&lt;configuration&gt;
   &lt;system.data&gt;
     &lt;DbProviderFactories&gt;
-      &lt;add name="SQLite Data Provider" invariant="System.Data.SQLite" support="3F" description=".Net Framework Data Provider for SQLite" type="System.Data.SQLite.SQLiteFactory, System.Data.SQLite" /&gt;
+      &lt;add name="SQLite Data Provider" invariant="System.Data.SQLite" description=".Net Framework Data Provider for SQLite"<BR> type="System.Data.SQLite.SQLiteFactory, System.Data.SQLite, Version=1.0.14.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139" /&gt;
     &lt;/DbProviderFactories&gt;
   &lt;/system.data&gt;
 &lt;/configuration&gt;
 </pre>
-    <br>
+    <P>If you choose to install the Visual Studio Design-Time support for SQLite, you 
+      must not add the above XML to your app.config.&nbsp; The installer will have 
+      already added it to your machine's machine.config file.</P>
     <h3>
       Compiling for the Compact Framework</h3>
     <p>
@@ -127,29 +153,40 @@
     <b></b>
     <h2>
       <b>Version History</b></h2>
-    <b>1.0.12 - August 2, 2005</b><br>
-    <UL>
+    <b>1.0.14 - August 16, 2005</b><br>
+    <ul>
+      <li>
+      Fixed a bug in the SQLiteDataAdapter due to insufficient implementation of the 
+      class.&nbsp; The RowUpdating and RowUpdated events are now properly 
+      implemented, but unfortunately inserting and updating data in a DataTable or 
+      DataSet is now much slower.&nbsp; This is the proper design however, so the 
+      changes are here to stay.
       <LI>
+      Lots of schema changes to support Visual Studio's Data Designer architecture.<li>Added 
+        Designer support for the provider.&nbsp; It's not 100%, but you can design 
+        queries, add typed datasets and perform quite a number of tasks all within 
+        Visual Studio now.</li></ul>
+    <b>1.0.13 - August 8, 2005</b><br>
+    <ul>
+      <li>
+      Fixed a named parameter bug when UseUTF16Encoding was True.
+      <li>
+        Fixed a performance issue in SQLite3_UTF16 involving string marshaling.</li>
+    </ul>
+    <b>1.0.12 - August 5, 2005</b><br>
+    <ul>
+      <li>
         Full support for the Compact Framework.&nbsp; Each build (Debug/Release) now 
         has a&nbsp;platform, either Win32 or Compact Framework.&nbsp; The correct 
-        projects are built accordingly.&nbsp; See the&nbsp;<A href="#redist">Distributing 
-          SQLite</A>
+        projects are built accordingly.&nbsp; See the&nbsp;<a href="#redist">Distributing 
+          SQLite</a>
       section for information on what files need to be distributed for each 
       platform.&nbsp;
-      <LI>
-      Modified SQLite3.Reset() and Step() functions to transparently handle timeouts 
-      while waiting on the database to become available (typically when a writer is 
-      waiting on a reader to finish, or a reader is waiting on a writer to finish).
-      <LI>
-      Lots of code cleanup&nbsp;as suggested&nbsp;by the Code Analyzer (FxCop).
-      <LI>
-      Lots of updates to the helpfile.
-      <LI>
-        Statements&nbsp;were already prepared lazily&nbsp;in a SQLiteCommand, but 
-        things are relaxed even more now.&nbsp; Statements are now only prepared if the 
-        statements haven't been previously prepared and a Prepare() function is called 
-        (and the command is associated with a connection) or just prior to the command 
-        being executed.&nbsp;</LI></UL>
+      <li>
+        Modified SQLite3.Reset() and Step() functions to transparently handle timeouts 
+        while waiting on the database to become available (typically when a writer is 
+        waiting on a reader to finish, or a reader is waiting on a writer to finish).</li>
+    </ul>
     <b>1.0.11 - August 1, 2005</b><br>
     <ul>
       <li>

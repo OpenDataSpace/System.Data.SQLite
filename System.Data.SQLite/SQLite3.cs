@@ -10,6 +10,7 @@ namespace System.Data.SQLite
   using System;
   using System.Runtime.InteropServices;
   using System.Collections.Generic;
+  using System.Globalization;
 
   /// <summary>
   /// This class implements SQLiteBase completely, and is the guts of the code that interop's SQLite with .NET
@@ -25,7 +26,7 @@ namespace System.Data.SQLite
     /// </summary>
     protected SQLiteFunction[] _functionsArray;
 
-    internal SQLite3(DateTimeFormat fmt)
+    internal SQLite3(SQLiteDateFormats fmt)
       : base(fmt)
     {
     }
@@ -318,7 +319,8 @@ namespace System.Data.SQLite
 
       for (int n = 0; n < x; n++)
       {
-        if (String.Compare(columnName, ColumnName(stmt, n), true, System.Globalization.CultureInfo.CurrentCulture) == 0) return n;
+        if (String.Compare(columnName, ColumnName(stmt, n), true, CultureInfo.CurrentCulture) == 0)
+          return n;
       }
       return -1;
     }

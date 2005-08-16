@@ -15,32 +15,32 @@ namespace System.Data.SQLite
   /// <summary>
   /// SQLite implementation of DbCommand.
   /// </summary>
-  public sealed class SQLiteCommand : DbCommand
+  public sealed class SQLiteCommand : DbCommand, ICloneable
   {
     /// <summary>
     /// The command text this command is based on
     /// </summary>
-    private string                    _commandText;
+    private string _commandText;
     /// <summary>
     /// The connection the command is associated with
     /// </summary>
-    private SQLiteConnection          _cnn;
+    private SQLiteConnection _cnn;
     /// <summary>
     /// Indicates whether or not a DataReader is active on the command.
     /// </summary>
-    private bool                      _isReaderOpen;
+    private bool _isReaderOpen;
     /// <summary>
     /// The timeout for the command, kludged because SQLite doesn't support per-command timeout values
     /// </summary>
-    internal int                       _commandTimeout;
+    internal int _commandTimeout;
     /// <summary>
     /// Designer support
     /// </summary>
-    private bool                      _designTimeVisible;
+    private bool _designTimeVisible;
     /// <summary>
     /// Used by DbDataAdapter to determine updating behavior
     /// </summary>
-    private UpdateRowSource           _updateRowSource;
+    private UpdateRowSource _updateRowSource;
     /// <summary>
     /// The collection of parameters for the command
     /// </summary>
@@ -48,7 +48,7 @@ namespace System.Data.SQLite
     /// <summary>
     /// The SQL command text, broken into individual SQL statements
     /// </summary>
-    internal SQLiteStatement[]        _statementList;
+    internal SQLiteStatement[] _statementList;
 
     ///<overloads>
     /// Constructs a new SQLiteCommand
@@ -364,8 +364,27 @@ namespace System.Data.SQLite
 
       SQLiteDataReader rd = new SQLiteDataReader(this, behavior);
       _isReaderOpen = true;
-        
+
       return rd;
+    }
+
+    /// <summary>
+    /// Overrides the default behavior to return a SQLiteDataReader specialization class
+    /// </summary>
+    /// <param name="behavior">The flags to be associated with the reader</param>
+    /// <returns>A SQLiteDataReader</returns>
+    public new SQLiteDataReader ExecuteReader(CommandBehavior behavior)
+    {
+      return (SQLiteDataReader)ExecuteDbDataReader(behavior);
+    }
+
+    /// <summary>
+    /// Overrides the default behavior of DbDataReader to return a specialized SQLiteDataReader class
+    /// </summary>
+    /// <returns>A SQLiteDataReader</returns>
+    public new SQLiteDataReader ExecuteReader()
+    {
+      return (SQLiteDataReader)ExecuteDbDataReader(CommandBehavior.Default);
     }
 
     /// <summary>
@@ -404,7 +423,7 @@ namespace System.Data.SQLite
     /// Execute the command and return the first column of the first row of the resultset
     /// (if present), or null if no resultset was returned.
     /// </summary>
-    /// <returns></returns>
+    /// <returns>The first column of the first row of the first resultset from the query</returns>
     public override object ExecuteScalar()
     {
       InitializeForReader();
@@ -474,6 +493,20 @@ namespace System.Data.SQLite
       {
         _designTimeVisible = value;
       }
+    }
+
+    /// <summary>
+    /// Clones a command, including all its parameters
+    /// </summary>
+    /// <returns>A new SQLiteCommand with the same commandtext, connection and parameters</returns>
+    public object Clone()
+    {
+      SQLiteCommand newcommand = new SQLiteCommand(CommandText, Connection as SQLiteConnection);
+      foreach (SQLiteParameter param in _parameterCollection)
+      {
+        newcommand.Parameters.Add(param.Clone());
+      }
+      return newcommand;
     }
   }
 }

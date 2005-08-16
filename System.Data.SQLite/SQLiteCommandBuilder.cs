@@ -16,6 +16,8 @@ namespace System.Data.SQLite
   /// </summary>
   public sealed class SQLiteCommandBuilder : DbCommandBuilder
   {
+    private SQLiteRowUpdatingEventHandler _handler;
+
     /// <summary>
     /// Default constructor
     /// </summary>
@@ -41,6 +43,8 @@ namespace System.Data.SQLite
     /// <param name="whereClause">Whether the application of the parameter is part of a WHERE clause</param>
     protected override void ApplyParameterInfo(DbParameter parameter, DataRow row, StatementType statementType, bool whereClause)
     {
+      SQLiteParameter param = (SQLiteParameter)parameter;
+      param.DbType = (DbType)row[SchemaTableColumn.ProviderType];
     }
 
     /// <overloads>
@@ -53,7 +57,7 @@ namespace System.Data.SQLite
     /// <returns>Error</returns>
     protected override string GetParameterName(string parameterName)
     {
-      throw new NotImplementedException();
+      return String.Format(System.Globalization.CultureInfo.InvariantCulture, "${0}", parameterName);
     }
 
     /// <summary>
@@ -63,7 +67,7 @@ namespace System.Data.SQLite
     /// <returns>Error</returns>
     protected override string GetParameterName(int parameterOrdinal)
     {
-      return null;
+      return String.Format(System.Globalization.CultureInfo.InvariantCulture, "$param{0}", parameterOrdinal);
     }
 
     /// <summary>
@@ -73,7 +77,7 @@ namespace System.Data.SQLite
     /// <returns>Returns a "?" character, used for all placeholders.</returns>
     protected override string GetParameterPlaceholder(int parameterOrdinal)
     {
-      return "?";
+      return GetParameterName(parameterOrdinal);
     }
 
     /// <summary>
@@ -82,6 +86,16 @@ namespace System.Data.SQLite
     /// <param name="adapter">A data adapter to receive events on.</param>
     protected override void SetRowUpdatingHandler(DbDataAdapter adapter)
     {
+      SQLiteDataAdapter adp = (SQLiteDataAdapter)adapter;
+
+      _handler = new SQLiteRowUpdatingEventHandler(RowUpdatingEventHandler);
+      adp.RowUpdating += _handler;
     }
+
+    private void RowUpdatingEventHandler(object sender, RowUpdatingEventArgs e)
+    {
+      base.RowUpdatingHandler(e);
+    }
+
   }
 }

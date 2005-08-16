@@ -18,7 +18,7 @@ namespace System.Data.SQLite
   /// </summary>
   internal abstract class SQLiteBase : SQLiteConvert, IDisposable
   {
-    internal SQLiteBase(DateTimeFormat fmt)
+    internal SQLiteBase(SQLiteDateFormats fmt)
       : base(fmt) {}
 
     /// <summary>

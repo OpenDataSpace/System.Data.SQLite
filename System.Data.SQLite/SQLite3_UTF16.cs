@@ -15,7 +15,7 @@ namespace System.Data.SQLite
   /// </summary>
   internal class SQLite3_UTF16 : SQLite3
   {
-    internal SQLite3_UTF16(DateTimeFormat fmt)
+    internal SQLite3_UTF16(SQLiteDateFormats fmt)
       : base(fmt)
     {
     }

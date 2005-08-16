@@ -14,7 +14,7 @@ namespace System.Data.SQLite
   /// <summary>
   /// SQLite implementation of DbParameter.
   /// </summary>
-  public sealed class SQLiteParameter : DbParameter
+  public sealed class SQLiteParameter : DbParameter, ICloneable
   {
     /// <summary>
     /// The data type of the parameter
@@ -408,6 +408,17 @@ namespace System.Data.SQLite
         if (_dbType == -1 && _objValue != null && _objValue != DBNull.Value) // If the DbType has never been assigned, try to glean one from the value's datatype 
           _dbType = (int)SQLiteConvert.TypeToDbType(_objValue.GetType());
       }
-    }    
+    }
+
+    /// <summary>
+    /// Clones a parameter
+    /// </summary>
+    /// <returns>A new, unassociated SQLiteParameter</returns>
+    public object Clone()
+    {
+      SQLiteParameter newparam = new SQLiteParameter(ParameterName, this.DbType, Size, Direction, IsNullable, 0, 0, SourceColumn, SourceVersion, Value);
+
+      return newparam;
+    }
   }
 }

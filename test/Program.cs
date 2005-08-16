@@ -29,7 +29,7 @@ namespace test
       using (cnn = new SQLiteConnection())
       {
         fact = DbProviderFactories.GetFactory("System.Data.SQLite");
-        cnn.ConnectionString = "Data Source=test.db3;Synchronous=Off";
+        cnn.ConnectionString = "Data Source=test.db3;Synchronous=Off;UseUTF16Encoding=TRUE";
         cnn.Open();
         TestCases.Run(fact, cnn);
       }

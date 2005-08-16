@@ -11,6 +11,7 @@ namespace System.Data.SQLite
   using System.Data;
   using System.Data.Common;
   using System.Collections.Generic;
+  using System.Globalization;
 
   /// <summary>
   /// SQLite implementation of DbParameterCollection.
@@ -261,7 +262,8 @@ namespace System.Data.SQLite
       int x = _parameterList.Count;
       for (int n = 0; n < x; n++)
       {
-        if (String.Compare(parameterName, _parameterList[n].ParameterName, true, System.Globalization.CultureInfo.CurrentCulture) == 0) return n;
+        if (String.Compare(parameterName, _parameterList[n].ParameterName, true, CultureInfo.CurrentCulture) == 0)
+          return n;
       }
       return -1;
     }
@@ -357,24 +359,47 @@ namespace System.Data.SQLite
       int nUnnamed = 0;
       string s;
       int n;
+      int y = -1;
       SQLiteStatement stmt;
 
       foreach(SQLiteParameter p in _parameterList)
       {
+        y ++;
         s = p.ParameterName;
         if (s == null)
         {
-          s = String.Format(System.Globalization.CultureInfo.InvariantCulture, ";{0}", nUnnamed);
+          s = String.Format(CultureInfo.InvariantCulture, ";{0}", nUnnamed);
           nUnnamed++;
         }
 
         int x = _command._statementList.Length;
+        bool isMapped = false;
+
         for (n = 0; n < x; n++)
         {
+          isMapped = false;
           stmt = _command._statementList[n];
           if (stmt._paramNames != null)
           {
-            stmt.MapParameter(s, p);
+            if (stmt.MapParameter(s, p) == true)
+              isMapped = true;
+          }
+        }
+
+        // If the parameter has a name, but the SQL statement uses unnamed references, this can happen -- attempt to map
+        // the parameter by its index in the collection
+        if (isMapped == false)
+        {
+          s = String.Format(CultureInfo.InvariantCulture, ";{0}", y);
+
+          for (n = 0; n < x; n++)
+          {
+            stmt = _command._statementList[n];
+            if (stmt._paramNames != null)
+            {
+              if (stmt.MapParameter(s, p) == true)
+                isMapped = true;
+            }
           }
         }
       }
