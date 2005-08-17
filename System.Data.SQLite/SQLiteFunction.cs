@@ -11,6 +11,7 @@ namespace System.Data.SQLite
   using System.Collections;
   using System.Collections.Generic;
   using System.Runtime.InteropServices;
+  using System.Globalization;
 
   /// <summary>
   /// The type of user-defined function to declare
@@ -278,10 +279,10 @@ namespace System.Data.SQLite
           _base.ReturnNull(context);
           return;
         case TypeAffinity.Int64:
-          _base.ReturnInt64(context, Convert.ToInt64(returnValue, System.Globalization.CultureInfo.CurrentCulture));
+          _base.ReturnInt64(context, Convert.ToInt64(returnValue, CultureInfo.CurrentCulture));
           return;
         case TypeAffinity.Double:
-          _base.ReturnDouble(context, Convert.ToDouble(returnValue, System.Globalization.CultureInfo.CurrentCulture));
+          _base.ReturnDouble(context, Convert.ToDouble(returnValue, CultureInfo.CurrentCulture));
           return;
         case TypeAffinity.Text:
           _base.ReturnText(context, returnValue.ToString());

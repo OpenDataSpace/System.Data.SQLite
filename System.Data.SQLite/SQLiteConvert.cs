@@ -212,9 +212,9 @@ namespace System.Data.SQLite
       switch (_datetimeFormat)
       {
         case SQLiteDateFormats.Ticks:
-          return new DateTime(Convert.ToInt64(dateText, System.Globalization.CultureInfo.InvariantCulture));
+          return new DateTime(Convert.ToInt64(dateText, CultureInfo.InvariantCulture));
         default:
-          return DateTime.ParseExact(dateText, _datetimeFormats, System.Globalization.DateTimeFormatInfo.InvariantInfo, System.Globalization.DateTimeStyles.None);
+          return DateTime.ParseExact(dateText, _datetimeFormats, DateTimeFormatInfo.InvariantInfo, DateTimeStyles.None);
       }
     }
 
@@ -228,9 +228,9 @@ namespace System.Data.SQLite
       switch (_datetimeFormat)
       {
         case SQLiteDateFormats.Ticks:
-          return dateValue.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture);
+          return dateValue.Ticks.ToString(CultureInfo.InvariantCulture);
         default:
-          return dateValue.ToString(_datetimeFormats[0], System.Globalization.CultureInfo.InvariantCulture);
+          return dateValue.ToString(_datetimeFormats[0], CultureInfo.InvariantCulture);
       }
     }
 
@@ -483,12 +483,10 @@ namespace System.Data.SQLite
     {
       if (String.IsNullOrEmpty(Name)) return DbType.Object;
 
-      Name = Name.ToUpper(CultureInfo.InvariantCulture);
-
       int x = _typeNames.Length;
       for (int n = 0; n < x; n++)
       {
-        if (Name.StartsWith(_typeNames[n].typeName))
+        if (String.Compare(Name, 0, _typeNames[n].typeName, 0, _typeNames[n].typeName.Length, true, CultureInfo.CurrentCulture) == 0)
           return _typeNames[n].dataType; 
       }
       return DbType.Object;

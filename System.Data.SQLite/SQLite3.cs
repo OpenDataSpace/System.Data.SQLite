@@ -41,7 +41,7 @@ namespace System.Data.SQLite
       if (_sql != 0)
       {
         int n = UnsafeNativeMethods.sqlite3_close_interop(_sql);
-        if (n > 0) throw new SQLiteException(n, "in Dispose()");
+        if (n > 0) throw new SQLiteException(n, SQLiteLastError());
         SQLiteFunction.UnbindFunctions(this, _functionsArray);
       }
       _sql = 0;
@@ -73,7 +73,7 @@ namespace System.Data.SQLite
     {
       if (_sql != 0) return;
       int n = UnsafeNativeMethods.sqlite3_open_interop(ToUTF8(strFilename), out _sql);
-      if (n > 0) throw new SQLiteException(n, "in Open()");
+      if (n > 0) throw new SQLiteException(n, SQLiteLastError());
 
       _functionsArray = SQLiteFunction.BindFunctions(this);
     }
@@ -81,7 +81,7 @@ namespace System.Data.SQLite
     internal override void SetTimeout(int nTimeoutMS)
     {
       int n = UnsafeNativeMethods.sqlite3_busy_timeout_interop(_sql, nTimeoutMS);
-      if (n > 0) throw new SQLiteException(n, "in SetTimeout()");
+      if (n > 0) throw new SQLiteException(n, SQLiteLastError());
     }
 
     internal override void Execute(string strSql)
@@ -122,7 +122,7 @@ namespace System.Data.SQLite
           r = Reset(stmt);
 
           if (r == 0)
-            throw new SQLiteException(n, "in Step()");
+            throw new SQLiteException(n, SQLiteLastError());
 
           else if (r == 6 && stmt._command != null) // SQLITE_LOCKED
           {
@@ -135,7 +135,7 @@ namespace System.Data.SQLite
             // If we've exceeded the command's timeout, give up and throw an error
             if (DateTime.Now.Ticks - dwtick > 0)
             {
-              throw new SQLiteException(r, "in Step() - timeout");
+              throw new SQLiteException(r, SQLiteLastError());
             }
             else
             {
@@ -153,7 +153,7 @@ namespace System.Data.SQLite
       if (stmt._sqlite_stmt > 0)
       {
         int n = UnsafeNativeMethods.sqlite3_finalize_interop(stmt._sqlite_stmt);
-        if (n > 0) throw new SQLiteException(n, "in Finalize()");
+        if (n > 0) throw new SQLiteException(n, SQLiteLastError());
       }
       stmt._sqlite_stmt = 0;
     }
@@ -188,7 +188,7 @@ namespace System.Data.SQLite
         return n;
 
       if (n > 0)
-        throw new SQLiteException(n, "in Reset()");
+        throw new SQLiteException(n, SQLiteLastError());
 
       return 0; // We reset OK, no schema changes
     }
@@ -208,7 +208,7 @@ namespace System.Data.SQLite
       byte[] b = ToUTF8(strSql);
 
       int n = UnsafeNativeMethods.sqlite3_prepare_interop(_sql, b, b.Length - 1, out stmt, out ptr, out len);
-      if (n > 0) throw new SQLiteException(n, "in Prepare()");
+      if (n > 0) throw new SQLiteException(n, SQLiteLastError());
 
       strRemain = ToString(ptr, len);
 
@@ -221,45 +221,45 @@ namespace System.Data.SQLite
     internal override void Bind_Double(SQLiteStatement stmt, int index, double value)
     {
       int n = UnsafeNativeMethods.sqlite3_bind_double_interop(stmt._sqlite_stmt, index, ref value);
-      if (n > 0) throw new SQLiteException(n, "in Bind_Double()");
+      if (n > 0) throw new SQLiteException(n, SQLiteLastError());
     }
 
     internal override void Bind_Int32(SQLiteStatement stmt, int index, int value)
     {
       int n = UnsafeNativeMethods.sqlite3_bind_int_interop(stmt._sqlite_stmt, index, value);
-      if (n > 0) throw new SQLiteException(n, "in Bind_Int32()");
+      if (n > 0) throw new SQLiteException(n, SQLiteLastError());
     }
 
     internal override void Bind_Int64(SQLiteStatement stmt, int index, long value)
     {
       int n = UnsafeNativeMethods.sqlite3_bind_int64_interop(stmt._sqlite_stmt, index, ref value);
-      if (n > 0) throw new SQLiteException(n, "in Bind_Int64()");
+      if (n > 0) throw new SQLiteException(n, SQLiteLastError());
     }
 
     internal override void Bind_Text(SQLiteStatement stmt, int index, string value)
     {
       byte[] b = ToUTF8(value);
       int n = UnsafeNativeMethods.sqlite3_bind_text_interop(stmt._sqlite_stmt, index, b, b.Length - 1, -1);
-      if (n > 0) throw new SQLiteException(n, "in Bind_Text()");
+      if (n > 0) throw new SQLiteException(n, SQLiteLastError());
     }
 
     internal override void Bind_DateTime(SQLiteStatement stmt, int index, DateTime dt)
     {
       byte[] b = ToUTF8(dt);
       int n = UnsafeNativeMethods.sqlite3_bind_text_interop(stmt._sqlite_stmt, index, b, b.Length - 1, -1);
-      if (n > 0) throw new SQLiteException(n, "in Bind_DateTime()");
+      if (n > 0) throw new SQLiteException(n, SQLiteLastError());
     }
 
     internal override void Bind_Blob(SQLiteStatement stmt, int index, byte[] blobData)
     {
       int n = UnsafeNativeMethods.sqlite3_bind_blob_interop(stmt._sqlite_stmt, index, blobData, blobData.Length, -1);
-      if (n > 0) throw new SQLiteException(n, "in Bind_Blob()");
+      if (n > 0) throw new SQLiteException(n, SQLiteLastError());
     }
 
     internal override void Bind_Null(SQLiteStatement stmt, int index)
     {
       int n = UnsafeNativeMethods.sqlite3_bind_null_interop(stmt._sqlite_stmt, index);
-      if (n > 0) throw new SQLiteException(n, "in Bind_Null()");
+      if (n > 0) throw new SQLiteException(n, SQLiteLastError());
     }
 
     internal override int Bind_ParamCount(SQLiteStatement stmt)
@@ -412,7 +412,7 @@ namespace System.Data.SQLite
       int nCookie;
 
       int n = UnsafeNativeMethods.sqlite3_create_function_interop(_sql, ToUTF8(strFunction), nArgs, 1, func, funcstep, funcfinal, out nCookie);
-      if (n > 0) throw new SQLiteException(n, "in CreateFunction()");
+      if (n > 0) throw new SQLiteException(n, SQLiteLastError());
 
       return nCookie;
     }
@@ -422,7 +422,7 @@ namespace System.Data.SQLite
       int nCookie;
 
       int n = UnsafeNativeMethods.sqlite3_create_collation_interop(_sql, ToUTF8(strCollation), 1, 0, func, out nCookie);
-      if (n > 0) throw new SQLiteException(n, "in CreateCollation()");
+      if (n > 0) throw new SQLiteException(n, SQLiteLastError());
 
       return nCookie;
     }

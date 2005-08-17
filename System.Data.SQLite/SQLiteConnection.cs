@@ -166,7 +166,7 @@ namespace System.Data.SQLite
             if (String.Compare(str, "main", true, CultureInfo.InvariantCulture) != 0
               && String.Compare(str, "temp", true, CultureInfo.InvariantCulture) != 0)
             {
-              _sql.Execute(String.Format(System.Globalization.CultureInfo.InvariantCulture, "ATTACH DATABASE '{0}' AS [{1}]", row[1], row[0]));
+              _sql.Execute(String.Format(CultureInfo.InvariantCulture, "ATTACH DATABASE '{0}' AS [{1}]", row[1], row[0]));
             }
           }
         }
@@ -904,8 +904,8 @@ namespace System.Data.SQLite
         {
           while (rd.Read())
           {
-            strItem = rd.GetString(0).ToUpper(CultureInfo.CurrentCulture);
-            if (rd.GetString(2).ToUpper(CultureInfo.CurrentCulture).IndexOf("SQLITE_") == 0)
+            strItem = rd.GetString(0);
+            if (String.Compare(rd.GetString(2), 0, "SQLITE_", 0, 7, true, CultureInfo.CurrentCulture) == 0)
               strItem = "SYSTEM_TABLE";
 
             if (String.Compare(strType, strItem, true, CultureInfo.CurrentCulture) == 0
@@ -1225,6 +1225,8 @@ namespace System.Data.SQLite
     <IsNullable>true</IsNullable>
     <IsSearchable>false</IsSearchable>
     <IsSearchableWithLike>false</IsSearchableWithLike>
+    <LiteralPrefix>X'</LiteralPrefix>
+    <LiteralSuffix>'</LiteralSuffix>
   </DataTypes>
   <DataTypes>
     <TypeName>System.String</TypeName>
