@@ -10,13 +10,14 @@ namespace System.Data.SQLite
   using System;
   using System.Data;
   using System.Data.Common;
+  using System.Globalization;
 
   /// <summary>
   /// SQLite implementation of DbCommandBuilder.
   /// </summary>
   public sealed class SQLiteCommandBuilder : DbCommandBuilder
   {
-    private SQLiteRowUpdatingEventHandler _handler;
+    private EventHandler<RowUpdatingEventArgs> _handler;
 
     /// <summary>
     /// Default constructor
@@ -57,7 +58,7 @@ namespace System.Data.SQLite
     /// <returns>Error</returns>
     protected override string GetParameterName(string parameterName)
     {
-      return String.Format(System.Globalization.CultureInfo.InvariantCulture, "${0}", parameterName);
+      return String.Format(CultureInfo.InvariantCulture, "${0}", parameterName);
     }
 
     /// <summary>
@@ -67,7 +68,7 @@ namespace System.Data.SQLite
     /// <returns>Error</returns>
     protected override string GetParameterName(int parameterOrdinal)
     {
-      return String.Format(System.Globalization.CultureInfo.InvariantCulture, "$param{0}", parameterOrdinal);
+      return String.Format(CultureInfo.InvariantCulture, "$param{0}", parameterOrdinal);
     }
 
     /// <summary>
@@ -81,14 +82,15 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// Not implemented.
+    /// Sets the handler for receiving row updating events.  Used by the DbCommandBuilder to autogenerate SQL
+    /// statements that may not have previously been generated.
     /// </summary>
     /// <param name="adapter">A data adapter to receive events on.</param>
     protected override void SetRowUpdatingHandler(DbDataAdapter adapter)
     {
       SQLiteDataAdapter adp = (SQLiteDataAdapter)adapter;
 
-      _handler = new SQLiteRowUpdatingEventHandler(RowUpdatingEventHandler);
+      _handler = new EventHandler<RowUpdatingEventArgs>(RowUpdatingEventHandler);
       adp.RowUpdating += _handler;
     }
 
@@ -96,6 +98,5 @@ namespace System.Data.SQLite
     {
       base.RowUpdatingHandler(e);
     }
-
   }
 }

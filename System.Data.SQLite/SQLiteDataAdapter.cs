@@ -12,26 +12,10 @@ namespace System.Data.SQLite
   using System.Data.Common;
 
   /// <summary>
-  /// Delegate for receiving row updating events
-  /// </summary>
-  /// <param name="sender">The SQLiteDataAdapter raising the event</param>
-  /// <param name="e">The event's specifics</param>
-  public delegate void SQLiteRowUpdatingEventHandler(object sender, RowUpdatingEventArgs e);
-  /// <summary>
-  /// Delegate for receiving row updated events
-  /// </summary>
-  /// <param name="sender">The SQLiteDataAdapter raising the event</param>
-  /// <param name="e">The event's specifics</param>
-  public delegate void SQLiteRowUpdatedEventHandler(object sender, RowUpdatedEventArgs e);
-
-  /// <summary>
   /// SQLite implementation of DbDataAdapter.
   /// </summary>
   public sealed class SQLiteDataAdapter : DbDataAdapter
   {
-    private static readonly object RowUpdatingEvent = new object();
-    private static readonly object RowUpdatedEvent = new object();
-
     /// <overloads>
     /// This class is just a shell around the DbDataAdapter.  Nothing from DbDataAdapter is overridden here, just a few constructors are defined.
     /// </overloads>
@@ -73,48 +57,14 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// Row updating event sink.  Hook your delegate in here
+    /// Row updating event handler
     /// </summary>
-    public event SQLiteRowUpdatingEventHandler RowUpdating
-    {
-      add { base.Events.AddHandler(RowUpdatingEvent, value); }
-      remove { base.Events.RemoveHandler(RowUpdatingEvent, value); }
-    }
+    public event EventHandler<RowUpdatingEventArgs> RowUpdating;
 
     /// <summary>
-    /// Row updated event.  Hook your delegate in here
+    /// Row updated event handler
     /// </summary>
-    public event SQLiteRowUpdatedEventHandler RowUpdated
-    {
-      add { base.Events.AddHandler(RowUpdatedEvent, value); }
-      remove { base.Events.RemoveHandler(RowUpdatedEvent, value); }
-    }
-
-    /// <summary>
-    /// Creates a row updated event object
-    /// </summary>
-    /// <param name="dataRow">Forwarded to RowUpdatedEventArgs constructor</param>
-    /// <param name="command">Forwarded to RowUpdatedEventArgs constructor</param>
-    /// <param name="statementType">Forwarded to RowUpdatedEventArgs constructor</param>
-    /// <param name="tableMapping">Forwarded to RowUpdatedEventArgs constructor</param>
-    /// <returns>A RowUpdatedEventArgs class</returns>
-    protected override RowUpdatedEventArgs CreateRowUpdatedEvent(DataRow dataRow, IDbCommand command, StatementType statementType, DataTableMapping tableMapping)
-    {
-      return new RowUpdatedEventArgs(dataRow, command, statementType, tableMapping);
-    }
-
-    /// <summary>
-    /// Creates a row updating event object
-    /// </summary>
-    /// <param name="dataRow">Forwarded to RowUpdatedEventArgs constructor</param>
-    /// <param name="command">Forwarded to RowUpdatedEventArgs constructor</param>
-    /// <param name="statementType">Forwarded to RowUpdatedEventArgs constructor</param>
-    /// <param name="tableMapping">Forwarded to RowUpdatedEventArgs constructor</param>
-    /// <returns>A RowUpdatedEventArgs class</returns>
-    protected override RowUpdatingEventArgs CreateRowUpdatingEvent(DataRow dataRow, IDbCommand command, StatementType statementType, DataTableMapping tableMapping)
-    {
-      return new RowUpdatingEventArgs(dataRow, command, statementType, tableMapping);
-    }
+    public event EventHandler<RowUpdatedEventArgs> RowUpdated;
 
     /// <summary>
     /// Raised by the underlying DbDataAdapter when a row is being updated
@@ -122,9 +72,8 @@ namespace System.Data.SQLite
     /// <param name="value">The event's specifics</param>
     protected override void OnRowUpdating(RowUpdatingEventArgs value)
     {
-      SQLiteRowUpdatingEventHandler eventDelegate = base.Events[RowUpdatingEvent] as SQLiteRowUpdatingEventHandler;
-      if (eventDelegate != null)
-        eventDelegate(this, value);
+      if (RowUpdating != null)
+        RowUpdating(this, value);
     }
 
     /// <summary>
@@ -133,9 +82,8 @@ namespace System.Data.SQLite
     /// <param name="value">The event's specifics</param>
     protected override void OnRowUpdated(RowUpdatedEventArgs value)
     {
-      SQLiteRowUpdatedEventHandler eventDelegate = base.Events[RowUpdatedEvent] as SQLiteRowUpdatedEventHandler;
-      if (eventDelegate != null)
-        eventDelegate(this, value);
+      if (RowUpdated != null)
+        RowUpdated(this, value);
     }
   }
 }

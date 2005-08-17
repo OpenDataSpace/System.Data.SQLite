@@ -11,6 +11,7 @@ namespace System.Data.SQLite
   using System.Data.Common;
   using System.ComponentModel;
   using System.Collections;
+  using System.Globalization;
   
 #if !PLATFORM_COMPACTFRAMEWORK
   using System.ComponentModel.Design;
@@ -70,7 +71,7 @@ namespace System.Data.SQLite
       {
         if (ContainsKey("Version") == false) return 3;
 
-        return Convert.ToInt32(this["Version"], System.Globalization.CultureInfo.InvariantCulture);
+        return Convert.ToInt32(this["Version"], CultureInfo.CurrentCulture);
       }
       set
       {
@@ -108,7 +109,7 @@ namespace System.Data.SQLite
     {
       get
       {
-        return Convert.ToBoolean(this["UseUTF16Encoding"]);
+        return Convert.ToBoolean(this["UseUTF16Encoding"], CultureInfo.CurrentCulture);
       }
       set
       {
@@ -146,7 +147,7 @@ namespace System.Data.SQLite
       get
       {
         if (ContainsKey("Page Size") == false) return 1024;
-        return Convert.ToInt32(this["Page Size"], System.Globalization.CultureInfo.InvariantCulture);
+        return Convert.ToInt32(this["Page Size"], CultureInfo.InvariantCulture);
       }
       set
       {
@@ -165,7 +166,7 @@ namespace System.Data.SQLite
       get
       {
         if (ContainsKey("Cache Size") == false) return 2000;
-        return Convert.ToInt32(this["Cache Size"], System.Globalization.CultureInfo.InvariantCulture);
+        return Convert.ToInt32(this["Cache Size"], CultureInfo.InvariantCulture);
       }
       set
       {
