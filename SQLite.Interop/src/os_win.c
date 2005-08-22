@@ -1,3 +1,4 @@
+#pragma unmanaged
 extern "C"
 {
 /*
@@ -773,5 +774,4 @@ int sqlite3OsCurrentTime(double *prNow){
 }
 
 #endif /* OS_WIN */
-
 }

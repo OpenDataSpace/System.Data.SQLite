@@ -1,7 +1,7 @@
 #pragma unmanaged
 extern "C"
 {
-  /*
+/*
 ** 2005 May 23 
 **
 ** The author disclaims copyright to this source code.  In place of
@@ -16,7 +16,7 @@ extern "C"
 ** This file contains functions used to access the internal hash tables
 ** of user defined functions and collation sequences.
 **
-** $Id: callback.c,v 1.2 2005/08/01 19:32:09 rmsimpson Exp $
+** $Id: callback.c,v 1.3 2005/08/22 18:22:12 rmsimpson Exp $
 */
 
 #include "sqliteInt.h"
@@ -150,7 +150,7 @@ int sqlite3CheckCollSeq(Parse *pParse, CollSeq *pColl){
 ** the collation sequence name. A pointer to this string is stored in
 ** each collation sequence structure.
 */
-static CollSeq * findCollSeqEntry(
+static CollSeq *findCollSeqEntry(
   sqlite3 *db,
   const char *zName,
   int nName,
@@ -289,10 +289,9 @@ FuncDef *sqlite3FindFunction(
   ** new entry to the hash table and return it.
   */
   if( createFlag && bestmatch<6 && 
-      (pBest = (FuncDef *)sqliteMalloc(sizeof(*pBest)+nName+1)) ){
+      (pBest = (FuncDef *)sqliteMalloc(sizeof(*pBest)+nName)) ){
     pBest->nArg = nArg;
     pBest->pNext = pFirst;
-    pBest->zName = (char*)&pBest[1];
     pBest->iPrefEnc = enc;
     memcpy(pBest->zName, zName, nName);
     pBest->zName[nName] = 0;
@@ -307,5 +306,4 @@ FuncDef *sqlite3FindFunction(
   }
   return 0;
 }
-
 }

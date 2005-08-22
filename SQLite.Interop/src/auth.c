@@ -1,7 +1,7 @@
 #pragma unmanaged
 extern "C"
 {
-  /*
+/*
 ** 2003 January 11
 **
 ** The author disclaims copyright to this source code.  In place of
@@ -17,7 +17,7 @@ extern "C"
 ** systems that do not need this facility may omit it by recompiling
 ** the library with -DSQLITE_OMIT_AUTHORIZATION=1
 **
-** $Id: auth.c,v 1.6 2005/08/01 19:32:09 rmsimpson Exp $
+** $Id: auth.c,v 1.7 2005/08/22 18:22:12 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 
@@ -117,6 +117,7 @@ void sqlite3AuthRead(
   TriggerStack *pStack; /* The stack of current triggers */
 
   if( db->xAuth==0 ) return;
+  if( pExpr->op==TK_AS ) return;
   assert( pExpr->op==TK_COLUMN );
   for(iSrc=0; pTabList && iSrc<pTabList->nSrc; iSrc++){
     if( pExpr->iTable==pTabList->a[iSrc].iCursor ) break;
@@ -225,5 +226,4 @@ void sqlite3AuthContextPop(AuthContext *pContext){
 }
 
 #endif /* SQLITE_OMIT_AUTHORIZATION */
-
 }

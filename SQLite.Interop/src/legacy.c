@@ -17,7 +17,7 @@ extern "C"
 ** other files are for internal use by SQLite and should not be
 ** accessed by users of the library.
 **
-** $Id: legacy.c,v 1.6 2005/08/01 19:32:10 rmsimpson Exp $
+** $Id: legacy.c,v 1.7 2005/08/22 18:22:12 rmsimpson Exp $
 */
 
 #include "sqliteInt.h"
@@ -139,5 +139,4 @@ exec_out:
 
   return rc;
 }
-
 }

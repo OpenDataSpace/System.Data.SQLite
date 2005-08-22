@@ -196,5 +196,4 @@ void sqlite3_free_table(
     free(azResult);
   }
 }
-
 }

@@ -15,7 +15,7 @@ extern "C"
 ** This is the implementation of generic hash-tables
 ** used in SQLite.
 **
-** $Id: hash.c,v 1.6 2005/08/01 19:32:10 rmsimpson Exp $
+** $Id: hash.c,v 1.7 2005/08/22 18:22:12 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include <assert.h>
@@ -388,5 +388,4 @@ void *sqlite3HashInsert(Hash *pH, const void *pKey, int nKey, void *data){
   new_elem->data = data;
   return 0;
 }
-
 }

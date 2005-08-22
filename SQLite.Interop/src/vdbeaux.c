@@ -21,14 +21,14 @@ extern "C"
 #include "os.h"
 #include <ctype.h>
 #include "vdbeInt.h"
-#include "opcodes.c"
+
 
 /*
 ** When debugging the code generator in a symbolic debugger, one can
 ** set the sqlite3_vdbe_addop_trace to 1 and all opcodes will be printed
 ** as they are added to the instruction stream.
 */
-#ifndef NDEBUG
+#ifdef SQLITE_DEBUG
 int sqlite3_vdbe_addop_trace = 0;
 #endif
 
@@ -112,6 +112,7 @@ int sqlite3VdbeAddOp(Vdbe *p, int op, int p1, int p2){
   pOp->p2 = p2;
   pOp->p3 = 0;
   pOp->p3type = P3_NOTUSED;
+  p->expired = 0;
 #ifdef SQLITE_DEBUG
   if( sqlite3_vdbe_addop_trace ) sqlite3VdbePrintOp(0, i, &p->aOp[i]);
 #endif
@@ -444,47 +445,6 @@ void sqlite3VdbeComment(Vdbe *p, const char *zFormat, ...){
   va_end(ap);
 }
 #endif
-
-/*
-** If the P3 operand to the specified instruction appears
-** to be a quoted string token, then this procedure removes 
-** the quotes.
-**
-** The quoting operator can be either a grave ascent (ASCII 0x27)
-** or a double quote character (ASCII 0x22).  Two quotes in a row
-** resolve to be a single actual quote character within the string.
-*/
-void sqlite3VdbeDequoteP3(Vdbe *p, int addr){
-  Op *pOp;
-  assert( p->magic==VDBE_MAGIC_INIT );
-  if( p->aOp==0 ) return;
-  if( addr<0 || addr>=p->nOp ){
-    addr = p->nOp - 1;
-    if( addr<0 ) return;
-  }
-  pOp = &p->aOp[addr];
-  if( pOp->p3==0 || pOp->p3[0]==0 ) return;
-  if( pOp->p3type==P3_STATIC ){
-    pOp->p3 = sqliteStrDup(pOp->p3);
-    pOp->p3type = P3_DYNAMIC;
-  }
-  assert( pOp->p3type==P3_DYNAMIC );
-  sqlite3Dequote(pOp->p3);
-}
-
-/*
-** Search the current program starting at instruction addr for the given
-** opcode and P2 value.  Return the address plus 1 if found and 0 if not
-** found.
-*/
-int sqlite3VdbeFindOp(Vdbe *p, int addr, int op, int p2){
-  int i;
-  assert( p->magic==VDBE_MAGIC_INIT );
-  for(i=addr; i<p->nOp; i++){
-    if( p->aOp[i].opcode==op && p->aOp[i].p2==p2 ) return i+1;
-  }
-  return 0;
-}
 
 /*
 ** Return the opcode for a given address.
@@ -955,18 +915,6 @@ int sqlite3VdbeAggReset(sqlite3 *db, Agg *pAgg, KeyInfo *pKeyInfo){
   return SQLITE_OK;
 }
 
-
-/*
-** Delete a keylist
-*/
-void sqlite3VdbeKeylistFree(Keylist *p){
-  while( p ){
-    Keylist *pNext = p->pNext;
-    sqliteFree(p);
-    p = pNext;
-  }
-}
-
 /*
 ** Close a cursor and release all the resources that cursor happens
 ** to hold.
@@ -1013,13 +961,10 @@ static void Cleanup(Vdbe *p){
   }
   closeAllCursors(p);
   releaseMemArray(p->aMem, p->nMem);
-  if( p->pList ){
-    sqlite3VdbeKeylistFree(p->pList);
-    p->pList = 0;
-  }
+  sqlite3VdbeFifoClear(&p->sFifo);
   if( p->contextStack ){
     for(i=0; i<p->contextStackTop; i++){
-      sqlite3VdbeKeylistFree(p->contextStack[i].pList);
+      sqlite3VdbeFifoClear(&p->contextStack[i].sFifo);
     }
     sqliteFree(p->contextStack);
   }
@@ -1766,7 +1711,7 @@ int sqlite3VdbeSerialGet(
       pMem->flags = MEM_Int;
       return 6;
     }
-    case 6:   /* 6-byte signed integer */
+    case 6:   /* 8-byte signed integer */
     case 7: { /* IEEE floating point */
       u64 x = (buf[0]<<24) | (buf[1]<<16) | (buf[2]<<8) | buf[3];
       u32 y = (buf[4]<<24) | (buf[5]<<16) | (buf[6]<<8) | buf[7];
@@ -1998,5 +1943,4 @@ void sqlite3ExpirePreparedStatements(sqlite3 *db){
 sqlite3 *sqlite3VdbeDb(Vdbe *v){
   return v->db;
 }
-
 }

@@ -17,7 +17,7 @@ extern "C"
 ** This file contains functions for allocating memory, comparing
 ** strings, and stuff like that.
 **
-** $Id: util.c,v 1.6 2005/08/01 19:32:15 rmsimpson Exp $
+** $Id: util.c,v 1.7 2005/08/22 18:22:12 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include <stdarg.h>
@@ -61,6 +61,8 @@ int sqlite3_malloc_failed = 0;
 */
 int sqlite3_nMalloc;         /* Number of sqliteMalloc() calls */
 int sqlite3_nFree;           /* Number of sqliteFree() calls */
+int sqlite3_memUsed;         /* Total memory obtained from malloc */
+int sqlite3_memMax;          /* Mem usage high-water mark */
 int sqlite3_iMallocFail;     /* Fail sqliteMalloc() after this many calls */
 int sqlite3_iMallocReset = -1; /* When iMallocFail reaches 0, set to this */
 #if SQLITE_MEMDEBUG>1
@@ -75,13 +77,10 @@ static int memcnt = 0;
 #define N_GUARD 2
 
 /*
-** Allocate new memory and set it to zero.  Return NULL if
-** no memory is available.
+** Check for a simulated memory allocation failure.  Return true if
+** the failure should be simulated.  Return false to proceed as normal.
 */
-void *sqlite3Malloc_(int n, int bZero, char *zFile, int line){
-  void *p;
-  int *pi;
-  int i, k;
+static int simulatedMallocFailure(int n, char *zFile, int line){
   if( sqlite3_iMallocFail>=0 ){
     sqlite3_iMallocFail--;
     if( sqlite3_iMallocFail==0 ){
@@ -91,10 +90,28 @@ void *sqlite3Malloc_(int n, int bZero, char *zFile, int line){
               n, zFile,line);
 #endif
       sqlite3_iMallocFail = sqlite3_iMallocReset;
-      return 0;
+      return 1;
     }
   }
-  if( n==0 ) return 0;
+  return 0;
+}
+
+/*
+** Allocate new memory and set it to zero.  Return NULL if
+** no memory is available.
+*/
+void *sqlite3Malloc_(int n, int bZero, char *zFile, int line){
+  void *p;
+  int *pi;
+  int i, k;
+  if( n==0 ){
+    return 0;
+  }
+  if( simulatedMallocFailure(n, zFile, line) ){
+    return 0;
+  }
+  sqlite3_memUsed += n;
+  if( sqlite3_memMax<sqlite3_memUsed ) sqlite3_memMax = sqlite3_memUsed;
   k = (n+sizeof(int)-1)/sizeof(int);
   pi = malloc( (N_GUARD*2+1+k)*sizeof(int));
   if( pi==0 ){
@@ -160,6 +177,7 @@ void sqlite3Free_(void *p, char *zFile, int line){
       }
     }
     n = pi[N_GUARD];
+    sqlite3_memUsed -= n;
     k = (n+sizeof(int)-1)/sizeof(int);
     for(i=0; i<N_GUARD; i++){
       if( pi[k+N_GUARD+1+i]!=0xdead3344 ){
@@ -191,6 +209,9 @@ void *sqlite3Realloc_(void *oldP, int n, char *zFile, int line){
     sqlite3Free_(oldP,zFile,line);
     return 0;
   }
+  if( simulatedMallocFailure(n, zFile, line) ){
+    return 0;
+  }
   oldPi = oldP;
   oldPi -= N_GUARD+1;
   if( oldPi[0]!=0xdead1122 ){
@@ -198,6 +219,7 @@ void *sqlite3Realloc_(void *oldP, int n, char *zFile, int line){
     return 0;
   }
   oldN = oldPi[N_GUARD];
+  sqlite3_memUsed -= oldN;
   oldK = (oldN+sizeof(int)-1)/sizeof(int);
   for(i=0; i<N_GUARD; i++){
     if( oldPi[oldK+N_GUARD+1+i]!=0xdead3344 ){
@@ -214,6 +236,8 @@ void *sqlite3Realloc_(void *oldP, int n, char *zFile, int line){
   }
   for(i=0; i<N_GUARD; i++) pi[i] = 0xdead1122;
   pi[N_GUARD] = n;
+  sqlite3_memUsed += n;
+  if( sqlite3_memMax<sqlite3_memUsed ) sqlite3_memMax = sqlite3_memUsed;
   for(i=0; i<N_GUARD; i++) pi[k+N_GUARD+1+i] = 0xdead3344;
   p = &pi[N_GUARD+1];
   memcpy(p, oldP, n>oldN ? oldN : n);
@@ -271,6 +295,7 @@ void sqlite3FreeX(void *p){
 */
 void *sqlite3Malloc(int n){
   void *p;
+  if( n==0 ) return 0;
   if( (p = malloc(n))==0 ){
     if( n>0 ) sqlite3_malloc_failed++;
   }else{
@@ -285,6 +310,7 @@ void *sqlite3Malloc(int n){
 */
 void *sqlite3MallocRaw(int n){
   void *p;
+  if( n==0 ) return 0;
   if( (p = malloc(n))==0 ){
     if( n>0 ) sqlite3_malloc_failed++;
   }
@@ -375,8 +401,8 @@ void sqlite3SetString(char **pz, ...){
     zResult += strlen(zResult);
   }
   va_end(ap);
-#ifdef SQLITE_DEBUG
-#if SQLITE_DEBUG>1
+#ifdef SQLITE_MEMDEBUG
+#if SQLITE_MEMDEBUG>1
   fprintf(stderr,"string at 0x%x is %s\n", (int)*pz, *pz);
 #endif
 #endif
@@ -463,7 +489,8 @@ void sqlite3Dequote(char *z){
   switch( quote ){
     case '\'':  break;
     case '"':   break;
-    case '[':   quote = ']';  break;
+    case '`':   break;                /* For MySQL compatibility */
+    case '[':   quote = ']';  break;  /* For MS SqlServer compatibility */
     default:    return;
   }
   for(i=1, j=0; z[i]; i++){
@@ -568,8 +595,9 @@ int sqlite3IsNumber(const char *z, int *realnum, u8 enc){
 ** of "." depending on how locale is set.  But that would cause problems
 ** for SQL.  So this routine always uses "." regardless of locale.
 */
-double sqlite3AtoF(const char *z, const char **pzEnd){
+int sqlite3AtoF(const char *z, double *pResult){
   int sign = 1;
+  const char *zBegin = z;
   LONGDOUBLE_TYPE v1 = 0.0;
   if( *z=='-' ){
     sign = -1;
@@ -616,8 +644,8 @@ double sqlite3AtoF(const char *z, const char **pzEnd){
       v1 *= scale;
     }
   }
-  if( pzEnd ) *pzEnd = z;
-  return sign<0 ? -v1 : v1;
+  *pResult = sign<0 ? -v1 : v1;
+  return z - zBegin;
 }
 
 /*
@@ -965,5 +993,4 @@ void *sqlite3TextToPtr(const char *z){
   return p;
 }
 #endif
-
 }

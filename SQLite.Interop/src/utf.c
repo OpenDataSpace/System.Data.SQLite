@@ -15,7 +15,7 @@ extern "C"
 ** This file contains routines used to translate between UTF-8, 
 ** UTF-16, UTF-16BE, and UTF-16LE.
 **
-** $Id: utf.c,v 1.6 2005/08/01 19:32:15 rmsimpson Exp $
+** $Id: utf.c,v 1.7 2005/08/22 18:22:12 rmsimpson Exp $
 **
 ** Notes on UTF-8:
 **
@@ -571,5 +571,4 @@ void sqlite3utfSelfTest(){
 }
 #endif /* SQLITE_TEST */
 #endif /* SQLITE_OMIT_UTF16 */
-
 }

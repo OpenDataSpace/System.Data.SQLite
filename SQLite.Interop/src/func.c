@@ -19,7 +19,7 @@ extern "C"
 ** sqliteRegisterBuildinFunctions() found at the bottom of the file.
 ** All other code has file scope.
 **
-** $Id: func.c,v 1.6 2005/08/01 19:32:10 rmsimpson Exp $
+** $Id: func.c,v 1.7 2005/08/22 18:22:12 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include <ctype.h>
@@ -29,6 +29,9 @@ extern "C"
 #include "vdbeInt.h"
 #include "os.h"
 
+/*
+** Return the collating function associated with a function.
+*/
 static CollSeq *sqlite3GetFuncCollSeq(sqlite3_context *context){
   return context->pColl;
 }
@@ -80,6 +83,7 @@ static void typeofFunc(
   }
   sqlite3_result_text(context, z, -1, SQLITE_STATIC);
 }
+
 
 /*
 ** Implementation of the length() function
@@ -186,7 +190,7 @@ static void substrFunc(
 static void roundFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
   int n = 0;
   double r;
-  char zBuf[100];
+  char zBuf[500];  /* larger than the %f representation of the largest double */
   assert( argc==1 || argc==2 );
   if( argc==2 ){
     if( SQLITE_NULL==sqlite3_value_type(argv[1]) ) return;
@@ -196,7 +200,7 @@ static void roundFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
   }
   if( SQLITE_NULL==sqlite3_value_type(argv[0]) ) return;
   r = sqlite3_value_double(argv[0]);
-  sprintf(zBuf,"%.*f",n,r);
+  sqlite3_snprintf(sizeof(zBuf),zBuf,"%.*f",n,r);
   sqlite3_result_text(context, zBuf, -1, SQLITE_TRANSIENT);
 }
 
@@ -209,11 +213,11 @@ static void upperFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
   if( argc<1 || SQLITE_NULL==sqlite3_value_type(argv[0]) ) return;
   z = (unsigned char *)sqliteMalloc(sqlite3_value_bytes(argv[0])+1);
   if( z==0 ) return;
-  strcpy((char *)z, (char *)sqlite3_value_text(argv[0]));
+  strcpy((char *)z, (const char *)sqlite3_value_text(argv[0]));
   for(i=0; z[i]; i++){
     z[i] = toupper(z[i]);
   }
-  sqlite3_result_text(context, (char *)z, -1, SQLITE_TRANSIENT);
+  sqlite3_result_text(context, (const char *)z, -1, SQLITE_TRANSIENT);
   sqliteFree(z);
 }
 static void lowerFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
@@ -222,11 +226,11 @@ static void lowerFunc(sqlite3_context *context, int argc, sqlite3_value **argv){
   if( argc<1 || SQLITE_NULL==sqlite3_value_type(argv[0]) ) return;
   z = (unsigned char *)sqliteMalloc(sqlite3_value_bytes(argv[0])+1);
   if( z==0 ) return;
-  strcpy((char *)z, (char *)sqlite3_value_text(argv[0]));
+  strcpy((char *)z, (const char *)sqlite3_value_text(argv[0]));
   for(i=0; z[i]; i++){
     z[i] = tolower(z[i]);
   }
-  sqlite3_result_text(context, (char *)z, -1, SQLITE_TRANSIENT);
+  sqlite3_result_text(context, (const char *)z, -1, SQLITE_TRANSIENT);
   sqliteFree(z);
 }
 
@@ -310,8 +314,14 @@ struct compareInfo {
   u8 matchSet;
   u8 noCase;
 };
+
 static const struct compareInfo globInfo = { '*', '?', '[', 0 };
-static const struct compareInfo likeInfo = { '%', '_',   0, 1 };
+/* The correct SQL-92 behavior is for the LIKE operator to ignore
+** case.  Thus  'a' LIKE 'A' would be true. */
+static const struct compareInfo likeInfoNorm = { '%', '_',   0, 1 };
+/* If SQLITE_CASE_SENSITIVE_LIKE is defined, then the LIKE operator
+** is case sensitive causing 'a' LIKE 'A' to be false */
+static const struct compareInfo likeInfoAlt = { '%', '_',   0, 0 };
 
 /*
 ** X is a pointer to the first byte of a UTF-8 character.  Increment
@@ -453,6 +463,15 @@ static int patternCompare(
   return *zString==0;
 }
 
+/*
+** Count the number of times that the LIKE operator (or GLOB which is
+** just a variation of LIKE) gets called.  This is used for testing
+** only.
+*/
+#ifdef SQLITE_TEST
+int sqlite3_like_count = 0;
+#endif
+
 
 /*
 ** Implementation of the like() SQL function.  This function implements
@@ -463,8 +482,8 @@ static int patternCompare(
 **
 ** is implemented as like(B,A).
 **
-** If the pointer retrieved by via a call to sqlite3_user_data() is
-** not NULL, then this function uses UTF-16. Otherwise UTF-8.
+** This same function (with a different compareInfo structure) computes
+** the GLOB operator.
 */
 static void likeFunc(
   sqlite3_context *context, 
@@ -479,7 +498,7 @@ static void likeFunc(
     ** Otherwise, return an error.
     */
     const unsigned char *zEsc = sqlite3_value_text(argv[2]);
-    if( sqlite3utf8CharLen((char *)zEsc, -1)!=1 ){
+    if( sqlite3utf8CharLen((const char *)zEsc, -1)!=1 ){
       sqlite3_result_error(context, 
           "ESCAPE expression must be a single character", -1);
       return;
@@ -487,24 +506,11 @@ static void likeFunc(
     escape = sqlite3ReadUtf8(zEsc);
   }
   if( zA && zB ){
-    sqlite3_result_int(context, patternCompare(zA, zB, &likeInfo, escape));
-  }
-}
-
-/*
-** Implementation of the glob() SQL function.  This function implements
-** the build-in GLOB operator.  The first argument to the function is the
-** string and the second argument is the pattern.  So, the SQL statements:
-**
-**       A GLOB B
-**
-** is implemented as glob(B,A).
-*/
-static void globFunc(sqlite3_context *context, int arg, sqlite3_value **argv){
-  const unsigned char *zA = sqlite3_value_text(argv[0]);
-  const unsigned char *zB = sqlite3_value_text(argv[1]);
-  if( zA && zB ){
-    sqlite3_result_int(context, patternCompare(zA, zB, &globInfo, 0));
+    struct compareInfo *pInfo = (compareInfo *)sqlite3_user_data(context);
+#ifdef SQLITE_TEST
+    sqlite3_like_count++;
+#endif
+    sqlite3_result_int(context, patternCompare(zA, zB, pInfo, escape));
   }
 }
 
@@ -965,9 +971,6 @@ void sqlite3RegisterBuiltinFunctions(sqlite3 *db){
     { "coalesce",           1, 0, SQLITE_UTF8,    0, 0          },
     { "ifnull",             2, 0, SQLITE_UTF8,    1, ifnullFunc },
     { "random",            -1, 0, SQLITE_UTF8,    0, randomFunc },
-    { "like",               2, 0, SQLITE_UTF8,    0, likeFunc   },
-    { "like",               3, 0, SQLITE_UTF8,    0, likeFunc   },
-    { "glob",               2, 0, SQLITE_UTF8,    0, globFunc   },
     { "nullif",             2, 0, SQLITE_UTF8,    1, nullifFunc },
     { "sqlite_version",     0, 0, SQLITE_UTF8,    0, versionFunc},
     { "quote",              1, 0, SQLITE_UTF8,    0, quoteFunc  },
@@ -1039,10 +1042,78 @@ void sqlite3RegisterBuiltinFunctions(sqlite3 *db){
   }
   sqlite3RegisterDateTimeFunctions(db);
 #ifdef SQLITE_SSE
-  {
-    sqlite3SseFunctions(db);
-  }
+  sqlite3SseFunctions(db);
+#endif
+#ifdef SQLITE_CASE_SENSITIVE_LIKE
+  sqlite3RegisterLikeFunctions(db, 1);
+#else
+  sqlite3RegisterLikeFunctions(db, 0);
 #endif
 }
 
+/*
+** Set the LIKEOPT flag on the 2-argument function with the given name.
+*/
+static void setLikeOptFlag(sqlite3 *db, const char *zName){
+  FuncDef *pDef;
+  pDef = sqlite3FindFunction(db, zName, strlen(zName), 2, SQLITE_UTF8, 0);
+  if( pDef ){
+    pDef->flags = SQLITE_FUNC_LIKEOPT;
+  }
+}
+
+/*
+** Register the built-in LIKE and GLOB functions.  The caseSensitive
+** parameter determines whether or not the LIKE operator is case
+** sensitive.  GLOB is always case sensitive.
+*/
+void sqlite3RegisterLikeFunctions(sqlite3 *db, int caseSensitive){
+  struct compareInfo *pInfo;
+  if( caseSensitive ){
+    pInfo = (struct compareInfo*)&likeInfoAlt;
+  }else{
+    pInfo = (struct compareInfo*)&likeInfoNorm;
+  }
+  sqlite3_create_function(db, "like", 2, SQLITE_UTF8, pInfo, likeFunc, 0, 0);
+  sqlite3_create_function(db, "like", 3, SQLITE_UTF8, pInfo, likeFunc, 0, 0);
+  sqlite3_create_function(db, "glob", 2, SQLITE_UTF8, 
+      (struct compareInfo*)&globInfo, likeFunc, 0,0);
+  setLikeOptFlag(db, "glob");
+  if( caseSensitive ){
+    setLikeOptFlag(db, "like");
+  }
+}
+
+/*
+** pExpr points to an expression which implements a function.  If
+** it is appropriate to apply the LIKE optimization to that function
+** then set aWc[0] through aWc[2] to the wildcard characters and
+** return TRUE.  If the function is not a LIKE-style function then
+** return FALSE.
+*/
+int sqlite3IsLikeFunction(sqlite3 *db, Expr *pExpr, char *aWc){
+  FuncDef *pDef;
+  if( pExpr->op!=TK_FUNCTION ){
+    return 0;
+  }
+  if( pExpr->pList->nExpr!=2 ){
+    return 0;
+  }
+  pDef = sqlite3FindFunction(db, (const char *)pExpr->token.z, pExpr->token.n, 2,
+                             SQLITE_UTF8, 0);
+  if( pDef==0 || (pDef->flags & SQLITE_FUNC_LIKEOPT)==0 ){
+    return 0;
+  }
+
+  /* The memcpy() statement assumes that the wildcard characters are
+  ** the first three statements in the compareInfo structure.  The
+  ** asserts() that follow verify that assumption
+  */
+  memcpy(aWc, pDef->pUserData, 3);
+  assert( (char*)&likeInfoAlt == (char*)&likeInfoAlt.matchAll );
+  assert( &((char*)&likeInfoAlt)[1] == (char*)&likeInfoAlt.matchOne );
+  assert( &((char*)&likeInfoAlt)[2] == (char*)&likeInfoAlt.matchSet );
+
+  return 1;
+}
 }

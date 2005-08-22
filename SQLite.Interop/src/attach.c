@@ -1,7 +1,7 @@
 #pragma unmanaged
 extern "C"
 {
-  /*
+/*
 ** 2003 April 6
 **
 ** The author disclaims copyright to this source code.  In place of
@@ -14,7 +14,7 @@ extern "C"
 *************************************************************************
 ** This file contains code used to implement the ATTACH and DETACH commands.
 **
-** $Id: attach.c,v 1.6 2005/08/01 19:32:08 rmsimpson Exp $
+** $Id: attach.c,v 1.7 2005/08/22 18:22:12 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 
@@ -149,8 +149,8 @@ void sqlite3Attach(
       db->aDb[i].pBt = 0;
     }
     sqlite3ResetInternalSchema(db, 0);
-    if( 0==pParse->nErr ){
-      pParse->nErr++;
+    assert( pParse->nErr>0 );  /* Always set by sqlite3ReadSchema() */
+    if( pParse->rc==SQLITE_OK ){
       pParse->rc = SQLITE_ERROR;
     }
   }
@@ -353,5 +353,4 @@ int sqlite3FixTriggerStep(
   return 0;
 }
 #endif
-
 }

@@ -87,8 +87,8 @@ void sqlite3_result_blob(
   int n, 
   void (*xDel)(void *)
 ){
-  assert( n>0 );
-  sqlite3VdbeMemSetStr(&pCtx->s, (char *)z, n, 0, xDel);
+  assert( n>=0 );
+  sqlite3VdbeMemSetStr(&pCtx->s, (const char *)z, n, 0, xDel);
 }
 void sqlite3_result_double(sqlite3_context *pCtx, double rVal){
   sqlite3VdbeMemSetDouble(&pCtx->s, rVal);
@@ -99,7 +99,7 @@ void sqlite3_result_error(sqlite3_context *pCtx, const char *z, int n){
 }
 void sqlite3_result_error16(sqlite3_context *pCtx, const void *z, int n){
   pCtx->isError = 1;
-  sqlite3VdbeMemSetStr(&pCtx->s, (char *)z, n, SQLITE_UTF16NATIVE, SQLITE_TRANSIENT);
+  sqlite3VdbeMemSetStr(&pCtx->s, (const char *)z, n, SQLITE_UTF16NATIVE, SQLITE_TRANSIENT);
 }
 void sqlite3_result_int(sqlite3_context *pCtx, int iVal){
   sqlite3VdbeMemSetInt64(&pCtx->s, (i64)iVal);
@@ -125,7 +125,7 @@ void sqlite3_result_text16(
   int n, 
   void (*xDel)(void *)
 ){
-  sqlite3VdbeMemSetStr(&pCtx->s, (char *)z, n, SQLITE_UTF16NATIVE, xDel);
+  sqlite3VdbeMemSetStr(&pCtx->s, (const char *)z, n, SQLITE_UTF16NATIVE, xDel);
 }
 void sqlite3_result_text16be(
   sqlite3_context *pCtx, 
@@ -133,7 +133,7 @@ void sqlite3_result_text16be(
   int n, 
   void (*xDel)(void *)
 ){
-  sqlite3VdbeMemSetStr(&pCtx->s, (char *)z, n, SQLITE_UTF16BE, xDel);
+  sqlite3VdbeMemSetStr(&pCtx->s, (const char *)z, n, SQLITE_UTF16BE, xDel);
 }
 void sqlite3_result_text16le(
   sqlite3_context *pCtx, 
@@ -141,7 +141,7 @@ void sqlite3_result_text16le(
   int n, 
   void (*xDel)(void *)
 ){
-  sqlite3VdbeMemSetStr(&pCtx->s, (char *)z, n, SQLITE_UTF16LE, xDel);
+  sqlite3VdbeMemSetStr(&pCtx->s, (const char *)z, n, SQLITE_UTF16LE, xDel);
 }
 #endif /* SQLITE_OMIT_UTF16 */
 void sqlite3_result_value(sqlite3_context *pCtx, sqlite3_value *pValue){
@@ -216,7 +216,7 @@ int sqlite3_step(sqlite3_stmt *pStmt){
     rc = SQLITE_MISUSE;
   }
 
-  sqlite3Error(p->db, rc, p->zErrMsg);
+  sqlite3Error(p->db, rc, p->zErrMsg ? "%s" : 0, p->zErrMsg);
   return rc;
 }
 
@@ -372,6 +372,11 @@ sqlite_int64 sqlite3_column_int64(sqlite3_stmt *pStmt, int i){
 const unsigned char *sqlite3_column_text(sqlite3_stmt *pStmt, int i){
   return sqlite3_value_text( columnMem(pStmt,i) );
 }
+#if 0
+sqlite3_value *sqlite3_column_value(sqlite3_stmt *pStmt, int i){
+  return columnMem(pStmt, i);
+}
+#endif
 #ifndef SQLITE_OMIT_UTF16
 const void *sqlite3_column_text16(sqlite3_stmt *pStmt, int i){
   return sqlite3_value_text16( columnMem(pStmt,i) );
@@ -537,7 +542,7 @@ static int bindText(
     return rc;
   }
   pVar = &p->aVar[i-1];
-  rc = sqlite3VdbeMemSetStr(pVar, (char *)zData, nData, encoding, xDel);
+  rc = sqlite3VdbeMemSetStr(pVar, (const char *)zData, nData, encoding, xDel);
   if( rc ){
     return rc;
   }
@@ -702,5 +707,4 @@ int sqlite3_transfer_bindings(sqlite3_stmt *pFromStmt, sqlite3_stmt *pToStmt){
 sqlite3 *sqlite3_db_handle(sqlite3_stmt *pStmt){
   return pStmt ? ((Vdbe*)pStmt)->db : 0;
 }
-
 }

@@ -1,3 +1,4 @@
+#pragma unmanaged
 extern "C"
 {
 /*

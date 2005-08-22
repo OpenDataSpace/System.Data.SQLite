@@ -18,7 +18,7 @@ extern "C"
 ** Random numbers are used by some of the database backends in order
 ** to generate random integer keys for tables or random filenames.
 **
-** $Id: random.c,v 1.6 2005/08/01 19:32:14 rmsimpson Exp $
+** $Id: random.c,v 1.7 2005/08/22 18:22:12 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include "os.h"
@@ -101,5 +101,4 @@ void sqlite3Randomness(int N, void *pBuf){
   }
   sqlite3OsLeaveMutex();
 }
-
 }

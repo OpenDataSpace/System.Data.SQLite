@@ -17,7 +17,7 @@ extern "C"
 ** Most of the code in this file may be omitted by defining the
 ** SQLITE_OMIT_VACUUM macro.
 **
-** $Id: vacuum.c,v 1.6 2005/08/01 19:32:15 rmsimpson Exp $
+** $Id: vacuum.c,v 1.7 2005/08/22 18:22:12 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include "os.h"
@@ -311,5 +311,4 @@ end_of_vacuum:
 
   return rc;
 }
-
 }

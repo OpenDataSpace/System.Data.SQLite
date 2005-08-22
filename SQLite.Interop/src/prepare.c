@@ -16,7 +16,7 @@ extern "C"
 ** interface, and routines that contribute to loading the database schema
 ** from disk.
 **
-** $Id: prepare.c,v 1.2 2005/08/01 19:32:14 rmsimpson Exp $
+** $Id: prepare.c,v 1.3 2005/08/22 18:22:12 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include "os.h"
@@ -297,6 +297,11 @@ static int sqlite3InitOne(sqlite3 *db, int iDb, char **pzErrMsg){
     rc = sqlite3_exec(db, zSql, sqlite3InitCallback, &initData, 0);
     sqlite3SafetyOn(db);
     sqliteFree(zSql);
+#ifndef SQLITE_OMIT_ANALYZE
+    if( rc==SQLITE_OK ){
+      sqlite3AnalysisLoad(db, iDb);
+    }
+#endif
     sqlite3BtreeCloseCursor(curMain);
   }
   if( sqlite3_malloc_failed ){
@@ -373,7 +378,7 @@ int sqlite3ReadSchema(Parse *pParse){
       rc = sqlite3Init(db, &pParse->zErrMsg);
     }
   }
-  assert( rc!=SQLITE_OK || (db->flags & SQLITE_Initialized)||db->init.busy );
+  assert( rc!=SQLITE_OK || (db->flags & SQLITE_Initialized) || db->init.busy );
   if( rc!=SQLITE_OK ){
     pParse->rc = rc;
     pParse->nErr++;
@@ -529,5 +534,4 @@ int sqlite3_prepare16(
   return rc;
 }
 #endif /* SQLITE_OMIT_UTF16 */
-
 }

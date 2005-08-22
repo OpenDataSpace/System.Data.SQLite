@@ -14,7 +14,7 @@ extern "C"
 *************************************************************************
 ** This file contains code used to implement the PRAGMA command.
 **
-** $Id: pragma.c,v 1.6 2005/08/01 19:32:14 rmsimpson Exp $
+** $Id: pragma.c,v 1.7 2005/08/22 18:22:12 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include "os.h"
@@ -47,11 +47,11 @@ static int getSafetyLevel(const u8 *z){
   static const u8 iValue[] =  {1, 0, 0, 0, 1, 1, 2};
   int i, n;
   if( isdigit(*z) ){
-    return atoi((char *)z);
+    return atoi((const char *)z);
   }
-  n = strlen((char *)z);
+  n = strlen((const char *)z);
   for(i=0; i<sizeof(iLength); i++){
-    if( iLength[i]==n && sqlite3StrNICmp(&zText[iOffset[i]],(char *)z,n)==0 ){
+    if( iLength[i]==n && sqlite3StrNICmp(&zText[iOffset[i]],(const char *)z,n)==0 ){
       return iValue[i];
     }
   }
@@ -169,7 +169,7 @@ static int flagPragma(Parse *pParse, const char *zLeft, const char *zRight){
         if( zRight==0 ){
           returnSingleInt(pParse, p->zName, (db->flags & p->mask)!=0 );
         }else{
-          if( getBoolean((u8 *)zRight) ){
+          if( getBoolean((const u8 *)zRight) ){
             db->flags |= p->mask;
           }else{
             db->flags &= ~p->mask;
@@ -322,7 +322,7 @@ void sqlite3Pragma(
           pBt ? sqlite3BtreeGetAutoVacuum(pBt) : SQLITE_DEFAULT_AUTOVACUUM;
       returnSingleInt(pParse, "auto_vacuum", auto_vacuum);
     }else{
-      sqlite3BtreeSetAutoVacuum(pBt, getBoolean((u8 *)zRight));
+      sqlite3BtreeSetAutoVacuum(pBt, getBoolean((const u8 *)zRight));
     }
   }else
 #endif
@@ -430,7 +430,7 @@ void sqlite3Pragma(
         sqlite3ErrorMsg(pParse, 
             "Safety level may not be changed inside a transaction");
       }else{
-        pDb->safety_level = getSafetyLevel((u8 *)zRight)+1;
+        pDb->safety_level = getSafetyLevel((const u8 *)zRight)+1;
         sqlite3BtreeSetSafetyLevel(pDb->pBt, pDb->safety_level);
       }
     }
@@ -586,12 +586,13 @@ void sqlite3Pragma(
         while(pFK){
           int j;
           for(j=0; j<pFK->nCol; j++){
+            char *zCol = pFK->aCol[j].zCol;
             sqlite3VdbeAddOp(v, OP_Integer, i, 0);
             sqlite3VdbeAddOp(v, OP_Integer, j, 0);
             sqlite3VdbeOp3(v, OP_String8, 0, 0, pFK->zTo, 0);
             sqlite3VdbeOp3(v, OP_String8, 0, 0,
                              pTab->aCol[pFK->aCol[j].iFrom].zName, 0);
-            sqlite3VdbeOp3(v, OP_String8, 0, 0, pFK->aCol[j].zCol, 0);
+            sqlite3VdbeOp3(v, zCol ? OP_String8 : OP_Null, 0, 0, zCol, 0);
             sqlite3VdbeAddOp(v, OP_Callback, 5, 0);
           }
           ++i;
@@ -605,13 +606,24 @@ void sqlite3Pragma(
 #ifndef NDEBUG
   if( sqlite3StrICmp(zLeft, "parser_trace")==0 ){
     extern void sqlite3ParserTrace(FILE*, char *);
-    if( getBoolean((u8 *)zRight) ){
-      sqlite3ParserTrace(stdout, "parser: ");
-    }else{
-      sqlite3ParserTrace(0, 0);
+    if( zRight ){
+      if( getBoolean(zRight) ){
+        sqlite3ParserTrace(stderr, "parser: ");
+      }else{
+        sqlite3ParserTrace(0, 0);
+      }
     }
   }else
 #endif
+
+  /* Reinstall the LIKE and GLOB functions.  The variant of LIKE
+  ** used will be case sensitive or not depending on the RHS.
+  */
+  if( sqlite3StrICmp(zLeft, "case_sensitive_like")==0 ){
+    if( zRight ){
+      sqlite3RegisterLikeFunctions(db, getBoolean((const u8 *)zRight));
+    }
+  }else
 
 #ifndef SQLITE_OMIT_INTEGRITY_CHECK
   if( sqlite3StrICmp(zLeft, "integrity_check")==0 ){
@@ -934,5 +946,4 @@ pragma_out:
 }
 
 #endif /* SQLITE_OMIT_PRAGMA || SQLITE_OMIT_PARSER */
-
 }

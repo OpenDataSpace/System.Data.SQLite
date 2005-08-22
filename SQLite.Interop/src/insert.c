@@ -15,7 +15,7 @@ extern "C"
 ** This file contains C code routines that are called by the parser
 ** to handle INSERT statements in SQLite.
 **
-** $Id: insert.c,v 1.6 2005/08/01 19:32:10 rmsimpson Exp $
+** $Id: insert.c,v 1.7 2005/08/22 18:22:12 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 
@@ -376,7 +376,7 @@ void sqlite3Insert(
       ** back up and execute the SELECT code above.
       */
       sqlite3VdbeChangeP2(v, iInitCode, sqlite3VdbeCurrentAddr(v));
-      sqlite3VdbeAddOp(v, OP_OpenTemp, srcTab, 0);
+      sqlite3VdbeAddOp(v, OP_OpenVirtual, srcTab, 0);
       sqlite3VdbeAddOp(v, OP_SetNumColumns, srcTab, nColumn);
       sqlite3VdbeAddOp(v, OP_Goto, 0, iSelectLoop);
       sqlite3VdbeResolveLabel(v, iCleanup);
@@ -952,7 +952,7 @@ void sqlite3GenerateConstraintChecks(
         sqlite3VdbeAddOp(v, OP_Dup, i+extra+nCol-idx, 1);
       }
     }
-    jumpInst1 = sqlite3VdbeAddOp(v, OP_MakeRecord, pIdx->nColumn, (1<<24));
+    jumpInst1 = sqlite3VdbeAddOp(v, OP_MakeIdxRec, pIdx->nColumn, 0);
     sqlite3IndexAffinityStr(v, pIdx);
 
     /* Find out what action to take in case there is an indexing conflict */
@@ -1022,9 +1022,8 @@ void sqlite3GenerateConstraintChecks(
       }
     }
     contAddr = sqlite3VdbeCurrentAddr(v);
-    assert( contAddr<(1<<24) );
 #if NULL_DISTINCT_FOR_UNIQUE
-    sqlite3VdbeChangeP2(v, jumpInst1, contAddr | (1<<24));
+    sqlite3VdbeChangeP2(v, jumpInst1, contAddr);
 #endif
     sqlite3VdbeChangeP2(v, jumpInst2, contAddr);
   }
@@ -1100,11 +1099,12 @@ void sqlite3OpenTableAndIndices(
   Vdbe *v = sqlite3GetVdbe(pParse);
   assert( v!=0 );
   sqlite3VdbeAddOp(v, OP_Integer, pTab->iDb, 0);
-  sqlite3VdbeAddOp(v, op, base, pTab->tnum);
   VdbeComment((v, "# %s", pTab->zName));
+  sqlite3VdbeAddOp(v, op, base, pTab->tnum);
   sqlite3VdbeAddOp(v, OP_SetNumColumns, base, pTab->nCol);
   for(i=1, pIdx=pTab->pIndex; pIdx; pIdx=pIdx->pNext, i++){
     sqlite3VdbeAddOp(v, OP_Integer, pIdx->iDb, 0);
+    VdbeComment((v, "# %s", pIdx->zName));
     sqlite3VdbeOp3(v, op, i+base, pIdx->tnum,
                    (char*)&pIdx->keyInfo, P3_KEYINFO);
   }
@@ -1112,5 +1112,4 @@ void sqlite3OpenTableAndIndices(
     pParse->nTab = base+i;
   }
 }
-
 }
