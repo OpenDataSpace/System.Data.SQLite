@@ -11,6 +11,7 @@ namespace System.Data.SQLite
   using System.Data;
   using System.Data.Common;
   using System.Globalization;
+  using System.ComponentModel;
 
   /// <summary>
   /// SQLite implementation of DbCommandBuilder.
@@ -97,6 +98,96 @@ namespace System.Data.SQLite
     private void RowUpdatingEventHandler(object sender, RowUpdatingEventArgs e)
     {
       base.RowUpdatingHandler(e);
+    }
+
+    /// <summary>
+    /// Overridden to hide its property from the designer
+    /// </summary>
+#if !PLATFORM_COMPACTFRAMEWORK
+    [Browsable(false)]
+#endif
+    public override CatalogLocation CatalogLocation
+    {
+      get
+      {
+        return base.CatalogLocation;
+      }
+      set
+      {
+        base.CatalogLocation = value;
+      }
+    }
+
+    /// <summary>
+    /// Overridden to hide its property from the designer
+    /// </summary>
+#if !PLATFORM_COMPACTFRAMEWORK
+    [Browsable(false)]
+#endif
+    public override string CatalogSeparator
+    {
+      get
+      {
+        return base.CatalogSeparator;
+      }
+      set
+      {
+        base.CatalogSeparator = value;
+      }
+    }
+
+    /// <summary>
+    /// Overridden to hide its property from the designer
+    /// </summary>
+#if !PLATFORM_COMPACTFRAMEWORK
+    [Browsable(false)]
+#endif
+    public override string QuotePrefix
+    {
+      get
+      {
+        return base.QuotePrefix;
+      }
+      set
+      {
+        base.QuotePrefix = value;
+      }
+    }
+
+    /// <summary>
+    /// Overridden to hide its property from the designer
+    /// </summary>
+#if !PLATFORM_COMPACTFRAMEWORK
+    [Browsable(false)]
+#endif
+    public override string QuoteSuffix
+    {
+      get
+      {
+        return base.QuoteSuffix;
+      }
+      set
+      {
+        base.QuoteSuffix = value;
+      }
+    }
+
+    /// <summary>
+    /// Overridden to hide its property from the designer
+    /// </summary>
+#if !PLATFORM_COMPACTFRAMEWORK
+    [Browsable(false)]
+#endif
+    public override string SchemaSeparator
+    {
+      get
+      {
+        return base.SchemaSeparator;
+      }
+      set
+      {
+        base.SchemaSeparator = value;
+      }
     }
   }
 }

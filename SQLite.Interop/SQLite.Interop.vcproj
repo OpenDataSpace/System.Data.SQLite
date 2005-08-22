@@ -6,7 +6,6 @@
 	ProjectGUID="{10B51CE8-A838-44DE-BD82-B658F0296F80}"
 	RootNamespace="SQLite.Interop"
 	Keyword="Win32Proj"
-	SignManifests="true"
 	>
 	<Platforms>
 		<Platform
@@ -204,6 +203,26 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\analyze.c"
+				>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Pocket PC 2003 (ARMV4)"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\AssemblyInfo.cpp"
 				>
 				<FileConfiguration
@@ -306,6 +325,26 @@
 			</File>
 			<File
 				RelativePath=".\src\callback.c"
+				>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Pocket PC 2003 (ARMV4)"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\complete.c"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -866,6 +905,26 @@
 			</File>
 			<File
 				RelativePath=".\src\vdbeaux.c"
+				>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Pocket PC 2003 (ARMV4)"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\vdbefifo.c"
 				>
 				<FileConfiguration
 					Name="Release|Win32"

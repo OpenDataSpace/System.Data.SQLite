@@ -5,8 +5,8 @@
   </head>
   <body>
     ADO.NET 2.0 SQLite Data Provider<br>
-    Version 1.0.14 - Aug 16, 2005<br>
-    Interop using SQLite 3.22<br>
+    Version 1.0.15 - Aug 22, 2005<br>
+    Interop using SQLite 3.2.3<br>
     Written by Robert Simpson (<a href="mailto:robert@blackcastlesoft.com">robert@blackcastlesoft.com</a>)<br>
     Released to the public domain, use at your own risk!<br>
     <br>
@@ -85,7 +85,7 @@
     <pre>&lt;configuration&gt;
   &lt;system.data&gt;
     &lt;DbProviderFactories&gt;
-      &lt;add name="SQLite Data Provider" invariant="System.Data.SQLite" description=".Net Framework Data Provider for SQLite"<BR> type="System.Data.SQLite.SQLiteFactory, System.Data.SQLite, Version=1.0.14.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139" /&gt;
+      &lt;add name="SQLite Data Provider" invariant="System.Data.SQLite" description=".Net Framework Data Provider for SQLite"<BR> type="System.Data.SQLite.SQLiteFactory, System.Data.SQLite, Version=1.0.15.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139" /&gt;
     &lt;/DbProviderFactories&gt;
   &lt;/system.data&gt;
 &lt;/configuration&gt;
@@ -153,6 +153,11 @@
     <b></b>
     <h2>
       <b>Version History</b></h2>
+    <b>1.0.15 - August 22, 2005</b><br>
+    <ul>
+      <li>Code merge with SQLite 3.2.3
+      <LI>Minor updates for better design-time experience.  More design-time code to follow in subsequent releases.
+      </ul>
     <b>1.0.14 - August 16, 2005</b><br>
     <ul>
       <li>

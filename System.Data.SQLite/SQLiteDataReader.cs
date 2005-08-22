@@ -12,6 +12,7 @@ namespace System.Data.SQLite
   using System.Data.Common;
   using System.Collections.Generic;
   using System.Globalization;
+  using System.Reflection;
 
   /// <summary>
   /// SQLite implementation of DbDataReader.

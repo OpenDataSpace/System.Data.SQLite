@@ -1,3 +1,10 @@
+/********************************************************
+ * ADO.NET 2.0 Data Provider for SQLite Version 3.X
+ * Written by Robert Simpson (robert@blackcastlesoft.com)
+ * 
+ * Released to the public domain, use at your own risk!
+ ********************************************************/
+
 namespace SQLite.Designer
 {
   using System;
@@ -41,10 +48,10 @@ namespace SQLite.Designer
         case "viewcolumn":
           length = 4;
           break;
-        //case SqlDataObjectTypes.IndexColumn:
-        //case SqlDataObjectTypes.ForeignKeyColumn:
-        //  length = 5;
-        //  break;
+        case "indexcolumn":
+        case "foreignkeycolumn":
+          length = 5;
+          break;
         default:
           throw new NotSupportedException();
       }

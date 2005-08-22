@@ -10,12 +10,19 @@ namespace System.Data.SQLite
   using System;
   using System.Data;
   using System.Data.Common;
+  using System.ComponentModel;
 
   /// <summary>
   /// SQLite implementation of DbDataAdapter.
   /// </summary>
+#if !PLATFORM_COMPACTFRAMEWORK
+  [DefaultEvent("RowUpdated")]
+#endif
   public sealed class SQLiteDataAdapter : DbDataAdapter
   {
+    private static object _updatingEventPH = new object();
+    private static object _updatedEventPH = new object();
+
     /// <overloads>
     /// This class is just a shell around the DbDataAdapter.  Nothing from DbDataAdapter is overridden here, just a few constructors are defined.
     /// </overloads>
@@ -59,12 +66,20 @@ namespace System.Data.SQLite
     /// <summary>
     /// Row updating event handler
     /// </summary>
-    public event EventHandler<RowUpdatingEventArgs> RowUpdating;
+    public event EventHandler<RowUpdatingEventArgs> RowUpdating
+    {
+      add { base.Events.AddHandler(_updatingEventPH, value); }
+      remove { base.Events.RemoveHandler(_updatingEventPH, value); }
+    }
 
     /// <summary>
     /// Row updated event handler
     /// </summary>
-    public event EventHandler<RowUpdatedEventArgs> RowUpdated;
+    public event EventHandler<RowUpdatedEventArgs> RowUpdated
+    {
+      add { base.Events.AddHandler(_updatedEventPH, value); }
+      remove { base.Events.RemoveHandler(_updatedEventPH, value); }
+    }
 
     /// <summary>
     /// Raised by the underlying DbDataAdapter when a row is being updated
@@ -72,8 +87,10 @@ namespace System.Data.SQLite
     /// <param name="value">The event's specifics</param>
     protected override void OnRowUpdating(RowUpdatingEventArgs value)
     {
-      if (RowUpdating != null)
-        RowUpdating(this, value);
+      EventHandler<RowUpdatingEventArgs> handler = base.Events[_updatingEventPH] as EventHandler<RowUpdatingEventArgs>;
+
+      if (handler != null)
+        handler(this, value);
     }
 
     /// <summary>
@@ -82,8 +99,10 @@ namespace System.Data.SQLite
     /// <param name="value">The event's specifics</param>
     protected override void OnRowUpdated(RowUpdatedEventArgs value)
     {
-      if (RowUpdated != null)
-        RowUpdated(this, value);
+      EventHandler<RowUpdatedEventArgs> handler = base.Events[_updatingEventPH] as EventHandler<RowUpdatedEventArgs>;
+
+      if (handler != null)
+        handler(this, value);
     }
   }
 }

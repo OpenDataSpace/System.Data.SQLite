@@ -12,7 +12,8 @@ namespace System.Data.SQLite
   using System.ComponentModel;
   using System.Collections;
   using System.Globalization;
-  
+  using System.Reflection;
+
 #if !PLATFORM_COMPACTFRAMEWORK
   using System.ComponentModel.Design;
 
@@ -20,6 +21,7 @@ namespace System.Data.SQLite
   /// SQLite implementation of DbConnectionStringBuilder.
   /// </summary>
   [DefaultProperty("DataSource")]
+  [DefaultMember("Item")]
   public sealed class SQLiteConnectionStringBuilder : DbConnectionStringBuilder
   {
     /// <summary>

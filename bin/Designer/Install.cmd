@@ -3,7 +3,7 @@
 SETLOCAL
 
 SET MYDIR=%~dp0
-SET REGROOT=SOFTWARE\Microsoft\VisualStudio\8.0
+SET REGROOT=SOFTWARE\Microsoft\VisualStudio\8.0Exp
 SET XMLPATH=%MYDIR%
 
 :ParseCmdLine

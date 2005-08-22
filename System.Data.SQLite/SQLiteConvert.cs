@@ -12,6 +12,7 @@ namespace System.Data.SQLite
   using System.Collections.Generic;
   using System.ComponentModel;
   using System.Globalization;
+  using System.Text;
 
 #if !PLATFORM_COMPACTFRAMEWORK 
   using System.ComponentModel.Design;
@@ -122,9 +123,9 @@ namespace System.Data.SQLite
 															 };
 
     /// <summary>
-    /// An UTF-8 Encoding instance, so we can convert strings to and from UTF8
+    /// An UTF-8 Encoding instance, so we can convert strings to and from UTF-8
     /// </summary>
-    private static Text.UTF8Encoding _utf8 = new Text.UTF8Encoding();
+    private Encoding _utf8 = new UTF8Encoding();
     /// <summary>
     /// The default DateTime format for this instance
     /// </summary>
@@ -144,7 +145,7 @@ namespace System.Data.SQLite
     /// </summary>
     /// <param name="sourceText">The string to convert to UTF-8</param>
     /// <returns>A byte array containing the converted string plus an extra 0 terminating byte at the end of the array.</returns>
-    public static byte[] ToUTF8(string sourceText)
+    public byte[] ToUTF8(string sourceText)
     {
       Byte[] byteArray;
       int nlen = _utf8.GetByteCount(sourceText) + 1;
@@ -180,9 +181,8 @@ namespace System.Data.SQLite
     {
       if (nativestringlen == 0) return "";
 
-      byte[] byteArray;
+      byte[] byteArray = new byte[nativestringlen];
 
-      byteArray = new byte[nativestringlen];
       Marshal.Copy(nativestring, byteArray, 0, nativestringlen);
 
       return _utf8.GetString(byteArray, 0, nativestringlen);

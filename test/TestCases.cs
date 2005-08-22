@@ -88,31 +88,31 @@ namespace test
       try { VerifyBinaryData(cnn); Console.WriteLine("SUCCESS - VerifyBinaryData"); }
       catch (Exception) { Console.WriteLine("FAIL - VerifyBinaryData"); }
 
-      try { ParameterizedInsertMissingParams(cnn); Console.WriteLine("FAIL - ParameterizedInsertMissingParams"); }
-      catch (Exception) { Console.WriteLine("SUCCESS - ParameterizedInsertMissingParams"); }
+      try { ParameterizedInsertMissingParams(cnn); Console.WriteLine("FAIL - ParameterizedInsertMissingParams\r\n"); }
+      catch (Exception) { Console.WriteLine("SUCCESS - ParameterizedInsertMissingParams\r\n"); }
 
-      try { TimeoutTest(cnn); Console.WriteLine("SUCCESS - TimeoutTest"); }
-      catch (Exception) { Console.WriteLine("FAIL - TimeoutTest"); }
+//      try { TimeoutTest(cnn); Console.WriteLine("SUCCESS - TimeoutTest"); }
+//      catch (Exception) { Console.WriteLine("FAIL - TimeoutTest"); }
 
-      try { InsertMany(fact, cnn, false); Console.WriteLine("SUCCESS - InsertMany"); }
-      catch (Exception) { Console.WriteLine("FAIL - InsertMany"); }
+      try { DataAdapter(fact, cnn, false); Console.WriteLine(""); }
+      catch (Exception) { Console.WriteLine("FAIL - DataAdapter"); }
 
-      try { InsertMany(fact, cnn, true); Console.WriteLine("SUCCESS - InsertManyWithIdentityFetch"); }
-      catch (Exception) { Console.WriteLine("FAIL - InsertManyWithIdentityFetch"); }
+      try { DataAdapter(fact, cnn, true); Console.WriteLine(""); }
+      catch (Exception) { Console.WriteLine("FAIL - DataAdapterWithIdentityFetch"); }
 
-      try { SimpleInsertMany(cnn); Console.WriteLine("SUCCESS - SimpleInsertMany"); }
-      catch (Exception) { Console.WriteLine("FAIL - SimpleInsertMany"); }
+      try { FastInsertMany(cnn); Console.WriteLine(""); }
+      catch (Exception) { Console.WriteLine("FAIL - FastInsertMany"); }
 
-      try { IterationTest(cnn); Console.WriteLine("SUCCESS - Iteration Test"); }
+      try { IterationTest(cnn); Console.WriteLine(""); }
       catch (Exception) { Console.WriteLine("FAIL - Iteration Test"); }
 
-      try { UserFunction(cnn); Console.WriteLine("SUCCESS - UserFunction"); }
+      try { UserFunction(cnn); Console.WriteLine(""); }
       catch (Exception) { Console.WriteLine("FAIL - UserFunction"); }
 
-      try { UserAggregate(cnn); Console.WriteLine("SUCCESS - UserAggregate"); }
+      try { UserAggregate(cnn); Console.WriteLine(""); }
       catch (Exception) { Console.WriteLine("FAIL - UserAggregate"); }
 
-      try { UserCollation(cnn); Console.WriteLine("SUCCESS - UserCollation"); }
+      try { UserCollation(cnn); Console.WriteLine(""); }
       catch (Exception) { Console.WriteLine("FAIL - UserCollation"); }
 
       try { DropTable(cnn); Console.WriteLine("SUCCESS - DropTable"); }
@@ -249,8 +249,6 @@ namespace test
         cmd.CommandText = "INSERT INTO TestCase(Field6) VALUES($bin)";
         DbParameter Field6 = cmd.CreateParameter();
 
-        cmd.Parameters.Add(Field6);
-
         byte[] b = new byte[4000];
         b[0] = 1;
         b[100] = 2;
@@ -260,6 +258,8 @@ namespace test
 
         Field6.ParameterName = "$bin";
         Field6.Value = b;
+
+        cmd.Parameters.Add(Field6);
 
         cmd.ExecuteNonQuery();
       }
@@ -316,8 +316,11 @@ namespace test
       }
     }
 
-    // Utilizes the SQLiteCommandBuilder, which in turn utilizes SQLiteDataReader's GetSchemaTable() functionality
-    internal static void InsertMany(DbProviderFactory fact, DbConnection cnn, bool bWithIdentity)
+    // Utilizes the SQLiteCommandBuilder, 
+    // which in turn utilizes SQLiteDataReader's GetSchemaTable() functionality
+    // This insert is slow because it must raise callbacks before and after every update.
+    // For a fast update, see the FastInsertMany function beneath this one
+    internal static void DataAdapter(DbProviderFactory fact, DbConnection cnn, bool bWithIdentity)
     {
       using (DbTransaction dbTrans = cnn.BeginTransaction())
       {
@@ -326,16 +329,21 @@ namespace test
           using (DbCommand cmd = cnn.CreateCommand())
           {
             cmd.Transaction = dbTrans;
-            cmd.CommandText = "SELECT * FROM TestCase WHERE 1=2";
+            cmd.CommandText = "SELECT * FROM TestCase";
             adp.SelectCommand = cmd;
+
+            // We're deliberately not loading the data adapter with an insert command
+            // unless we're doing the identity fetch.  This tests the CommandBuilder's ability
+            // to autogenerate that command when the insert occurs, which consequently tests
+            // the SQLiteDataAdapter's ability to raise events.
 
             using (DbCommandBuilder bld = fact.CreateCommandBuilder())
             {
               bld.DataAdapter = adp;
-              adp.InsertCommand = bld.GetInsertCommand();
 
               if (bWithIdentity)
               {
+                adp.InsertCommand = bld.GetInsertCommand();
                 adp.InsertCommand.CommandText += ";SELECT [ID] FROM TestCase WHERE RowID = last_insert_rowid()";
                 adp.InsertCommand.UpdatedRowSource = UpdateRowSource.FirstReturnedRecord;
               }
@@ -343,19 +351,19 @@ namespace test
               using (DataTable tbl = new DataTable())
               {
                 adp.Fill(tbl);
-                for (int n = 0; n < 100000; n++)
+                for (int n = 0; n < 10000; n++)
                 {
                   DataRow row = tbl.NewRow();
                   row[1] = n + 10000;
                   tbl.Rows.Add(row);
                 }
 
-                Console.Write(String.Format("          InsertMany{0} (100000 rows) Begins ... ", (bWithIdentity == true) ? "WithIdentityFetch":"                 "));
+                Console.WriteLine(String.Format("          Inserting using CommandBuilder and DataAdapter\r\n          ->{0} (10,000 rows) ...", (bWithIdentity == true) ? "(with identity fetch)" : ""));
                 long dtStart = DateTime.Now.Ticks;
                 adp.Update(tbl);
                 long dtEnd = DateTime.Now.Ticks;
                 dtEnd -= dtStart;
-                Console.Write(String.Format("Ends in {0} ms ... ", (dtEnd / 10000)));
+                Console.Write(String.Format("          -> Insert Ends in {0} ms ... ", (dtEnd / 10000)));
 
                 dtStart = DateTime.Now.Ticks;
                 dbTrans.Commit();
@@ -369,7 +377,7 @@ namespace test
       }
     }
 
-    internal static void SimpleInsertMany(DbConnection cnn)
+    internal static void FastInsertMany(DbConnection cnn)
     {
       using (DbTransaction dbTrans = cnn.BeginTransaction())
       {
@@ -383,7 +391,7 @@ namespace test
 
           cmd.Parameters.Add(Field1);
 
-          Console.Write(String.Format("          SimpleInsertMany (100000 rows) Begins ... "));
+          Console.WriteLine(String.Format("          Fast insert using parameters and prepared statement\r\n          -> (100,000 rows) Begins ... "));
           dtStart = DateTime.Now.Ticks;
           for (int n = 0; n < 100000; n++)
           {
@@ -393,14 +401,14 @@ namespace test
 
           dtEnd = DateTime.Now.Ticks;
           dtEnd -= dtStart;
-          Console.Write(String.Format("Ends in {0} ms ... ", (dtEnd / 10000)));
+          Console.Write(String.Format("          -> Ends in {0} ms ... ", (dtEnd / 10000)));
         }
 
         dtStart = DateTime.Now.Ticks;
-        dbTrans.Rollback();
+        dbTrans.Commit();
         dtEnd = DateTime.Now.Ticks;
         dtEnd -= dtStart;
-        Console.WriteLine(String.Format("rolled back in {0} ms", (dtEnd / 10000)));
+        Console.WriteLine(String.Format("Commits in {0} ms", (dtEnd / 10000)));
       }
     }
 
@@ -569,7 +577,7 @@ namespace test
           n = Convert.ToInt32(cmd.ExecuteScalar());
           nCount++;
         }
-        if (n != 200003) throw new ArgumentOutOfRangeException("Unexpected count");
+        if (n != 120003) throw new ArgumentOutOfRangeException("Unexpected count");
         Console.WriteLine(String.Format("          UserAggregate executed {0} times in 1 second.", nCount));
       }
     }

@@ -12,10 +12,16 @@ namespace System.Data.SQLite
   using System.Data.Common;
   using System.Collections.Generic;
   using System.Globalization;
+  using System.ComponentModel;
+  using System.Reflection;
 
   /// <summary>
   /// SQLite implementation of DbParameterCollection.
   /// </summary>
+#if !PLATFORM_COMPACTFRAMEWORK
+  [ListBindable(true)]
+#endif
+  [DefaultMember("Item")]
   public sealed class SQLiteParameterCollection : DbParameterCollection
   {
     /// <summary>

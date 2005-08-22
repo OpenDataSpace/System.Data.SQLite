@@ -103,6 +103,9 @@ namespace test
       try { InsertMany(cnn, true); frm.WriteLine("SUCCESS - InsertManyWithIdentityFetch"); }
       catch (Exception) { frm.WriteLine("FAIL - InsertManyWithIdentityFetch"); }
 
+      try { FastInsertMany(cnn); frm.WriteLine("SUCCESS - FastInsertMany"); }
+      catch (Exception) { frm.WriteLine("FAIL - FastInsertMany"); }
+
       try { IterationTest(cnn); frm.WriteLine("SUCCESS - Iteration Test"); }
       catch (Exception) { frm.WriteLine("FAIL - Iteration Test"); }
 
@@ -367,6 +370,41 @@ namespace test
             }
           }
         }
+      }
+    }
+
+    internal void FastInsertMany(DbConnection cnn)
+    {
+      using (DbTransaction dbTrans = cnn.BeginTransaction())
+      {
+        long dtStart;
+        long dtEnd;
+
+        using (DbCommand cmd = cnn.CreateCommand())
+        {
+          cmd.CommandText = "INSERT INTO TestCase(Field1) VALUES(?)";
+          DbParameter Field1 = cmd.CreateParameter();
+
+          cmd.Parameters.Add(Field1);
+
+          frm.WriteLine(String.Format("          Fast insert using parameters and prepared statement\r\n          -> (10,000 rows) Begins ... "));
+          dtStart = DateTime.Now.Ticks;
+          for (int n = 0; n < 10000; n++)
+          {
+            Field1.Value = n + 100000;
+            cmd.ExecuteNonQuery();
+          }
+
+          dtEnd = DateTime.Now.Ticks;
+          dtEnd -= dtStart;
+          frm.Write(String.Format("          -> Ends in {0} ms ... ", (dtEnd / 10000)));
+        }
+
+        dtStart = DateTime.Now.Ticks;
+        dbTrans.Rollback();
+        dtEnd = DateTime.Now.Ticks;
+        dtEnd -= dtStart;
+        frm.WriteLine(String.Format("Rolled back in {0} ms", (dtEnd / 10000)));
       }
     }
 
