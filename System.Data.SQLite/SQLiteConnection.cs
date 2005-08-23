@@ -591,10 +591,16 @@ namespace System.Data.SQLite
           return Schema_Columns(parms[0], parms[2], parms[3]);
         case "INDEXES":
           return Schema_Indexes(parms[0], parms[2], parms[4]);
+        case "INDEXCOLUMNS":
+          return Schema_IndexColumns(parms[0], parms[2], parms[3], parms[4]);
         case "TABLES":
           return Schema_Tables(parms[0], parms[2], parms[3]);
         case "VIEWS":
           return Schema_Views(parms[0], parms[2]);
+        case "VIEWCOLUMNS":
+          return Schema_ViewColumns(parms[0], parms[2], parms[3]);
+        case "FOREIGNKEYS":
+          return Schema_ForeignKeys(parms[0], parms[2], parms[3]);
         case "CATALOGS":
           return Schema_Catalogs(parms[0]);
       }
@@ -646,11 +652,23 @@ namespace System.Data.SQLite
       tbl.Rows.Add(row);
 
       row = tbl.NewRow();
+      row.ItemArray = new object[] { "IndexColumns", 5, 4 };
+      tbl.Rows.Add(row);
+
+      row = tbl.NewRow();
       row.ItemArray = new object[] { "Tables", 4, 3 };
       tbl.Rows.Add(row);
 
       row = tbl.NewRow();
       row.ItemArray = new object[] { "Views", 3, 3 };
+      tbl.Rows.Add(row);
+
+      row = tbl.NewRow();
+      row.ItemArray = new object[] { "ViewColumns", 4, 4 };
+      tbl.Rows.Add(row);
+
+      row = tbl.NewRow();
+      row.ItemArray = new object[] { "ForeignKeys", 4, 3 };
       tbl.Rows.Add(row);
 
       tbl.AcceptChanges();
@@ -764,31 +782,43 @@ namespace System.Data.SQLite
 
       if (String.IsNullOrEmpty(strCatalog)) strCatalog = "main";
 
-      using (SQLiteCommand cmd = new SQLiteCommand(String.Format(CultureInfo.CurrentCulture, "SELECT * FROM [{0}].[{1}]", strCatalog, strTable), this))
+      using (SQLiteCommand cmdTables = new SQLiteCommand(String.Format(CultureInfo.CurrentCulture, "SELECT * FROM [{0}].[sqlite_master] WHERE [type] LIKE 'table'", strCatalog), this))
       {
-        using (SQLiteDataReader rd = (SQLiteDataReader)cmd.ExecuteReader(CommandBehavior.SchemaOnly))
+        using (SQLiteDataReader rdTables = cmdTables.ExecuteReader())
         {
-          using (DataTable tblSchema = rd.GetSchemaTable())
+          while (rdTables.Read())
           {
-            foreach (DataRow schemaRow in tblSchema.Rows)
+            if (String.IsNullOrEmpty(strTable) || String.Compare(strTable, rdTables.GetString(2), true, CultureInfo.CurrentCulture) == 0)
             {
-              if (String.Compare(schemaRow[SchemaTableColumn.ColumnName].ToString(), strColumn, true, CultureInfo.CurrentCulture) == 0
-                || strColumn == null)
+              using (SQLiteCommand cmd = new SQLiteCommand(String.Format(CultureInfo.CurrentCulture, "SELECT * FROM [{0}].[{1}]", strCatalog, rdTables.GetString(2)), this))
               {
-                row = tbl.NewRow();
+                using (SQLiteDataReader rd = (SQLiteDataReader)cmd.ExecuteReader(CommandBehavior.SchemaOnly))
+                {
+                  using (DataTable tblSchema = rd.GetSchemaTable())
+                  {
+                    foreach (DataRow schemaRow in tblSchema.Rows)
+                    {
+                      if (String.Compare(schemaRow[SchemaTableColumn.ColumnName].ToString(), strColumn, true, CultureInfo.CurrentCulture) == 0
+                        || strColumn == null)
+                      {
+                        row = tbl.NewRow();
 
-                row["TABLE_NAME"] = strTable;
-                row["COLUMN_NAME"] = schemaRow[SchemaTableColumn.ColumnName];
-                row["TABLE_CATALOG"] = strCatalog;
-                row["ORDINAL_POSITION"] = schemaRow[SchemaTableColumn.ColumnOrdinal];
-                row["COLUMN_HASDEFAULT"] = (schemaRow[SchemaTableOptionalColumn.DefaultValue] != DBNull.Value);
-                row["COLUMN_DEFAULT"] = schemaRow[SchemaTableOptionalColumn.DefaultValue];
-                row["IS_NULLABLE"] = schemaRow[SchemaTableColumn.AllowDBNull];
-                row["DATA_TYPE"] = SQLiteConvert.DbTypeToType((DbType)schemaRow[SchemaTableColumn.ProviderType]).ToString();
-                row["CHARACTER_MAXIMUM_LENGTH"] = schemaRow[SchemaTableColumn.ColumnSize];
-                row["TABLE_SCHEMA"] = schemaRow[SchemaTableColumn.BaseSchemaName];
+                        row["TABLE_NAME"] = rdTables.GetString(2);
+                        row["COLUMN_NAME"] = schemaRow[SchemaTableColumn.ColumnName];
+                        row["TABLE_CATALOG"] = strCatalog;
+                        row["ORDINAL_POSITION"] = schemaRow[SchemaTableColumn.ColumnOrdinal];
+                        row["COLUMN_HASDEFAULT"] = (schemaRow[SchemaTableOptionalColumn.DefaultValue] != DBNull.Value);
+                        row["COLUMN_DEFAULT"] = schemaRow[SchemaTableOptionalColumn.DefaultValue];
+                        row["IS_NULLABLE"] = schemaRow[SchemaTableColumn.AllowDBNull];
+                        row["DATA_TYPE"] = SQLiteConvert.DbTypeToType((DbType)schemaRow[SchemaTableColumn.ProviderType]).ToString();
+                        row["CHARACTER_MAXIMUM_LENGTH"] = schemaRow[SchemaTableColumn.ColumnSize];
+                        row["TABLE_SCHEMA"] = schemaRow[SchemaTableColumn.BaseSchemaName];
 
-                tbl.Rows.Add(row);
+                        tbl.Rows.Add(row);
+                      }
+                    }
+                  }
+                }
               }
             }
           }
@@ -830,7 +860,7 @@ namespace System.Data.SQLite
       tbl.Columns.Add("SORT_BOOKMARKS", typeof(bool));
       tbl.Columns.Add("AUTO_UPDATE", typeof(bool));
       tbl.Columns.Add("NULL_COLLATION", typeof(int));
-      tbl.Columns.Add("ORDINAL_POSITION", typeof(long));
+      tbl.Columns.Add("ORDINAL_POSITION", typeof(int));
       tbl.Columns.Add("COLUMN_NAME", typeof(string));
       tbl.Columns.Add("COLUMN_GUID", typeof(Guid));
       tbl.Columns.Add("COLUMN_PROPID", typeof(long));
@@ -1285,6 +1315,244 @@ namespace System.Data.SQLite
 
       tbl.AcceptChanges();
       tbl.EndLoadData();
+
+      return tbl;
+    }
+
+    /// <summary>
+    /// Returns the base column information for indexes in a database
+    /// </summary>
+    /// <param name="strCatalog">The catalog to retrieve indexes for (can be null)</param>
+    /// <param name="strTable">The table to restrict index information by (can be null)</param>
+    /// <param name="strIndex">The index to restrict index information by (can be null)</param>
+    /// <param name="strColumn">The source column to restrict index information by (can be null)</param>
+    /// <returns>A DataTable containing the results</returns>
+    private DataTable Schema_IndexColumns(string strCatalog, string strTable, string strIndex, string strColumn)
+    {
+      DataTable tbl = new DataTable("IndexColumns");
+      DataRow row;
+
+      tbl.Locale = CultureInfo.InvariantCulture;
+      tbl.Columns.Add("CONSTRAINT_CATALOG", typeof(string));
+      tbl.Columns.Add("CONSTRAINT_SCHEMA", typeof(string));
+      tbl.Columns.Add("CONSTRAINT_NAME", typeof(string));
+      tbl.Columns.Add("TABLE_CATALOG", typeof(string));
+      tbl.Columns.Add("TABLE_SCHEMA", typeof(string));
+      tbl.Columns.Add("TABLE_NAME", typeof(string));
+      tbl.Columns.Add("COLUMN_NAME", typeof(string));
+      tbl.Columns.Add("ORDINAL_POSITION", typeof(int));
+      tbl.Columns.Add("INDEX_NAME", typeof(string));
+
+      if (String.IsNullOrEmpty(strCatalog)) strCatalog = "main";
+
+      tbl.BeginLoadData();
+
+      using (SQLiteCommand cmdTable = new SQLiteCommand(String.Format(CultureInfo.CurrentCulture, "SELECT * FROM [{0}].[sqlite_master] WHERE [type] LIKE 'index'", strCatalog), this))
+      {
+        using (SQLiteDataReader rdTable = cmdTable.ExecuteReader())
+        {
+          while (rdTable.Read())
+          {
+            if (String.IsNullOrEmpty(strTable) || String.Compare(strTable, rdTable.GetString(2), true, CultureInfo.CurrentCulture) == 0)
+            {
+              if (String.IsNullOrEmpty(strIndex) || String.Compare(strIndex, rdTable.GetString(1), true, CultureInfo.CurrentCulture) == 0)
+              {
+                using (SQLiteCommand cmdIndex = new SQLiteCommand(String.Format(CultureInfo.CurrentCulture, "PRAGMA [{0}].index_info([{1}])", strCatalog, rdTable.GetString(1)), this))
+                {
+                  using (SQLiteDataReader rdIndex = cmdIndex.ExecuteReader())
+                  {
+                    while (rdIndex.Read())
+                    {
+                      row = tbl.NewRow();
+                      row["CONSTRAINT_CATALOG"] = strCatalog;
+                      row["CONSTRAINT_NAME"] = rdTable.GetString(1);
+                      row["TABLE_CATALOG"] = strCatalog;
+                      row["TABLE_NAME"] = rdTable.GetString(2);
+                      row["COLUMN_NAME"] = rdIndex.GetString(2);
+                      row["INDEX_NAME"] = rdTable.GetString(1);
+                      row["ORDINAL_POSITION"] = rdIndex.GetInt32(1);
+
+                      tbl.Rows.Add(row);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      tbl.EndLoadData();
+      tbl.AcceptChanges();
+
+      return tbl;
+    }
+
+    /// <summary>
+    /// Returns detailed column information for a specified view
+    /// </summary>
+    /// <param name="strCatalog">The catalog to retrieve columns for (can be null)</param>
+    /// <param name="strView">The view to restrict column information by (can be null)</param>
+    /// <param name="strColumn">The source column to restrict column information by (can be null)</param>
+    /// <returns>A DataTable containing the results</returns>
+    private DataTable Schema_ViewColumns(string strCatalog, string strView, string strColumn)
+    {
+      DataTable tbl = new DataTable("ViewColumns");
+      DataRow row;
+      string strSql;
+      int n;
+      DataRow schemaRow;
+      DataRow viewRow;
+
+      tbl.Locale = CultureInfo.InvariantCulture;
+      tbl.Columns.Add("VIEW_CATALOG", typeof(string));
+      tbl.Columns.Add("VIEW_SCHEMA", typeof(string));
+      tbl.Columns.Add("VIEW_NAME", typeof(string));
+      tbl.Columns.Add("VIEW_COLUMN_NAME", typeof(String));
+      tbl.Columns.Add("TABLE_CATALOG", typeof(string));
+      tbl.Columns.Add("TABLE_SCHEMA", typeof(string));
+      tbl.Columns.Add("TABLE_NAME", typeof(string));
+      tbl.Columns.Add("COLUMN_NAME", typeof(string));
+
+      if (String.IsNullOrEmpty(strCatalog)) strCatalog = "main";
+
+      tbl.BeginLoadData();
+
+      using (SQLiteCommand cmdViews = new SQLiteCommand(String.Format(CultureInfo.CurrentCulture, "SELECT * FROM [{0}].[sqlite_master] WHERE [type] LIKE 'view'", strCatalog), this))
+      {
+        using (SQLiteDataReader rdViews = cmdViews.ExecuteReader())
+        {
+          while (rdViews.Read())
+          {
+            if (String.IsNullOrEmpty(strView) || String.Compare(strView, rdViews.GetString(2), true, CultureInfo.CurrentCulture) == 0)
+            {
+              using (SQLiteCommand cmdViewSelect = new SQLiteCommand(String.Format(CultureInfo.CurrentCulture, "SELECT * FROM [{0}].[{1}]", strCatalog, rdViews.GetString(2)), this))
+              {
+                strSql = rdViews.GetString(4);
+                n = CultureInfo.CurrentCulture.CompareInfo.IndexOf(strSql, " AS ", CompareOptions.IgnoreCase);
+                if (n < 0)
+                  continue;
+
+                strSql = strSql.Substring(n + 4);
+
+                using (SQLiteCommand cmd = new SQLiteCommand(strSql, this))
+                {
+                  using (SQLiteDataReader rdViewSelect = cmdViewSelect.ExecuteReader(CommandBehavior.SchemaOnly))
+                  {
+                    using (SQLiteDataReader rd = (SQLiteDataReader)cmd.ExecuteReader(CommandBehavior.SchemaOnly))
+                    {
+                      using (DataTable tblSchemaView = rdViewSelect.GetSchemaTable())
+                      {
+                        using (DataTable tblSchema = rd.GetSchemaTable())
+                        {
+                          for (n = 0; n < tblSchema.Rows.Count; n++)
+                          {
+                            viewRow = tblSchemaView.Rows[n];
+                            schemaRow = tblSchema.Rows[n];
+
+                            if (String.Compare(viewRow[SchemaTableColumn.ColumnName].ToString(), strColumn, true, CultureInfo.CurrentCulture) == 0
+                              || strColumn == null)
+                            {
+                              row = tbl.NewRow();
+
+                              row["VIEW_CATALOG"] = strCatalog;
+                              row["VIEW_NAME"] = rdViews.GetString(2);
+                              row["TABLE_CATALOG"] = strCatalog;
+                              row["TABLE_SCHEMA"] = schemaRow[SchemaTableColumn.BaseSchemaName];
+                              row["TABLE_NAME"] = schemaRow[SchemaTableColumn.BaseTableName];
+                              row["COLUMN_NAME"] = schemaRow[SchemaTableColumn.ColumnName];
+                              row["VIEW_COLUMN_NAME"] = viewRow[SchemaTableColumn.ColumnName];
+
+                              tbl.Rows.Add(row);
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      tbl.EndLoadData();
+      tbl.AcceptChanges();
+
+      return tbl;
+    }
+
+    /// <summary>
+    /// Retrieves foreign key information from the specified set of filters
+    /// </summary>
+    /// <param name="strCatalog">An optional catalog to restrict results on</param>
+    /// <param name="strTable">An optional table to restrict results on</param>
+    /// <param name="strKeyName">An optional foreign key name to restrict results on</param>
+    /// <returns>A DataTable with the results of the query</returns>
+    private DataTable Schema_ForeignKeys(string strCatalog, string strTable, string strKeyName)
+    {
+      DataTable tbl = new DataTable("ForeignKeys");
+      DataRow row;
+
+      tbl.Locale = CultureInfo.InvariantCulture;
+      tbl.Columns.Add("CONSTRAINT_CATALOG", typeof(string));
+      tbl.Columns.Add("CONSTRAINT_SCHEMA", typeof(string));
+      tbl.Columns.Add("CONSTRAINT_NAME", typeof(string));
+      tbl.Columns.Add("TABLE_CATALOG", typeof(string));
+      tbl.Columns.Add("TABLE_SCHEMA", typeof(string));
+      tbl.Columns.Add("TABLE_NAME", typeof(string));
+      tbl.Columns.Add("CONSTRAINT_TYPE", typeof(string));
+      tbl.Columns.Add("IS_DEFERRABLE", typeof(bool));
+      tbl.Columns.Add("INITIALLY_DEFERRED", typeof(bool));
+      tbl.Columns.Add("FKEY_FROM_COLUMN", typeof(string));
+      tbl.Columns.Add("FKEY_TO_CATALOG", typeof(string));
+      tbl.Columns.Add("FKEY_TO_SCHEMA", typeof(string));
+      tbl.Columns.Add("FKEY_TO_TABLE", typeof(string));
+      tbl.Columns.Add("FKEY_TO_COLUMN", typeof(string));
+
+      if (String.IsNullOrEmpty(strCatalog)) strCatalog = "main";
+
+      tbl.BeginLoadData();
+
+      using (SQLiteCommand cmdTables = new SQLiteCommand(String.Format(CultureInfo.CurrentCulture, "SELECT * FROM [{0}].[sqlite_master] WHERE [type] LIKE 'table'", strCatalog), this))
+      {
+        using (SQLiteDataReader rdTables = cmdTables.ExecuteReader())
+        {
+          while (rdTables.Read())
+          {
+            if (String.IsNullOrEmpty(strTable) || String.Compare(strTable, rdTables.GetString(2), true, CultureInfo.CurrentCulture) == 0)
+            {
+              using (SQLiteCommand cmdKey = new SQLiteCommand(String.Format(CultureInfo.CurrentCulture, "PRAGMA [{0}].foreign_key_list([{1}])", strCatalog, rdTables.GetString(2)), this))
+              {
+                using (SQLiteDataReader rdKey = cmdKey.ExecuteReader())
+                {
+                  while (rdKey.Read())
+                  {
+                    row = tbl.NewRow();
+                    row["CONSTRAINT_CATALOG"] = strCatalog;
+                    row["CONSTRAINT_NAME"] = String.Format(CultureInfo.CurrentCulture, "unnamed{0}", rdKey.GetInt64(0));
+                    row["TABLE_CATALOG"] = strCatalog;
+                    row["TABLE_NAME"] = rdTables.GetString(2);
+                    row["CONSTRAINT_TYPE"] = "FOREIGN KEY";
+                    row["IS_DEFERRABLE"] = false;
+                    row["INITIALLY_DEFERRED"] = false;
+                    row["FKEY_TO_CATALOG"] = strCatalog;
+                    row["FKEY_TO_TABLE"] = rdKey.GetString(2);
+                    row["FKEY_FROM_COLUMN"] = rdKey.GetString(3);
+                    row["FKEY_TO_COLUMN"] = rdKey.GetString(4);
+
+                    tbl.Rows.Add(row);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      tbl.EndLoadData();
+      tbl.AcceptChanges();
 
       return tbl;
     }

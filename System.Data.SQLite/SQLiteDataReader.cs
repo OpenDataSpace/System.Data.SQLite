@@ -473,7 +473,7 @@ namespace System.Data.SQLite
         // fully-qualified Database.Table.Column column names because of the above pragma
         using (SQLiteCommand cmd = new SQLiteCommand(_activeStatement._sqlStatement, cnn))
         {
-          using (DbDataReader rd = cmd.ExecuteReader())
+          using (DbDataReader rd = cmd.ExecuteReader(CommandBehavior.SchemaOnly))
           {
             // No need to Read() from this reader, we just want the column names
             for (int n = 0; n < _fieldCount; n++)
