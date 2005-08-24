@@ -24,6 +24,9 @@ extern "C"
 */
 static FifoPage *allocatePage(int nEntry){
   FifoPage *pPage;
+  if( nEntry>32767 ){
+    nEntry = 32767;
+  }
   pPage = (FifoPage *)sqliteMallocRaw( sizeof(FifoPage) + sizeof(i64)*(nEntry-1) );
   if( pPage ){
     pPage->nSlot = nEntry;
@@ -80,7 +83,9 @@ int sqlite3VdbeFifoPop(Fifo *pFifo, i64 *pVal){
   pPage = pFifo->pFirst;
   assert( pPage!=0 );
   assert( pPage->iWrite>pPage->iRead );
+  assert( pPage->iWrite<=pPage->nSlot );
   assert( pPage->iRead<pPage->nSlot );
+  assert( pPage->iRead>=0 );
   *pVal = pPage->aSlot[pPage->iRead++];
   pFifo->nEntry--;
   if( pPage->iRead>=pPage->iWrite ){
