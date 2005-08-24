@@ -5,8 +5,8 @@
   </head>
   <body>
     ADO.NET 2.0 SQLite Data Provider<br>
-    Version 1.0.15 - Aug 22, 2005<br>
-    Interop using SQLite 3.2.3<br>
+    Version 1.0.16- Aug 24, 2005<br>
+    Interop using SQLite 3.2.4<br>
     Written by Robert Simpson (<a href="mailto:robert@blackcastlesoft.com">robert@blackcastlesoft.com</a>)<br>
     Released to the public domain, use at your own risk!<br>
     <br>
@@ -35,8 +35,9 @@
       automatically re-attached to the new connection.
       <li>
         DbConnection.GetSchema(...) support includes the <i>MetaDataCollections</i>, <i>DataSourceInformation</i>,
-        <i>Columns</i>, <i>Tables</i>, <i>Views</i>, <i>Catalogs</i> and <i>Indexes</i>
-      keywords.
+        <i>Columns</i>, <i>Tables</i>, <i>Views, ViewColumns, </i> <i>Catalogs, </i> <i>Indexes,
+			IndexColumns </i>and <em>ForeignKeys</em>
+		keywords.
       <li>
       Enhanced DbDataReader.GetSchemaTable() functionality returns catalog, namespace 
       and detailed schema information even for complex queries.
@@ -82,10 +83,11 @@
     either your application's app.config or the system's machine.config located in 
     the %SystemRoot%\Microsoft.Net\Framework\v2.xxxx\Config folder:<br>
     <br>
-    <pre>&lt;configuration&gt;
+    <pre>
+&lt;configuration&gt;
   &lt;system.data&gt;
     &lt;DbProviderFactories&gt;
-      &lt;add name="SQLite Data Provider" invariant="System.Data.SQLite" description=".Net Framework Data Provider for SQLite"<BR> type="System.Data.SQLite.SQLiteFactory, System.Data.SQLite, Version=1.0.15.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139" /&gt;
+      &lt;add name="SQLite Data Provider" invariant="System.Data.SQLite" description=".Net Framework Data Provider for SQLite"<BR /> type="System.Data.SQLite.SQLiteFactory, System.Data.SQLite, Version=1.0.16.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139" /&gt;
     &lt;/DbProviderFactories&gt;
   &lt;/system.data&gt;
 &lt;/configuration&gt;
@@ -153,6 +155,11 @@
     <b></b>
     <h2>
       <b>Version History</b></h2>
+    <b>1.0.16 - August 24, 2005</b><br>
+    <ul>
+      <li>Code merge with SQLite 3.2.4 with the large delete bugfix in CVS (which will become 3.2.5 soon)</li>
+      <li>Added new GetSchema() types: IndexColumns, ViewColumns, ForeignKeys</li>
+    </ul>
     <b>1.0.15 - August 22, 2005</b><br>
     <ul>
       <li>Code merge with SQLite 3.2.3

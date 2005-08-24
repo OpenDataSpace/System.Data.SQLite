@@ -14,8 +14,7 @@
     <PlatformID>3C41C503-53EF-4c2a-8DD4-A8217CAD115E</PlatformID>
     <OSVersion>4.20</OSVersion>
     <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
-    <FormFactorID>
-    </FormFactorID>
+    <FormFactorID>POCKET_PC_2003_PORTRAIT</FormFactorID>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>System.Data.SQLite.snk</AssemblyOriginatorKeyFile>
     <DeployDirSuffix>testce</DeployDirSuffix>
