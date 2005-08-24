@@ -546,8 +546,7 @@ namespace System.Data.SQLite
                         row[SchemaTableColumn.AllowDBNull] = (!bNotNull && !bPrimaryKey);
                         row[SchemaTableColumn.IsUnique] = bPrimaryKey;
                         row[SchemaTableColumn.IsKey] = bPrimaryKey;
-                        row[SchemaTableOptionalColumn.IsAutoIncrement] = (bPrimaryKey &&
-                            String.Compare(strType, "integer", true, CultureInfo.InvariantCulture) == 0);
+                        row[SchemaTableOptionalColumn.IsAutoIncrement] = (String.Compare(strType, "autoincrement", true, CultureInfo.InvariantCulture) == 0);
                         row[SchemaTableOptionalColumn.IsReadOnly] = (bool)row[SchemaTableOptionalColumn.IsAutoIncrement];
                         if (rdTable.IsDBNull(4) == false)
                           row[SchemaTableOptionalColumn.DefaultValue] = rdTable[4];
