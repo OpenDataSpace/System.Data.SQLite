@@ -15,7 +15,7 @@ extern "C"
 ** This file contains routines used for analyzing expressions and
 ** for generating VDBE code that evaluates expressions in SQLite.
 **
-** $Id: expr.c,v 1.8 2005/08/24 15:05:38 rmsimpson Exp $
+** $Id: expr.c,v 1.9 2005/08/24 22:09:57 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include <ctype.h>
@@ -1744,7 +1744,6 @@ void sqlite3ExprCode(Parse *pParse, Expr *pExpr){
          sqlite3DequoteExpr(pExpr);
          sqlite3VdbeOp3(v, OP_Halt, SQLITE_CONSTRAINT, pExpr->iColumn,
                         (const char *)pExpr->token.z, pExpr->token.n);
-//         sqlite3VdbeDequoteP3(v, -1);
       } else {
          assert( pExpr->iColumn == OE_Ignore );
          sqlite3VdbeAddOp(v, OP_ContextPop, 0, 0);
