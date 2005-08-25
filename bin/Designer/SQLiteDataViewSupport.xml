@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-         Copyright (c) Microsoft Corporation, All rights reserved.
-    This code sample is provided "AS IS" without warranty of any kind,
-    it is not recommended for use in a production environment.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  -->
+<!--
+/********************************************************
+ * ADO.NET 2.0 Data Provider for SQLite Version 3.X
+ * Written by Robert Simpson (robert@blackcastlesoft.com)
+ * 
+ * Released to the public domain, use at your own risk!
+ ********************************************************/
+-->
 
 <VSDataViewSupport xmlns="http://tempuri.org/VSDataViewSupport.xsd">
 	<DataViews>

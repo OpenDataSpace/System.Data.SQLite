@@ -1,52 +1,31 @@
 ﻿<?xml version="1.0" encoding="utf-8"?> 
 
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-         Copyright (c) Microsoft Corporation, All rights reserved.
-    This code sample is provided "AS IS" without warranty of any kind,
-    it is not recommended for use in a production environment.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  -->
+<!--
+/********************************************************
+ * ADO.NET 2.0 Data Provider for SQLite Version 3.X
+ * Written by Robert Simpson (robert@blackcastlesoft.com)
+ * 
+ * Released to the public domain, use at your own risk!
+ ********************************************************/
+-->
 
 <VSDataObjectSupport xmlns="http://tempuri.org/VSDataObjectSupport.xsd">
 	<Types>
-		<!--
-			The root type provides a single object with no identifier.  Properties
-			on this object are global to a connection.
-		-->
 		<RootType>
 			<Properties>
         <Property name="Server" type="System.String" itemName="DataSource"/>
         <Property name="Database" type="System.String" itemName="Database"/>
       </Properties>
 			<Actions>
-				<!--
-					This enumerator provides access to properties on the ADO .NET
-					DbConnection object as well as access to each connection string
-					keyword value.
-				-->
 				<Action name="Enumerate" guid="61CC0372-384D-42e5-9707-6D7C8DC5287A" handler="Microsoft.VisualStudio.Data.AdoDotNet.AdoDotNetRootObjectEnumerator"/>
 			</Actions>
 		</RootType>
 
-		<!--
-			Defines a type that represents a table.
-		-->
-		<Type name="Table" defaultSort="Database, Schema, Name">
+		<Type name="Table" defaultSort="Database,Schema,Name">
 			<Concepts>
-				<!--
-					This type maps to the "Table" concept.  The restrictions attribute
-					specifies how to map the generic restrictions for the concept (catalog,
-					schema and name) into the specific restrictions for this type.  In this
-					case the generic and specific restrictions are identical.  The filter
-					indicates that generic enumerations should only get BASE TABLE rows.
-				-->
 				<Concept name="Table" restrictions="{Catalog},null,{Name},TABLE"/>
 			</Concepts>
 			<Identifier>
-				<!--
-					The concepts here specify which data represents the generic identifier
-					of the table (catalog, schema and name).  In this case the generic and
-					specific identifier are identical.
-				-->
 				<Part name="Database" itemName="table_catalog">
 					<Concepts>
 						<Concept name="Identifier0"/>
@@ -64,11 +43,6 @@
 				</Part>
 			</Identifier>
 			<Restrictions>
-				<!--
-					Since the set of restrictions available for this type are different from
-					the set of identifier parts, we explicitly specify what data can be
-					restricted on here.
-				-->
 				<Restriction name="Database"/>
 				<Restriction name="Schema"/>
 				<Restriction name="Name"/>
@@ -83,12 +57,6 @@
 				<Action name="Enumerate" guid="61CC0372-384D-42e5-9707-6D7C8DC5287A" handler="Microsoft.VisualStudio.Data.AdoDotNet.AdoDotNetObjectEnumerator">
 					<Parameter value="Tables"/>
 				</Action>
-				<!--
-					The BuildDSRef action allows objects to be dragged from the server
-					explorer to various built in data designers.  The parameters to the
-					base DSRefBuilder implementation specify how to build the DSRef tree
-					given parts of an identifier of this object type.
-				-->
 				<Action name="BuildDSRef" guid="7C030900-E8DD-471b-8F18-D83DA7036144" handler="Microsoft.VisualStudio.Data.DSRefBuilder">
 					<Parameter>
 						<Parameter value="{2}"/>
@@ -106,12 +74,9 @@
 			</Actions>
 		</Type>
 
-		<!--
-			Defines a type that represents a table column.
-		-->
-		<Type name="TableColumn" defaultSort="Database, Schema, Table, Ordinal">
+		<Type name="TableColumn" defaultSort="Database,Schema,Table,Ordinal">
 			<Concepts>
-				<Concept name="TableColumn" restrictions="{Catalog}, null, {Table}, {Name}"/>
+				<Concept name="TableColumn" restrictions="{Catalog},null,{Table},{Name}"/>
 			</Concepts>
 			<Identifier>
 				<Part name="Database" itemName="table_catalog">
@@ -140,22 +105,11 @@
 				<Property name="Ordinal" type="System.Int32" itemName="ordinal_position">
 					<Concepts>
 						<Concept name="Ordinal">
-							<!--
-								The Ordinal concept is defined as an Int32 so we must convert it to
-								the expected type.
-							-->
 						</Concept>
 					</Concepts>
 				</Property>
 				<Property name="SystemType" type="System.String" itemName="data_type">
 					<Concepts>
-						<!--
-							We can produce reasonable values for all data type concepts given just
-							the system type.  The default ADO .NET object concept mapper uses the
-							ADO .NET DataTypes schema collection to map underlying system type
-							to the provider specific type and framework data type.  The
-							System.Data.DbType is then inferred from the framework type.
-						-->
 						<Concept name="UserDataType"/>
 						<Concept name="NativeDataType"/>
 						<Concept name="ProviderDataType">
@@ -187,11 +141,6 @@
 				</Property>
 				<Property name="Nullable" type="System.Boolean" itemName="is_nullable">
 					<Concepts>
-						<!--
-							The nullable concept is defined as a boolean value but the enumeration
-							returns a 'YES' or 'NO' string.  We can do the conversion inline using
-							an expression.
-						-->
 						<Concept name="Nullable">
 						</Concept>
 					</Concepts>
@@ -237,12 +186,9 @@
 			</Actions>
 		</Type>
 
-    <!--
-			Defines a type that represents a view.
-		-->
 		<Type name="View" defaultSort="Database, Schema, Name">
 			<Concepts>
-				<Concept name="View" restrictions="{Catalog}, null,{Name}"/>
+				<Concept name="View" restrictions="{Catalog}, null, {Name}"/>
 			</Concepts>
 			<Identifier>
 				<Part name="Database" itemName="table_catalog">
@@ -295,7 +241,7 @@
 		<!--
 			Defines a type that represents a view column.
 		-->
-		<Type name="ViewColumn" defaultSort="Database, Schema, View, Ordinal">
+		<Type name="ViewColumn" defaultSort="Database,Schema,View,Ordinal">
 			<Concepts>
 				<Concept name="ViewColumn" restrictions="{Catalog},null,{View},{Name}"/>
 			</Concepts>
@@ -409,15 +355,9 @@
     <!--
 			Defines a type that represents an index.
 		-->
-    <Type name="Index" defaultSort="Database, Schema, Table, Name">
+    <Type name="Index" defaultSort="Database,Schema,Table,Name">
       <Concepts>
-        <!--
-					In SQL Server all unique keys are described as indexes, so we can map
-					this type to the TableUniqueKey concept.  However not all indexes are
-					unique keys, so we must filter the objects based on the IsUnique
-					property.
-				-->
-        <Concept name="TableUniqueKey" restrictions="{Catalog},{Schema},{Table},{Name}" filter="IsUnique = true"/>
+        <Concept name="TableUniqueKey" restrictions="{Catalog},null,{Table},{Name}" filter="IsUnique = true"/>
       </Concepts>
       <Identifier>
         <Part name="Database" itemName="table_catalog">
@@ -483,12 +423,9 @@
       </Actions>
     </Type>
 
-    <!--
-			Defines a type that represents an index column.
-		-->
-    <Type name="IndexColumn" defaultSort="Database, Schema, Table, Index, Ordinal">
+    <Type name="IndexColumn" defaultSort="Database,Schema,Table,Index,Ordinal">
       <Concepts>
-        <Concept name="TableUniqueKeyColumn" restrictions="{Catalog},{Schema},{Table},{TableUniqueKey},{Name}"/>
+        <Concept name="TableUniqueKeyColumn" restrictions="{Catalog},null,{Table},{TableUniqueKey},{Name}"/>
       </Concepts>
       <Identifier>
         <Part name="Database" itemName="table_catalog">
@@ -571,12 +508,9 @@
       </Actions>
     </Type>
 
-    <!--
-			Defines a type that represents a foreign key.
-		-->
-    <Type name="ForeignKey" defaultSort="Database, Schema, Table, Name">
+    <Type name="ForeignKey" defaultSort="Database,Schema,Table,Name">
       <Concepts>
-        <Concept name="TableForeignKey" restrictions="{Catalog},{Schema},{Table},{Name}"/>
+        <Concept name="TableForeignKey" restrictions="{Catalog},null,{Table},{Name}"/>
       </Concepts>
       <Identifier>
         <Part name="Database" itemName="table_catalog">
@@ -609,13 +543,6 @@
         </Property>
         <Property name="ReferencedTableSchema" type="System.String" itemName="fkey_to_schema">
           <Concepts>
-            <!--
-							The ForeignKey type concept specifies that there should be property
-							concepts that fully identify the referenced table.  These concepts
-							are defined similar to the identifier concepts.  If a reference
-							concept is missing (e.g. ReferencedTableId0) it is assumed to be the
-							same as the main object identifier part.
-						-->
             <Concept name="ReferencedTableId1"/>
           </Concepts>
         </Property>
@@ -632,12 +559,9 @@
       </Actions>
     </Type>
 
-    <!--
-			Defines a type that represents a foreign key column.
-		-->
-    <Type name="ForeignKeyColumn" defaultSort="Database, Schema, Table, ForeignKey, Ordinal">
+    <Type name="ForeignKeyColumn" defaultSort="Database,Schema,Table,ForeignKey,Ordinal">
       <Concepts>
-        <Concept name="TableForeignKeyColumn" restrictions="{Catalog},{Schema},{Table},{TableForeignKey},{Name}"/>
+        <Concept name="TableForeignKeyColumn" restrictions="{Catalog},null,{Table},{TableForeignKey},{Name}"/>
       </Concepts>
       <Identifier>
         <Part name="Database" itemName="table_catalog">
@@ -675,11 +599,6 @@
         </Property>
         <Property name="ReferencedColumnName" type="System.String" itemName="fkey_to_column">
           <Concepts>
-            <!--
-							The ForeignKeyColumn type concept specifies that there should be
-							a property concept that gives the name of the referenced column
-							in the referenced table.
-						-->
             <Concept name="ReferencedTableColumn"/>
           </Concepts>
         </Property>
