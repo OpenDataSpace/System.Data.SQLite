@@ -220,5 +220,21 @@ namespace System.Data.SQLite
 
     [DllImport(SQLITE_DLL, CharSet = CharSet.Unicode)]
     internal static extern void sqlite3_result_text16_interop(int context, string strName, int nLen, int pvReserved);
+
+    [DllImport(SQLITE_DLL, CharSet = CharSet.Unicode, SetLastError = true)]
+    internal static extern int sqlite3_encryptfile(string fileName);
+
+    [DllImport(SQLITE_DLL, CharSet = CharSet.Unicode, SetLastError = true)]
+    internal static extern int sqlite3_decryptfile(string fileName);
+
+    [DllImport(SQLITE_DLL, CharSet = CharSet.Unicode, SetLastError = true)]
+    internal static extern int sqlite3_encryptedstatus(string fileName, out long fileStatus);
+
+    [DllImport(SQLITE_DLL, CharSet = CharSet.Unicode, SetLastError = true)]
+    internal static extern int sqlite3_compressfile(string fileName);
+
+    [DllImport(SQLITE_DLL, CharSet = CharSet.Unicode, SetLastError = true)]
+    internal static extern int sqlite3_decompressfile(string fileName);
+
   }
 }

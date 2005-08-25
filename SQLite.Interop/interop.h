@@ -113,8 +113,23 @@ static void generateColumnNames(
 
 #ifdef OS_WIN
 
+#include <tchar.h>
+
 typedef void (__stdcall *SQLITEUSERFUNC)(void *, int, void **);
 typedef int  (__stdcall *SQLITECOLLATION)(int, const void *, int, const void*);
+
+typedef int (__stdcall *ENCRYPTFILEW)(const wchar_t *);
+typedef int (__stdcall *ENCRYPTEDSTATUSW)(const wchar_t *, unsigned long *);
+typedef int (__stdcall *DECRYPTFILEW)(const wchar_t *, unsigned long);
+
+typedef HANDLE (__stdcall *CREATEFILEW)(
+    LPCWSTR,
+    DWORD,
+    DWORD,
+    LPSECURITY_ATTRIBUTES,
+    DWORD,
+    DWORD,
+    HANDLE);
 
 // Callback wrappers
 int sqlite3_interop_collationfunc(void *pv, int len1, const void *pv1, int len2, const void *pv2)
@@ -139,6 +154,123 @@ void sqlite3_interop_final(sqlite3_context *pctx)
 {
   SQLITEUSERFUNC *pf = (SQLITEUSERFUNC *)sqlite3_user_data(pctx);
   pf[2](pctx, 0, 0);
+}
+
+__declspec(dllexport) void __stdcall sqlite3_sleep_interop(int milliseconds)
+{
+  Sleep(milliseconds);
+}
+
+__declspec(dllexport) int sqlite3_encryptfile(const wchar_t *pwszFilename)
+{
+  HMODULE hMod = LoadLibrary(_T("ADVAPI32"));
+  if (hMod == NULL)
+  {
+    SetLastError(ERROR_NOT_SUPPORTED);
+    return 0;
+  }
+
+  ENCRYPTFILEW pfunc = (ENCRYPTFILEW)GetProcAddress(hMod, _T("EncryptFileW"));
+  if (pfunc == NULL)
+  {
+    SetLastError(ERROR_NOT_SUPPORTED);
+    return 0;
+  }
+
+  int n = pfunc(pwszFilename);
+
+  FreeLibrary(hMod);
+
+  return n;
+}
+
+__declspec(dllexport) int sqlite3_decryptfile(const wchar_t *pwszFilename)
+{
+  HMODULE hMod = LoadLibrary(_T("ADVAPI32"));
+  if (hMod == NULL)
+  {
+    SetLastError(ERROR_NOT_SUPPORTED);
+    return 0;
+  }
+
+  DECRYPTFILEW pfunc = (DECRYPTFILEW)GetProcAddress(hMod, _T("DecryptFileW"));
+  if (pfunc == NULL)
+  {
+    SetLastError(ERROR_NOT_SUPPORTED);
+    return 0;
+  }
+
+  int n = pfunc(pwszFilename, 0);
+
+  FreeLibrary(hMod);
+
+  return n;
+}
+
+__declspec(dllexport) unsigned long sqlite3_encryptedstatus(const wchar_t *pwszFilename, unsigned long *pdwStatus)
+{
+  HMODULE hMod = LoadLibrary(_T("ADVAPI32"));
+  if (hMod == NULL)
+  {
+    SetLastError(ERROR_NOT_SUPPORTED);
+    return 0;
+  }
+
+  ENCRYPTEDSTATUSW pfunc = (ENCRYPTEDSTATUSW)GetProcAddress(hMod, _T("FileEncryptionStatusW"));
+  if (pfunc == NULL)
+  {
+    SetLastError(ERROR_NOT_SUPPORTED);
+    return 0;
+  }
+
+  int n = pfunc(pwszFilename, pdwStatus);
+
+  FreeLibrary(hMod);
+
+  return n;
+}
+
+int SetCompression(const wchar_t *pwszFilename, unsigned short ufLevel)
+{
+#ifdef FSCTL_SET_COMPRESSION
+  HMODULE hMod = GetModuleHandle(_T("KERNEL32"));
+  if (hMod == NULL)
+  {
+    SetLastError(ERROR_NOT_SUPPORTED);
+    return 0;
+  }
+
+  CREATEFILEW pfunc = (CREATEFILEW)GetProcAddress(hMod, _T("CreateFileW"));
+  if (pfunc == NULL)
+  {
+    SetLastError(ERROR_NOT_SUPPORTED);
+    return 0;
+  }
+
+  HANDLE hFile = pfunc(pwszFilename, GENERIC_READ|GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+  if (hFile == NULL)
+    return 0;
+
+  unsigned long dw = 0;
+  int n = DeviceIoControl(hFile, FSCTL_SET_COMPRESSION, &ufLevel, sizeof(ufLevel), NULL, 0, &dw, NULL);
+
+  CloseHandle(hFile);
+
+  return n;
+#else
+  SetLastError(ERROR_NOT_SUPPORTED);
+  return 0;
+#endif
+}
+
+__declspec(dllexport) int __stdcall sqlite3_compressfile(const wchar_t *pwszFilename)
+{
+  return SetCompression(pwszFilename, COMPRESSION_FORMAT_DEFAULT);
+}
+
+__declspec(dllexport) int __stdcall sqlite3_decompressfile(const wchar_t *pwszFilename)
+{
+  return SetCompression(pwszFilename, COMPRESSION_FORMAT_NONE);
 }
 
 __declspec(dllexport) void __stdcall sqlite3_function_free_callbackcookie(void *pCookie)

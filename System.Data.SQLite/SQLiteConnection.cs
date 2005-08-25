@@ -219,6 +219,87 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
+    /// Creates a database file.  This just creates a zero-byte file which SQLite
+    /// will turn into a database when the file is opened properly.
+    /// </summary>
+    /// <param name="databaseFilename">The file to create</param>
+    static public void CreateFile(string databaseFilename)
+    {
+      IO.FileStream fs = IO.File.Create(databaseFilename);
+      fs.Close();
+    }
+
+    /// <summary>
+    /// On NTFS volumes, this function turns on the compression attribute for the given file.
+    /// It must not be open or referenced at the time of the function call.
+    /// </summary>
+    /// <param name="databaseFilename">The file to compress</param>
+    static public void CompressFile(string databaseFilename)
+    {
+      UnsafeNativeMethods.sqlite3_compressfile(databaseFilename);
+    }
+
+    /// <summary>
+    /// On NTFS volumes, this function removes the compression attribute for the given file.
+    /// It must not be open or referenced at the time of the function call.
+    /// </summary>
+    /// <param name="databaseFilename">The file to decompress</param>
+    static public void DecompressFile(string databaseFilename)
+    {
+      UnsafeNativeMethods.sqlite3_decompressfile(databaseFilename);
+    }
+
+    /// <summary>
+    /// On NTFS volumes, this function turns on the EFS (Encrypted File System) attribute
+    /// for the given file, which causes the file to be encrypted.
+    /// For a full description of EFS, see the MSDN documentation.
+    /// </summary>
+    /// <remarks>
+    /// Requires Win2K and above, plus a valid EFS certificate (which is beyond the scope
+    /// of this function description).
+    /// </remarks>
+    /// <param name="databaseFilename">The file to encrypt</param>
+    static public void EncryptFile(string databaseFilename)
+    {
+      int n = UnsafeNativeMethods.sqlite3_encryptfile(databaseFilename);
+      if (n == 0) throw new System.ComponentModel.Win32Exception();
+    }
+
+    /// <summary>
+    /// On NTFS volumes, this function removes the encryption attribute from the file,
+    /// causing the file to be decrypted.  See the MSDN documentation for full details on
+    /// EFS (Encrypted File System).
+    /// </summary>
+    /// <remarks>
+    /// Requires Win2K and above, plus a valid EFS certificate (which is beyond the scope
+    /// of this function description).
+    /// </remarks>
+    /// <param name="databaseFilename">The file to decrypt</param>
+    static public void DecryptFile(string databaseFilename)
+    {
+      int n = UnsafeNativeMethods.sqlite3_decryptfile(databaseFilename);
+      if (n == 0) throw new System.ComponentModel.Win32Exception();
+    }
+
+    /// <summary>
+    /// Returns true if the file is encrypted, or false otherwise.
+    /// </summary>
+    /// <remarks>
+    /// Requires Win2K and above, plus a valid EFS certificate (which is beyond the scope
+    /// of this function description).
+    /// </remarks>
+    /// <param name="databaseFilename">The file to check</param>
+    /// <returns>true if the file is encrypted</returns>
+    static public bool IsEncrypted(string databaseFilename)
+    {
+      long status;
+      int n = UnsafeNativeMethods.sqlite3_encryptedstatus(databaseFilename, out status);
+      if (n == 0) throw new System.ComponentModel.Win32Exception();
+
+      return (status == 1);
+    }
+
+    /// <summary>
     /// Raises the state change event when the state of the connection changes
     /// </summary>
     /// <param name="newState">The new state.  If it is different from the previous state, an event is raised.</param>
