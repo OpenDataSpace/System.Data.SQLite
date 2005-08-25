@@ -12,6 +12,8 @@ Windows Registry Editor Version 5.00
 
 [HKEY_LOCAL_MACHINE\%REGROOT%\DataProviders\{0EBAAB6E-CA80-4b4a-8DDF-CBE6BF058C70}\SupportedObjects\DataConnectionSupport]
 
+[HKEY_LOCAL_MACHINE\%REGROOT%\DataProviders\{0EBAAB6E-CA80-4b4a-8DDF-CBE6BF058C70}\SupportedObjects\DataObjectEnumerator]
+
 [HKEY_LOCAL_MACHINE\%REGROOT%\DataProviders\{0EBAAB6E-CA80-4b4a-8DDF-CBE6BF058C70}\SupportedObjects\DataObjectSupport]
 @="SQLiteDataObjectSupport.xml"
 "Path"="%XMLPATH%"

@@ -111,7 +111,7 @@
 		-->
 		<Type name="TableColumn" defaultSort="Database, Schema, Table, Ordinal">
 			<Concepts>
-				<Concept name="TableColumn" restrictions="{Catalog}, null,{Table}, {Name}"/>
+				<Concept name="TableColumn" restrictions="{Catalog}, null, {Table}, {Name}"/>
 			</Concepts>
 			<Identifier>
 				<Part name="Database" itemName="table_catalog">
@@ -406,5 +406,289 @@
 				</Action>
 			</Actions>
 		</Type>
-	</Types>
+    <!--
+			Defines a type that represents an index.
+		-->
+    <Type name="Index" defaultSort="Database, Schema, Table, Name">
+      <Concepts>
+        <!--
+					In SQL Server all unique keys are described as indexes, so we can map
+					this type to the TableUniqueKey concept.  However not all indexes are
+					unique keys, so we must filter the objects based on the IsUnique
+					property.
+				-->
+        <Concept name="TableUniqueKey" restrictions="{Catalog},{Schema},{Table},{Name}" filter="IsUnique = true"/>
+      </Concepts>
+      <Identifier>
+        <Part name="Database" itemName="table_catalog">
+          <Concepts>
+            <Concept name="Identifier0"/>
+          </Concepts>
+        </Part>
+        <Part name="Schema" itemName="table_schema">
+          <Concepts>
+            <Concept name="Identifier1"/>
+          </Concepts>
+        </Part>
+        <Part name="Table" itemName="table_name">
+          <Concepts>
+            <Concept name="Identifier2"/>
+          </Concepts>
+        </Part>
+        <Part name="Name" itemName="index_name">
+          <Concepts>
+            <Concept name="Identifier3"/>
+          </Concepts>
+        </Part>
+      </Identifier>
+      <Properties>
+        <Property name="Name" type="System.String" itemName="index_name"/>
+        <Property name="IsUnique" type="System.Boolean" itemName="UNIQUE"/>
+        <Property name="IsPrimary" type="System.Boolean" itemName="PRIMARY_KEY">
+          <Concepts>
+            <Concept name="IsPrimary"/>
+          </Concepts>
+        </Property>
+      </Properties>
+      <Actions>
+        <Action name="Enumerate" guid="61CC0372-384D-42e5-9707-6D7C8DC5287A" handler="Microsoft.VisualStudio.Data.AdoDotNet.AdoDotNetObjectEnumerator">
+          <Parameter value="Indexes"/>
+        </Action>
+        <Action name="BuildDSRef" guid="7C030900-E8DD-471b-8F18-D83DA7036144" handler="Microsoft.VisualStudio.Data.DSRefBuilder">
+          <Parameter>
+            <Parameter value="{2}"/>
+            <Parameter value="{1}"/>
+            <Parameter value="Table"/>
+            <Parameter/>
+            <Parameter>
+              <!-- GUID_DSRefProperty_Qualifier -->
+              <Parameter value="4656BAEA-F397-11ce-BFE1-00AA0057B34E">
+                <Parameter value="{0}"/>
+              </Parameter>
+              <!-- GUID_DSRefProperty_PreciseType -->
+              <Parameter value="39A5A7E7-513F-44a4-B79D-7652CD8962D9">
+                <Parameter value="101" type="System.Int32"/>
+                <!-- Table -->
+              </Parameter>
+            </Parameter>
+            <Parameter>
+              <Parameter>
+                <Parameter value="{3}"/>
+                <Parameter/>
+                <Parameter value="Index"/>
+              </Parameter>
+            </Parameter>
+          </Parameter>
+        </Action>
+      </Actions>
+    </Type>
+
+    <!--
+			Defines a type that represents an index column.
+		-->
+    <Type name="IndexColumn" defaultSort="Database, Schema, Table, Index, Ordinal">
+      <Concepts>
+        <Concept name="TableUniqueKeyColumn" restrictions="{Catalog},{Schema},{Table},{TableUniqueKey},{Name}"/>
+      </Concepts>
+      <Identifier>
+        <Part name="Database" itemName="table_catalog">
+          <Concepts>
+            <Concept name="Identifier0"/>
+          </Concepts>
+        </Part>
+        <Part name="Schema" itemName="table_schema">
+          <Concepts>
+            <Concept name="Identifier1"/>
+          </Concepts>
+        </Part>
+        <Part name="Table" itemName="table_name">
+          <Concepts>
+            <Concept name="Identifier2"/>
+          </Concepts>
+        </Part>
+        <Part name="Index" itemName="index_name">
+          <Concepts>
+            <Concept name="Identifier3"/>
+          </Concepts>
+        </Part>
+        <Part name="Name" itemName="column_name">
+          <Concepts>
+            <Concept name="Identifier4"/>
+          </Concepts>
+        </Part>
+      </Identifier>
+      <Properties>
+        <Property name="Name" type="System.String" itemName="column_name"/>
+        <Property name="Ordinal" type="System.Byte" itemName="ordinal_position">
+          <Concepts>
+            <Concept name="Ordinal">
+              <Conversion>
+                <ChangeType type="System.Int32"/>
+              </Conversion>
+            </Concept>
+          </Concepts>
+        </Property>
+      </Properties>
+      <Actions>
+        <Action name="Enumerate" guid="61CC0372-384D-42e5-9707-6D7C8DC5287A" handler="Microsoft.VisualStudio.Data.AdoDotNet.AdoDotNetObjectEnumerator">
+          <Parameter value="IndexColumns"/>
+        </Action>
+        <Action name="BuildDSRef" guid="7C030900-E8DD-471b-8F18-D83DA7036144" handler="Microsoft.VisualStudio.Data.DSRefBuilder">
+          <Parameter>
+            <Parameter value="{2}"/>
+            <Parameter value="{1}"/>
+            <Parameter value="Table"/>
+            <Parameter/>
+            <Parameter>
+              <!-- GUID_DSRefProperty_Qualifier -->
+              <Parameter value="4656BAEA-F397-11ce-BFE1-00AA0057B34E">
+                <Parameter value="{0}"/>
+              </Parameter>
+              <!-- GUID_DSRefProperty_PreciseType -->
+              <Parameter value="39A5A7E7-513F-44a4-B79D-7652CD8962D9">
+                <Parameter value="101" type="System.Int32"/>
+                <!-- Table -->
+              </Parameter>
+            </Parameter>
+            <Parameter>
+              <Parameter>
+                <Parameter value="{3}"/>
+                <Parameter/>
+                <Parameter value="Index"/>
+                <Parameter/>
+                <Parameter/>
+                <Parameter>
+                  <Parameter>
+                    <Parameter value="{4}"/>
+                    <Parameter/>
+                    <Parameter value="Field"/>
+                  </Parameter>
+                </Parameter>
+              </Parameter>
+            </Parameter>
+          </Parameter>
+        </Action>
+      </Actions>
+    </Type>
+
+    <!--
+			Defines a type that represents a foreign key.
+		-->
+    <Type name="ForeignKey" defaultSort="Database, Schema, Table, Name">
+      <Concepts>
+        <Concept name="TableForeignKey" restrictions="{Catalog},{Schema},{Table},{Name}"/>
+      </Concepts>
+      <Identifier>
+        <Part name="Database" itemName="table_catalog">
+          <Concepts>
+            <Concept name="Identifier0"/>
+          </Concepts>
+        </Part>
+        <Part name="Schema" itemName="table_schema">
+          <Concepts>
+            <Concept name="Identifier1"/>
+          </Concepts>
+        </Part>
+        <Part name="Table" itemName="table_name">
+          <Concepts>
+            <Concept name="Identifier2"/>
+          </Concepts>
+        </Part>
+        <Part name="Name" itemName="constraint_name">
+          <Concepts>
+            <Concept name="Identifier3"/>
+          </Concepts>
+        </Part>
+      </Identifier>
+      <Properties>
+        <Property name="Name" type="System.String" itemName="constraint_name"/>
+        <Property name="ReferencedTableDatabase" type="System.String" itemName="fkey_to_catalog">
+          <Concepts>
+            <Concept name="ReferencedTableId0"/>
+          </Concepts>
+        </Property>
+        <Property name="ReferencedTableSchema" type="System.String" itemName="fkey_to_schema">
+          <Concepts>
+            <!--
+							The ForeignKey type concept specifies that there should be property
+							concepts that fully identify the referenced table.  These concepts
+							are defined similar to the identifier concepts.  If a reference
+							concept is missing (e.g. ReferencedTableId0) it is assumed to be the
+							same as the main object identifier part.
+						-->
+            <Concept name="ReferencedTableId1"/>
+          </Concepts>
+        </Property>
+        <Property name="ReferencedTableName" type="System.String" itemName="fkey_to_table">
+          <Concepts>
+            <Concept name="ReferencedTableId2"/>
+          </Concepts>
+        </Property>
+      </Properties>
+      <Actions>
+        <Action name="Enumerate" guid="61CC0372-384D-42e5-9707-6D7C8DC5287A" handler="Microsoft.VisualStudio.Data.AdoDotNet.AdoDotNetObjectEnumerator">
+          <Parameter value="ForeignKeys"/>
+        </Action>
+      </Actions>
+    </Type>
+
+    <!--
+			Defines a type that represents a foreign key column.
+		-->
+    <Type name="ForeignKeyColumn" defaultSort="Database, Schema, Table, ForeignKey, Ordinal">
+      <Concepts>
+        <Concept name="TableForeignKeyColumn" restrictions="{Catalog},{Schema},{Table},{TableForeignKey},{Name}"/>
+      </Concepts>
+      <Identifier>
+        <Part name="Database" itemName="table_catalog">
+          <Concepts>
+            <Concept name="Identifier0"/>
+          </Concepts>
+        </Part>
+        <Part name="Schema" itemName="table_schema">
+          <Concepts>
+            <Concept name="Identifier1"/>
+          </Concepts>
+        </Part>
+        <Part name="Table" itemName="table_name">
+          <Concepts>
+            <Concept name="Identifier2"/>
+          </Concepts>
+        </Part>
+        <Part name="ForeignKey" itemName="constraint_name">
+          <Concepts>
+            <Concept name="Identifier3"/>
+          </Concepts>
+        </Part>
+        <Part name="Name" itemName="fkey_from_column">
+          <Concepts>
+            <Concept name="Identifier4"/>
+          </Concepts>
+        </Part>
+      </Identifier>
+      <Properties>
+        <Property name="Name" type="System.String" itemName="fkey_from_column"/>
+        <Property name="Ordinal" type="System.Int32" itemName="fkey_from_ordinal_position">
+          <Concepts>
+            <Concept name="Ordinal"/>
+          </Concepts>
+        </Property>
+        <Property name="ReferencedColumnName" type="System.String" itemName="fkey_to_column">
+          <Concepts>
+            <!--
+							The ForeignKeyColumn type concept specifies that there should be
+							a property concept that gives the name of the referenced column
+							in the referenced table.
+						-->
+            <Concept name="ReferencedTableColumn"/>
+          </Concepts>
+        </Property>
+      </Properties>
+      <Actions>
+        <Action name="Enumerate" guid="61CC0372-384D-42e5-9707-6D7C8DC5287A" handler="Microsoft.VisualStudio.Data.AdoDotNet.AdoDotNetObjectEnumerator">
+          <Parameter value="ForeignKeys"/>
+        </Action>
+      </Actions>
+    </Type>
+  </Types>
 </VSDataObjectSupport>
