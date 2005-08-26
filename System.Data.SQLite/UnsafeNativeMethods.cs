@@ -26,8 +26,8 @@ namespace System.Data.SQLite
     {
     }
 
-    [DllImport("kernel32.dll")]
-    internal static extern void Sleep(uint dwMilliseconds);
+    [DllImport(SQLITE_DLL)]
+    internal static extern void sqlite3_sleep_interop(uint dwMilliseconds);
 
     [DllImport(SQLITE_DLL)]
     internal static extern IntPtr sqlite3_libversion_interop(out int len);
@@ -235,6 +235,5 @@ namespace System.Data.SQLite
 
     [DllImport(SQLITE_DLL, CharSet = CharSet.Unicode, SetLastError = true)]
     internal static extern int sqlite3_decompressfile(string fileName);
-
   }
 }

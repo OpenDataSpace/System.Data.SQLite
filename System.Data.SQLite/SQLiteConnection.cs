@@ -545,7 +545,7 @@ namespace System.Data.SQLite
         bool bUTF16 = (Convert.ToBoolean(FindKey(opts, "UseUTF16Encoding", "False"), CultureInfo.InvariantCulture) == true);
         SQLiteDateFormats dateFormat = String.Compare(FindKey(opts, "DateTimeFormat", "ISO8601"), "ticks", true, CultureInfo.CurrentCulture) == 0 ? SQLiteDateFormats.Ticks : SQLiteDateFormats.ISO8601;
 
-        if (bUTF16)
+        if (bUTF16) // SQLite automatically sets the encoding of the database to UTF16 if called from sqlite3_open16()
           _sql = new SQLite3_UTF16(dateFormat);
         else
           _sql = new SQLite3(dateFormat);
@@ -553,11 +553,6 @@ namespace System.Data.SQLite
           _sql.Open(strFile);
 
         _dataSource = System.IO.Path.GetFileNameWithoutExtension(strFile);
-
-        if (bUTF16 == true)
-          _sql.Execute("PRAGMA encoding = 'UTF-16'");
-        else
-          _sql.Execute("PRAGMA encoding = 'UTF-8'");
 
         _sql.Execute(String.Format(CultureInfo.InvariantCulture, "PRAGMA Synchronous={0}", FindKey(opts, "Synchronous", "Normal")));
         _sql.Execute(String.Format(CultureInfo.InvariantCulture, "PRAGMA Cache_Size={0}", FindKey(opts, "Cache Size", "2000")));
