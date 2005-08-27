@@ -18,7 +18,7 @@ extern "C"
 ** individual tokens and sends those tokens one-by-one over to the
 ** parser for analysis.
 **
-** $Id: tokenize.c,v 1.8 2005/08/24 15:05:38 rmsimpson Exp $
+** $Id: tokenize.c,v 1.9 2005/08/27 23:19:40 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include "os.h"

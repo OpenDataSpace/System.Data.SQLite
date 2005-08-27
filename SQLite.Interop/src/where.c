@@ -19,7 +19,7 @@ extern "C"
 ** so is applicable.  Because this module is responsible for selecting
 ** indices, you might also think of this module as the "query optimizer".
 **
-** $Id: where.c,v 1.8 2005/08/24 15:05:38 rmsimpson Exp $
+** $Id: where.c,v 1.9 2005/08/27 23:19:40 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 

@@ -21,7 +21,7 @@ extern "C"
 ** file simultaneously, or one process from reading the database while
 ** another is writing.
 **
-** @(#) $Id: pager.c,v 1.7 2005/08/22 18:22:12 rmsimpson Exp $
+** @(#) $Id: pager.c,v 1.8 2005/08/27 23:19:40 rmsimpson Exp $
 */
 #ifndef SQLITE_OMIT_DISKIO
 #include "sqliteInt.h"
@@ -782,7 +782,7 @@ static int writeMasterJournal(Pager *pPager, const char *zMaster){
   if( rc!=SQLITE_OK ) return rc;
 
   rc = sqlite3OsWrite(&pPager->jfd, aJournalMagic, sizeof(aJournalMagic));
-  pPager->needSync = 1;
+  pPager->needSync = !pPager->noSync;
   return rc;
 }
 
@@ -3346,6 +3346,14 @@ const char *sqlite3pager_dirname(Pager *pPager){
 */
 const char *sqlite3pager_journalname(Pager *pPager){
   return pPager->zJournal;
+}
+
+/*
+** Return true if fsync() calls are disabled for this pager.  Return FALSE
+** if fsync()s are executed normally.
+*/
+int sqlite3pager_nosync(Pager *pPager){
+  return pPager->noSync;
 }
 
 /*

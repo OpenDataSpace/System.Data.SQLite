@@ -15,11 +15,7 @@ extern "C"
 ** This file contains routines used for analyzing expressions and
 ** for generating VDBE code that evaluates expressions in SQLite.
 **
-<<<<<<< expr.c
-** $Id: expr.c,v 1.13 2005/08/26 03:08:23 rmsimpson Exp $
-=======
-** $Id: expr.c,v 1.13 2005/08/26 03:08:23 rmsimpson Exp $
->>>>>>> 1.12
+** $Id: expr.c,v 1.14 2005/08/27 23:19:40 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include <ctype.h>
