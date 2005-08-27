@@ -5,8 +5,8 @@
   </head>
   <body>
     ADO.NET 2.0 SQLite Data Provider<br>
-    Version 1.0.16- Aug 24, 2005<br>
-    Interop using SQLite 3.2.4<br>
+    Version 1.0.17- Aug 27, 2005<br>
+    Interop using SQLite 3.2.5<br>
     Written by Robert Simpson (<a href="mailto:robert@blackcastlesoft.com">robert@blackcastlesoft.com</a>)<br>
     Released to the public domain, use at your own risk!<br>
     <br>
@@ -35,16 +35,17 @@
       automatically re-attached to the new connection.
       <li>
         DbConnection.GetSchema(...) support includes the <i>MetaDataCollections</i>, <i>DataSourceInformation</i>,
-        <i>Columns</i>, <i>Tables</i>, <i>Views, ViewColumns, </i> <i>Catalogs, </i> <i>Indexes,
-			IndexColumns </i>and <em>ForeignKeys</em>
-		keywords.
+        <i>Columns</i>, <i>Tables</i>, <i>Views, ViewColumns, </i><i>Catalogs, </i><i>Indexes, 
+          IndexColumns </i>and <em>ForeignKeys</em>
+      keywords.
       <li>
       Enhanced DbDataReader.GetSchemaTable() functionality returns catalog, namespace 
       and detailed schema information even for complex queries.
       <li>
       Named and unnamed parameters.
       <li>
-      Full UTF-8 and UTF-16 support.
+      Full UTF-8 and UTF-16 support, each with optimized pipelines into the native database
+		core.
       <li>
       Multiple simultaneous DataReaders (one DataReader per Command however).
       <li>
@@ -53,7 +54,9 @@
       implement new SQL functions.
       <li>
         Full support for user-defined collating sequences, every bit as simple to 
-        implement as user-defined functions and uses the same base class.</li></ul>
+        implement as user-defined functions and uses the same base class.</li>
+        <li>Create and encrypt databases using Win2K+ Encrypting File System (EFS).  Supports creating NTFS compressed database files.</li>
+      </ul>
     <strong></strong>
     <h2>
       <strong>Design-Time Support (new as of 1.0.14)</strong></h2>
@@ -87,7 +90,7 @@
 &lt;configuration&gt;
   &lt;system.data&gt;
     &lt;DbProviderFactories&gt;
-      &lt;add name="SQLite Data Provider" invariant="System.Data.SQLite" description=".Net Framework Data Provider for SQLite"<BR /> type="System.Data.SQLite.SQLiteFactory, System.Data.SQLite, Version=1.0.16.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139" /&gt;
+      &lt;add name="SQLite Data Provider" invariant="System.Data.SQLite" description=".Net Framework Data Provider for SQLite"<BR > type="System.Data.SQLite.SQLiteFactory, System.Data.SQLite, Version=1.0.16.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139" /&gt;
     &lt;/DbProviderFactories&gt;
   &lt;/system.data&gt;
 &lt;/configuration&gt;
@@ -155,16 +158,38 @@
     <b></b>
     <h2>
       <b>Version History</b></h2>
+    <b>1.0.17 - August 27, 2005</b><br>
+    <ul>
+      <li>
+      Code merge with SQLite 3.2.5
+      <li>Added Itanium and x64 build settings to the project (needs testing)
+      <li>
+      Bugfixes and enhancements to several schema types
+      <li>
+      Additional design-time support to include index and foreign key enumerations.&nbsp;
+		Requires re-registering the designer using INSTALL.CMD.&nbsp; The new designer code
+		now allows the VS query designer and typed datasets to automatically link up foreign
+		keys, use indexes, and automatically generate relationships from the schema.<li>
+        Additional static methods on SQLiteConnection to create a database file, 
+        encrypt a file using the Encrypted File System (EFS) on NTFS (requires NT 2K or 
+        above) and NTFS file compression</li>
+    </ul>
     <b>1.0.16 - August 24, 2005</b><br>
     <ul>
-      <li>Code merge with SQLite 3.2.4 with the large delete bugfix in CVS (which will become 3.2.5 soon)</li>
-      <li>Added new GetSchema() types: IndexColumns, ViewColumns, ForeignKeys</li>
+      <li>
+      Code merge with SQLite 3.2.4 with the large delete bugfix in CVS (which will 
+      become 3.2.5 soon)
+      <li>
+        Added new GetSchema() types: IndexColumns, ViewColumns, ForeignKeys</li>
     </ul>
     <b>1.0.15 - August 22, 2005</b><br>
     <ul>
-      <li>Code merge with SQLite 3.2.3
-      <LI>Minor updates for better design-time experience.  More design-time code to follow in subsequent releases.
-      </ul>
+      <li>
+      Code merge with SQLite 3.2.3
+      <LI>
+        Minor updates for better design-time experience. More design-time code to 
+        follow in subsequent releases.</LI>
+    </ul>
     <b>1.0.14 - August 16, 2005</b><br>
     <ul>
       <li>
