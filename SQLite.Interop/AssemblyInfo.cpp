@@ -27,8 +27,8 @@ using namespace System::Runtime::InteropServices;
 // You can specify all the value or you can default the Revision and Build Numbers
 // by using the '*' as shown below:
 
-[assembly:AssemblyVersionAttribute("1.0.16.0")];
-[assembly:AssemblyFileVersionAttribute("1.0.16.0")];
+[assembly:AssemblyVersionAttribute("1.0.17.0")];
+[assembly:AssemblyFileVersionAttribute("1.0.17.0")];
 
 //
 // In order to sign your assembly you must specify a key to use. Refer to the
@@ -55,7 +55,16 @@ using namespace System::Runtime::InteropServices;
 //       documentation for more information on this.
 //
 [assembly:AssemblyDelaySignAttribute(false)];
+
+#ifdef _WIN64
+#ifdef _M_IA64 // Itanium
+[assembly:AssemblyKeyFileAttribute("..\\System.Data.SQLite\\System.Data.SQLite.IA64.snk")];
+#else // AMD64
+[assembly:AssemblyKeyFileAttribute("..\\System.Data.SQLite\\System.Data.SQLite.X64.snk")];
+#endif
+#else
 [assembly:AssemblyKeyFileAttribute("..\\System.Data.SQLite\\System.Data.SQLite.snk")];
+#endif
 [assembly:AssemblyKeyNameAttribute("")];
 
 [assembly:ComVisible(false)];

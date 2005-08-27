@@ -140,7 +140,7 @@ namespace System.Data.SQLite
             else
             {
               // Otherwise sleep for a random amount of time up to 250ms
-              UnsafeNativeMethods.Sleep((uint)rnd.Next(1, 250));
+              UnsafeNativeMethods.sqlite3_sleep_interop((uint)rnd.Next(1, 250));
             }
           }
 

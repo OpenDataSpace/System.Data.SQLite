@@ -16,7 +16,7 @@
     <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
     <FormFactorID>POCKET_PC_2003_PORTRAIT</FormFactorID>
     <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>System.Data.SQLite.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>System.Data.SQLite.CF.snk</AssemblyOriginatorKeyFile>
     <DeployDirSuffix>testce</DeployDirSuffix>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -88,7 +88,7 @@
     <Compile Include="UnsafeNativeMethods.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="System.Data.SQLite.snk" />
+    <None Include="System.Data.SQLite.CF.snk" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
