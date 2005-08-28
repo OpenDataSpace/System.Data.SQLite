@@ -228,7 +228,7 @@ namespace System.Data.SQLite
     internal static extern int sqlite3_decryptfile(string fileName);
 
     [DllImport(SQLITE_DLL, CharSet = CharSet.Unicode, SetLastError = true)]
-    internal static extern int sqlite3_encryptedstatus(string fileName, out long fileStatus);
+    internal static extern int sqlite3_encryptedstatus(string fileName, out int fileStatus);
 
     [DllImport(SQLITE_DLL, CharSet = CharSet.Unicode, SetLastError = true)]
     internal static extern int sqlite3_compressfile(string fileName);

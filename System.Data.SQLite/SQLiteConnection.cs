@@ -292,7 +292,7 @@ namespace System.Data.SQLite
     /// <returns>true if the file is encrypted</returns>
     static public bool IsEncrypted(string databaseFilename)
     {
-      long status;
+      int status;
       int n = UnsafeNativeMethods.sqlite3_encryptedstatus(databaseFilename, out status);
       if (n == 0) throw new System.ComponentModel.Win32Exception();
 
