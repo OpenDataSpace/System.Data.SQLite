@@ -21,7 +21,7 @@ GOTO ParseCmdLine
 
 :Main
 
-ECHO DDEX Data Provider for SQL Server (sample 1) Installation
+ECHO Installing DDEX Data Provider for SQLite
 ECHO   VS Registry Root: %REGROOT%
 ECHO   XML File Path:    %XMLPATH%
 
