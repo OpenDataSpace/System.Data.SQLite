@@ -359,17 +359,17 @@ namespace test
                 }
 
                 Console.WriteLine(String.Format("          Inserting using CommandBuilder and DataAdapter\r\n          ->{0} (10,000 rows) ...", (bWithIdentity == true) ? "(with identity fetch)" : ""));
-                long dtStart = DateTime.Now.Ticks;
+                int dtStart = Environment.TickCount;
                 adp.Update(tbl);
-                long dtEnd = DateTime.Now.Ticks;
+                int dtEnd = Environment.TickCount;
                 dtEnd -= dtStart;
-                Console.Write(String.Format("          -> Insert Ends in {0} ms ... ", (dtEnd / 10000)));
+                Console.Write(String.Format("          -> Insert Ends in {0} ms ... ", (dtEnd)));
 
-                dtStart = DateTime.Now.Ticks;
+                dtStart = Environment.TickCount;
                 dbTrans.Commit();
-                dtEnd = DateTime.Now.Ticks;
+                dtEnd = Environment.TickCount;
                 dtEnd -= dtStart;
-                Console.WriteLine(String.Format("Commits in {0} ms", (dtEnd / 10000)));
+                Console.WriteLine(String.Format("Commits in {0} ms", (dtEnd)));
               }
             }
           }
@@ -381,8 +381,8 @@ namespace test
     {
       using (DbTransaction dbTrans = cnn.BeginTransaction())
       {
-        long dtStart;
-        long dtEnd;
+        int dtStart;
+        int dtEnd;
 
         using (DbCommand cmd = cnn.CreateCommand())
         {
@@ -392,23 +392,23 @@ namespace test
           cmd.Parameters.Add(Field1);
 
           Console.WriteLine(String.Format("          Fast insert using parameters and prepared statement\r\n          -> (100,000 rows) Begins ... "));
-          dtStart = DateTime.Now.Ticks;
+          dtStart = Environment.TickCount;
           for (int n = 0; n < 100000; n++)
           {
             Field1.Value = n + 100000;
             cmd.ExecuteNonQuery();
           }
 
-          dtEnd = DateTime.Now.Ticks;
+          dtEnd = Environment.TickCount;
           dtEnd -= dtStart;
-          Console.Write(String.Format("          -> Ends in {0} ms ... ", (dtEnd / 10000)));
+          Console.Write(String.Format("          -> Ends in {0} ms ... ", (dtEnd)));
         }
 
-        dtStart = DateTime.Now.Ticks;
+        dtStart = Environment.TickCount;
         dbTrans.Commit();
-        dtEnd = DateTime.Now.Ticks;
+        dtEnd = Environment.TickCount;
         dtEnd -= dtStart;
-        Console.WriteLine(String.Format("Commits in {0} ms", (dtEnd / 10000)));
+        Console.WriteLine(String.Format("Commits in {0} ms", (dtEnd)));
       }
     }
 
@@ -418,12 +418,12 @@ namespace test
       using (DbCommand cmd = cnn.CreateCommand())
       {
         int nTimes;
-        long dtStart;
+        int dtStart;
 
         nTimes = 0;
         cmd.CommandText = "SELECT Foo('ee','foo')";
-        dtStart = DateTime.Now.Ticks;
-        while (DateTime.Now.Ticks - dtStart < 10000000)
+        dtStart = Environment.TickCount;
+        while (Environment.TickCount - dtStart < 1000)
         {
           cmd.ExecuteNonQuery();
           nTimes++;
@@ -432,8 +432,8 @@ namespace test
 
         nTimes = 0;
         cmd.CommandText = "SELECT Foo(10,11)";
-        dtStart = DateTime.Now.Ticks;
-        while (DateTime.Now.Ticks - dtStart < 10000000)
+        dtStart = Environment.TickCount;
+        while (Environment.TickCount - dtStart < 1000)
         {
           cmd.ExecuteNonQuery();
           nTimes++;
@@ -442,8 +442,8 @@ namespace test
 
         nTimes = 0;
         cmd.CommandText = "SELECT ABS(1)";
-        dtStart = DateTime.Now.Ticks;
-        while (DateTime.Now.Ticks - dtStart < 10000000)
+        dtStart = Environment.TickCount;
+        while (Environment.TickCount - dtStart < 1000)
         {
           cmd.ExecuteNonQuery();
           nTimes++;
@@ -452,8 +452,8 @@ namespace test
 
         nTimes = 0;
         cmd.CommandText = "SELECT lower('FOO')";
-        dtStart = DateTime.Now.Ticks;
-        while (DateTime.Now.Ticks - dtStart < 10000000)
+        dtStart = Environment.TickCount;
+        while (Environment.TickCount - dtStart < 1000)
         {
           cmd.ExecuteNonQuery();
           nTimes++;
@@ -462,8 +462,8 @@ namespace test
 
         nTimes = 0;
         cmd.CommandText = "SELECT 1";
-        dtStart = DateTime.Now.Ticks;
-        while (DateTime.Now.Ticks - dtStart < 10000000)
+        dtStart = Environment.TickCount;
+        while (Environment.TickCount - dtStart < 1000)
         {
           cmd.ExecuteNonQuery();
           nTimes++;
@@ -476,14 +476,14 @@ namespace test
     {
       using (DbCommand cmd = cnn.CreateCommand())
       {
-        long dtStart;
-        long dtEnd;
+        int dtStart;
+        int dtEnd;
         int nCount;
         long n;
 
         cmd.CommandText = "SELECT Foo(ID, ID) FROM TestCase";
         cmd.Prepare();
-        dtStart = DateTime.Now.Ticks;
+        dtStart = Environment.TickCount;
         nCount = 0;
         using (DbDataReader rd = cmd.ExecuteReader())
         {
@@ -492,13 +492,13 @@ namespace test
             n = rd.GetInt64(0);
             nCount++;
           }
-          dtEnd = DateTime.Now.Ticks;
+          dtEnd = Environment.TickCount;
         }
-        Console.WriteLine(String.Format("          User Function iteration of {0} records in {1} ms", nCount, (dtEnd - dtStart) / 10000));
+        Console.WriteLine(String.Format("          User Function iteration of {0} records in {1} ms", nCount, (dtEnd - dtStart)));
 
         cmd.CommandText = "SELECT ID FROM TestCase";
         cmd.Prepare();
-        dtStart = DateTime.Now.Ticks;
+        dtStart = Environment.TickCount;
         nCount = 0;
         using (DbDataReader rd = cmd.ExecuteReader())
         {
@@ -507,13 +507,13 @@ namespace test
             n = rd.GetInt64(0);
             nCount++;
           }
-          dtEnd = DateTime.Now.Ticks;
+          dtEnd = Environment.TickCount;
         }
-        Console.WriteLine(String.Format("          Raw iteration of {0} records in {1} ms", nCount, (dtEnd - dtStart) / 10000));
+        Console.WriteLine(String.Format("          Raw iteration of {0} records in {1} ms", nCount, (dtEnd - dtStart)));
 
         cmd.CommandText = "SELECT ABS(ID) FROM TestCase";
         cmd.Prepare();
-        dtStart = DateTime.Now.Ticks;
+        dtStart = Environment.TickCount;
         nCount = 0;
         using (DbDataReader rd = cmd.ExecuteReader())
         {
@@ -522,9 +522,9 @@ namespace test
             n = rd.GetInt64(0);
             nCount++;
           }
-          dtEnd = DateTime.Now.Ticks;
+          dtEnd = Environment.TickCount;
         }
-        Console.WriteLine(String.Format("          Intrinsic Function iteration of {0} records in {1} ms", nCount, (dtEnd - dtStart) / 10000));
+        Console.WriteLine(String.Format("          Intrinsic Function iteration of {0} records in {1} ms", nCount, (dtEnd - dtStart)));
 
       }
     }
@@ -543,14 +543,14 @@ namespace test
             cmdwrite.CommandText = "UPDATE [TestCase] SET [ID] = [ID]";
             cmdwrite.CommandTimeout = 5;
 
-            long dwtick = DateTime.Now.Ticks;
+            int dwtick = Environment.TickCount;
             try
             {
               cmdwrite.ExecuteNonQuery();
             }
             catch (SQLiteException)
             {
-              dwtick = (DateTime.Now.Ticks - dwtick) / TimeSpan.TicksPerSecond;
+              dwtick = (Environment.TickCount - dwtick) / 1000;
               if (dwtick < 5 || dwtick > 6)
                 throw new ArgumentOutOfRangeException();
             }
@@ -564,15 +564,15 @@ namespace test
     {
       using (DbCommand cmd = cnn.CreateCommand())
       {
-        long dtStart;
+        int dtStart;
         int n = 0;
         int nCount;
 
         cmd.CommandText = "SELECT MyCount(*) FROM TestCase";
 
         nCount = 0;
-        dtStart = DateTime.Now.Ticks;
-        while (DateTime.Now.Ticks - dtStart < 10000000)
+        dtStart = Environment.TickCount;
+        while (Environment.TickCount - dtStart < 1000)
         {
           n = Convert.ToInt32(cmd.ExecuteScalar());
           nCount++;

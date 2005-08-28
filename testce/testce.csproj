@@ -15,7 +15,8 @@
     <OSVersion>4.20</OSVersion>
     <DeployDirSuffix>testce</DeployDirSuffix>
     <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
-    <FormFactorID>POCKET_PC_2003_PORTRAIT</FormFactorID>
+    <FormFactorID>
+    </FormFactorID>
     <StartupObject>
     </StartupObject>
   </PropertyGroup>
