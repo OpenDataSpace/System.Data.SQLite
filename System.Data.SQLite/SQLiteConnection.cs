@@ -101,7 +101,7 @@ namespace System.Data.SQLite
     /// <summary>
     /// One transaction allowed per connection please!
     /// </summary>
-    internal DbTransaction       _activeTransaction;
+    internal SQLiteTransaction  _activeTransaction;
     /// <summary>
     /// The base SQLite object to interop with
     /// </summary>
@@ -320,7 +320,7 @@ namespace System.Data.SQLite
     /// </summary>
     /// <param name="isolationLevel">SQLite doesn't support varying isolation levels, so this parameter is ignored.</param>
     /// <returns>Returns a SQLiteTransaction object.</returns>
-    protected override DbTransaction BeginDbTransaction(IsolationLevel isolationLevel)
+    public new SQLiteTransaction BeginTransaction(IsolationLevel isolationLevel)
     {
       if (_connectionState != ConnectionState.Open)
         throw new InvalidOperationException();
@@ -330,6 +330,25 @@ namespace System.Data.SQLite
 
       _activeTransaction = new SQLiteTransaction(this);
       return _activeTransaction;
+    }
+
+    /// <summary>
+    /// Creates a new SQLiteTransaction if one isn't already active on the connection.
+    /// </summary>
+    /// <returns>Returns a SQLiteTransaction object.</returns>
+    public new SQLiteTransaction BeginTransaction()
+    {
+      return BeginTransaction(IsolationLevel.Unspecified);
+    }
+
+    /// <summary>
+    /// Forwards to the local BeginTransaction() function
+    /// </summary>
+    /// <param name="isolationLevel"></param>
+    /// <returns></returns>
+    protected override DbTransaction BeginDbTransaction(IsolationLevel isolationLevel)
+    {
+      return BeginTransaction(isolationLevel);
     }
 
     /// <summary>
@@ -438,9 +457,18 @@ namespace System.Data.SQLite
     /// Create a new SQLiteCommand and associate it with this connection.
     /// </summary>
     /// <returns>Returns an instantiated SQLiteCommand object already assigned to this connection.</returns>
-    protected override DbCommand CreateDbCommand()
+    public new SQLiteCommand CreateCommand()
     {
       return new SQLiteCommand(this);
+    }
+
+    /// <summary>
+    /// Forwards to the local CreateCommand() function
+    /// </summary>
+    /// <returns></returns>
+    protected override DbCommand CreateDbCommand()
+    {
+      return CreateCommand();
     }
 
     /// <summary>

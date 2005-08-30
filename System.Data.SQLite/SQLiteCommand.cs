@@ -253,10 +253,19 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// Create a new parameter
+    /// Forwards to the local CreateParameter() function
     /// </summary>
     /// <returns></returns>
     protected override DbParameter CreateDbParameter()
+    {
+      return CreateParameter();
+    }
+
+    /// <summary>
+    /// Create a new parameter
+    /// </summary>
+    /// <returns></returns>
+    public new SQLiteParameter CreateParameter()
     {
       return new SQLiteParameter();
     }
@@ -264,12 +273,9 @@ namespace System.Data.SQLite
     /// <summary>
     /// The connection associated with this command
     /// </summary>
-    protected override DbConnection DbConnection
+    public new SQLiteConnection Connection
     {
-      get
-      {
-        return _cnn;
-      }
+      get { return _cnn; }
       set
       {
         if (_isReaderOpen)
@@ -281,19 +287,42 @@ namespace System.Data.SQLite
           _cnn._commandList.Remove(this);
         }
 
-        _cnn = (SQLiteConnection)value;
+        _cnn = value;
         _cnn._commandList.Add(this);
+      }
+    }
+
+    /// <summary>
+    /// Forwards to the local Connection property
+    /// </summary>
+    protected override DbConnection DbConnection
+    {
+      get
+      {
+        return Connection;
+      }
+      set
+      {
+        Connection = (SQLiteConnection)value;
       }
     }
 
     /// <summary>
     /// Returns the SQLiteParameterCollection for the given command
     /// </summary>
+    public new SQLiteParameterCollection Parameters
+    {
+      get { return _parameterCollection; }
+    }
+
+    /// <summary>
+    /// Forwards to the local Parameters property
+    /// </summary>
     protected override DbParameterCollection DbParameterCollection
     {
       get
       {
-        return _parameterCollection;
+        return Parameters;
       }
     }
 
@@ -301,21 +330,33 @@ namespace System.Data.SQLite
     /// The transaction associated with this command.  SQLite only supports one transaction per connection, so this property forwards to the
     /// command's underlying connection.
     /// </summary>
-    protected override DbTransaction DbTransaction
+    public new SQLiteTransaction Transaction
     {
-      get
-      {
-        return _cnn._activeTransaction;
-      }
+      get { return _cnn._activeTransaction; }
       set
       {
         if (_cnn != null)
         {
           if (value != _cnn._activeTransaction && value != null)
-            throw new ArgumentOutOfRangeException("DbTransaction", "Transaction is for a different connection than the one associated with this Command");
+            throw new ArgumentOutOfRangeException("SQLiteTransaction", "Transaction is for a different connection than the one associated with this Command");
         }
         else if (value != null)
-          throw new ArgumentOutOfRangeException("DbTransaction", "Not associated with a connection");
+          throw new ArgumentOutOfRangeException("SQLiteTransaction", "Not associated with a connection");
+      }
+    }
+
+    /// <summary>
+    /// Forwards to the local Transaction property
+    /// </summary>
+    protected override DbTransaction DbTransaction
+    {
+      get
+      {
+        return Transaction;
+      }
+      set
+      {
+        Transaction = (SQLiteTransaction)value;
       }
     }
 

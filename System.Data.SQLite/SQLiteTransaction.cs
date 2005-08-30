@@ -62,9 +62,17 @@ namespace System.Data.SQLite
     /// <summary>
     /// Returns the underlying connection to which this transaction applies.
     /// </summary>
-    protected override DbConnection DbConnection
+    public new SQLiteConnection Connection
     {
       get { return _cnn; }
+    }
+
+    /// <summary>
+    /// Forwards to the local Connection property
+    /// </summary>
+    protected override DbConnection DbConnection
+    {
+      get { return Connection; }
     }
 
     /// <summary>

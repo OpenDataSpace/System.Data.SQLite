@@ -104,5 +104,41 @@ namespace System.Data.SQLite
       if (handler != null)
         handler(this, value);
     }
+
+    /// <summary>
+    /// Gets/sets the select command for this DataAdapter
+    /// </summary>
+    public new SQLiteCommand SelectCommand
+    {
+      get { return (SQLiteCommand)base.SelectCommand; }
+      set { base.SelectCommand = value; }
+    }
+
+    /// <summary>
+    /// Gets/sets the insert command for this DataAdapter
+    /// </summary>
+    public new SQLiteCommand InsertCommand
+    {
+      get { return (SQLiteCommand)base.InsertCommand; }
+      set { base.InsertCommand = value; }
+    }
+
+    /// <summary>
+    /// Gets/sets the update command for this DataAdapter
+    /// </summary>
+    public new SQLiteCommand UpdateCommand
+    {
+      get { return (SQLiteCommand)base.UpdateCommand; }
+      set { base.UpdateCommand = value; }
+    }
+
+    /// <summary>
+    /// Gets/sets the delete command for this DataAdapter
+    /// </summary>
+    public new SQLiteCommand DeleteCommand
+    {
+      get { return (SQLiteCommand)base.DeleteCommand; }
+      set { base.DeleteCommand = value; }
+    }
   }
 }

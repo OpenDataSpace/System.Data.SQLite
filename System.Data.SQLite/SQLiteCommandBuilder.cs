@@ -101,6 +101,72 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
+    /// Gets/sets the DataAdapter for this CommandBuilder
+    /// </summary>
+    public new SQLiteDataAdapter DataAdapter
+    {
+      get { return (SQLiteDataAdapter)base.DataAdapter; }
+      set { base.DataAdapter = value; }
+    }
+
+    /// <summary>
+    /// Returns the automatically-generated SQLite command to delete rows from the database
+    /// </summary>
+    /// <returns></returns>
+    public new SQLiteCommand GetDeleteCommand()
+    {
+      return (SQLiteCommand)base.GetDeleteCommand();
+    }
+
+    /// <summary>
+    /// Returns the automatically-generated SQLite command to delete rows from the database
+    /// </summary>
+    /// <param name="useColumnsForParameterNames"></param>
+    /// <returns></returns>
+    public new SQLiteCommand GetDeleteCommand(bool useColumnsForParameterNames)
+    {
+      return (SQLiteCommand)base.GetDeleteCommand(useColumnsForParameterNames);
+    }
+
+    /// <summary>
+    /// Returns the automatically-generated SQLite command to update rows in the database
+    /// </summary>
+    /// <returns></returns>
+    public new SQLiteCommand GetUpdateCommand()
+    {
+      return (SQLiteCommand)base.GetUpdateCommand();
+    }
+
+    /// <summary>
+    /// Returns the automatically-generated SQLite command to update rows in the database
+    /// </summary>
+    /// <param name="useColumnsForParameterNames"></param>
+    /// <returns></returns>
+    public new SQLiteCommand GetUpdateCommand(bool useColumnsForParameterNames)
+    {
+      return (SQLiteCommand)base.GetUpdateCommand(useColumnsForParameterNames);
+    }
+
+    /// <summary>
+    /// Returns the automatically-generated SQLite command to insert rows into the database
+    /// </summary>
+    /// <returns></returns>
+    public new SQLiteCommand GetInsertCommand()
+    {
+      return (SQLiteCommand)base.GetInsertCommand();
+    }
+
+    /// <summary>
+    /// Returns the automatically-generated SQLite command to insert rows into the database
+    /// </summary>
+    /// <param name="useColumnsForParameterNames"></param>
+    /// <returns></returns>
+    public new SQLiteCommand GetInsertCommand(bool useColumnsForParameterNames)
+    {
+      return (SQLiteCommand)base.GetInsertCommand(useColumnsForParameterNames);
+    }
+
+    /// <summary>
     /// Overridden to hide its property from the designer
     /// </summary>
 #if !PLATFORM_COMPACTFRAMEWORK
