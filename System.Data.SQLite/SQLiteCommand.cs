@@ -401,12 +401,7 @@ namespace System.Data.SQLite
     /// <returns>Returns a SQLiteDataReader object</returns>
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
     {
-      InitializeForReader();
-
-      SQLiteDataReader rd = new SQLiteDataReader(this, behavior);
-      _isReaderOpen = true;
-
-      return rd;
+      return ExecuteReader(behavior);
     }
 
     /// <summary>
@@ -416,7 +411,12 @@ namespace System.Data.SQLite
     /// <returns>A SQLiteDataReader</returns>
     public new SQLiteDataReader ExecuteReader(CommandBehavior behavior)
     {
-      return (SQLiteDataReader)ExecuteDbDataReader(behavior);
+      InitializeForReader();
+
+      SQLiteDataReader rd = new SQLiteDataReader(this, behavior);
+      _isReaderOpen = true;
+
+      return rd;
     }
 
     /// <summary>
@@ -425,7 +425,7 @@ namespace System.Data.SQLite
     /// <returns>A SQLiteDataReader</returns>
     public new SQLiteDataReader ExecuteReader()
     {
-      return (SQLiteDataReader)ExecuteDbDataReader(CommandBehavior.Default);
+      return ExecuteReader(CommandBehavior.Default);
     }
 
     /// <summary>
@@ -476,6 +476,8 @@ namespace System.Data.SQLite
 
       x = _statementList.Length;
 
+      // We step through every statement in the command, but only grab the first row of the first resultset.
+      // We keep going even after obtaining it.
       for (n = 0; n < x; n++)
       {
         if (_cnn._sql.Step(_statementList[n]) == true && ret == null)
