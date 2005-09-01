@@ -164,20 +164,23 @@ __declspec(dllexport) void __stdcall sqlite3_sleep_interop(int milliseconds)
 __declspec(dllexport) int sqlite3_encryptfile(const wchar_t *pwszFilename)
 {
   HMODULE hMod = LoadLibrary(_T("ADVAPI32"));
+  ENCRYPTFILEW pfunc;
+  int n;
+
   if (hMod == NULL)
   {
     SetLastError(ERROR_NOT_SUPPORTED);
     return 0;
   }
-
-  ENCRYPTFILEW pfunc = (ENCRYPTFILEW)GetProcAddress(hMod, _T("EncryptFileW"));
+  
+  pfunc = (ENCRYPTFILEW)GetProcAddress(hMod, _T("EncryptFileW"));
   if (pfunc == NULL)
   {
     SetLastError(ERROR_NOT_SUPPORTED);
     return 0;
   }
 
-  int n = pfunc(pwszFilename);
+  n = pfunc(pwszFilename);
 
   FreeLibrary(hMod);
 
@@ -187,20 +190,23 @@ __declspec(dllexport) int sqlite3_encryptfile(const wchar_t *pwszFilename)
 __declspec(dllexport) int sqlite3_decryptfile(const wchar_t *pwszFilename)
 {
   HMODULE hMod = LoadLibrary(_T("ADVAPI32"));
+  DECRYPTFILEW pfunc;
+  int n;
+
   if (hMod == NULL)
   {
     SetLastError(ERROR_NOT_SUPPORTED);
     return 0;
   }
 
-  DECRYPTFILEW pfunc = (DECRYPTFILEW)GetProcAddress(hMod, _T("DecryptFileW"));
+  pfunc = (DECRYPTFILEW)GetProcAddress(hMod, _T("DecryptFileW"));
   if (pfunc == NULL)
   {
     SetLastError(ERROR_NOT_SUPPORTED);
     return 0;
   }
 
-  int n = pfunc(pwszFilename, 0);
+  n = pfunc(pwszFilename, 0);
 
   FreeLibrary(hMod);
 
@@ -210,20 +216,23 @@ __declspec(dllexport) int sqlite3_decryptfile(const wchar_t *pwszFilename)
 __declspec(dllexport) unsigned long sqlite3_encryptedstatus(const wchar_t *pwszFilename, unsigned long *pdwStatus)
 {
   HMODULE hMod = LoadLibrary(_T("ADVAPI32"));
+  ENCRYPTEDSTATUSW pfunc;
+  int n;
+
   if (hMod == NULL)
   {
     SetLastError(ERROR_NOT_SUPPORTED);
     return 0;
   }
 
-  ENCRYPTEDSTATUSW pfunc = (ENCRYPTEDSTATUSW)GetProcAddress(hMod, _T("FileEncryptionStatusW"));
+  pfunc = (ENCRYPTEDSTATUSW)GetProcAddress(hMod, _T("FileEncryptionStatusW"));
   if (pfunc == NULL)
   {
     SetLastError(ERROR_NOT_SUPPORTED);
     return 0;
   }
 
-  int n = pfunc(pwszFilename, pdwStatus);
+  n = pfunc(pwszFilename, pdwStatus);
 
   FreeLibrary(hMod);
 
@@ -234,25 +243,29 @@ int SetCompression(const wchar_t *pwszFilename, unsigned short ufLevel)
 {
 #ifdef FSCTL_SET_COMPRESSION
   HMODULE hMod = GetModuleHandle(_T("KERNEL32"));
+  CREATEFILEW pfunc;
+  HANDLE hFile;
+  unsigned long dw = 0;
+  int n;
+
   if (hMod == NULL)
   {
     SetLastError(ERROR_NOT_SUPPORTED);
     return 0;
   }
 
-  CREATEFILEW pfunc = (CREATEFILEW)GetProcAddress(hMod, _T("CreateFileW"));
+  pfunc = (CREATEFILEW)GetProcAddress(hMod, _T("CreateFileW"));
   if (pfunc == NULL)
   {
     SetLastError(ERROR_NOT_SUPPORTED);
     return 0;
   }
 
-  HANDLE hFile = pfunc(pwszFilename, GENERIC_READ|GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+  hFile = pfunc(pwszFilename, GENERIC_READ|GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
   if (hFile == NULL)
     return 0;
 
-  unsigned long dw = 0;
-  int n = DeviceIoControl(hFile, FSCTL_SET_COMPRESSION, &ufLevel, sizeof(ufLevel), NULL, 0, &dw, NULL);
+  n = DeviceIoControl(hFile, FSCTL_SET_COMPRESSION, &ufLevel, sizeof(ufLevel), NULL, 0, &dw, NULL);
 
   CloseHandle(hFile);
 

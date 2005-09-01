@@ -5,7 +5,7 @@
   </head>
   <body>
     ADO.NET 2.0 SQLite Data Provider<br>
-    Version 1.0.17- Aug 27, 2005<br>
+    Version 1.0.18- Sep 1, 2005<br>
     Interop using SQLite 3.2.5<br>
     Written by Robert Simpson (<a href="mailto:robert@blackcastlesoft.com">robert@blackcastlesoft.com</a>)<br>
     Released to the public domain, use at your own risk!<br>
@@ -21,42 +21,61 @@
     <h2>
       <b>Features:</b><br>
     </h2>
-    <ul>
-      <li>
-      Visual Studio Design-Time Support.&nbsp; You can add a SQLite database to the 
-      Servers list, design queries with the Query Designer, drag-and-drop tables onto 
-      a Typed DataSet, etc.
+    <UL>
       <LI>
-      DbProviderFactory support, just add the XML below at the machine.config and/or 
-      app.config level.
-      <li>
-        Full support for ATTACH'ed databases.&nbsp; Exposed as <i>Catalogs</i>
+      Supports&nbsp;the Full and Compact .NET Framework.
+      <LI>
+      On the Compact Framework, it is faster than the newly-introduced Sql Server 
+      Mobile, often more than 10x faster at inserts/updates.&nbsp; SQLite databases 
+      are also a fraction of the size of Sql Mobile databases.
+      <LI>
+      Full Visual Studio 2005 Design-Time Support.&nbsp; You can add a SQLite 
+      database to the Servers list, design queries with the Query Designer, 
+      drag-and-drop tables onto a Typed DataSet, etc.
+      <LI>
+      Single file redistributable for the full .net framework (Compact Framework 
+      requires 2 binaries).&nbsp; The core sqlite3 codebase and the ADO.NET wrapper 
+      are combined into one multi-module assembly.
+      <LI>
+      Native 64-bit multi-module assemblies for Itanium and X64 processors.
+      <LI>
+      DbProviderFactory support.
+      <LI>
+        Full support for ATTACH'ed databases.&nbsp; Exposed as <I>Catalogs</I>
       in the schema.&nbsp; When cloning a connection, all attached databases are 
       automatically re-attached to the new connection.
-      <li>
-        DbConnection.GetSchema(...) support includes the <i>MetaDataCollections</i>, <i>DataSourceInformation</i>,
-        <i>Columns</i>, <i>Tables</i>, <i>Views, ViewColumns, </i><i>Catalogs, </i><i>Indexes, 
-          IndexColumns </i>and <em>ForeignKeys</em>
+      <LI>
+        DbConnection.GetSchema(...) support includes the <I>MetaDataCollections</I>, <I>DataSourceInformation</I>,
+        <I>Columns</I>, <I>Tables</I>, <I>Views, ViewColumns, </I><I>Catalogs, </I><I>Indexes, 
+          IndexColumns </I>and <EM>ForeignKeys</EM>
       keywords.
-      <li>
+      <LI>
       Enhanced DbDataReader.GetSchemaTable() functionality returns catalog, namespace 
       and detailed schema information even for complex queries.
-      <li>
+      <LI>
       Named and unnamed parameters.
-      <li>
-      Full UTF-8 and UTF-16 support, each with optimized pipelines into the native database
-		core.
-      <li>
+      <LI>
+      Full UTF-8 and UTF-16 support, each with optimized pipelines into the native 
+      database core.
+      <LI>
       Multiple simultaneous DataReaders (one DataReader per Command however).
-      <li>
+      <LI>
       Full support for user-defined scalar and aggregate functions, encapsulated into 
       an easy-to-use base class in which only a couple of overrides are necessary to 
       implement new SQL functions.
-      <li>
-        Full support for user-defined collating sequences, every bit as simple to 
-        implement as user-defined functions and uses the same base class.</li>
-        <li>Create and encrypt databases using Win2K+ Encrypting File System (EFS).  Supports creating NTFS compressed database files.</li>
-      </ul>
+      <LI>
+      Full support for user-defined collating sequences, every bit as simple to 
+      implement as user-defined functions and uses the same base class.
+      <LI>
+      Create and encrypt databases using Win2K+ Encrypting File System (EFS). 
+      Supports creating NTFS compressed database files.
+      <LI>
+        Full source for the entire engine and wrapper.&nbsp; No copyrights.&nbsp; 
+        Public Domain.&nbsp; 100% free.&nbsp; If you want to know if you can use it in 
+        your commercial project, please read the previous sentence again -- only slower 
+        and sound out the words this time.
+      </LI>
+    </UL>
     <strong></strong>
     <h2>
       <strong>Design-Time Support (new as of 1.0.14)</strong></h2>
@@ -90,7 +109,7 @@
 &lt;configuration&gt;
   &lt;system.data&gt;
     &lt;DbProviderFactories&gt;
-      &lt;add name="SQLite Data Provider" invariant="System.Data.SQLite" description=".Net Framework Data Provider for SQLite"<BR /> type="System.Data.SQLite.SQLiteFactory, System.Data.SQLite, Version=1.0.17.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139" /&gt;
+      &lt;add name="SQLite Data Provider" invariant="System.Data.SQLite" description=".Net Framework Data Provider for SQLite"<BR > type="System.Data.SQLite.SQLiteFactory, System.Data.SQLite, Version=1.0.18.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139" /&gt;
     &lt;/DbProviderFactories&gt;
   &lt;/system.data&gt;
 &lt;/configuration&gt;
@@ -158,23 +177,31 @@
     <b></b>
     <h2>
       <b>Version History</b></h2>
-    <b>1.0.17 - August 27, 2005</b><br>
+    <p><b>1.0.18 - September 1, 2005</b></p>
+    <UL>
+      <li>
+        Added type-specific method calls when using the various SQLite classes that 
+        would've normally returned a a generic Db base class, which aligns the code 
+        better with the Microsoft-supplied data providers.</li></UL>
+    <p><b>1.0.17 - August 26, 2005</b></p>
     <ul>
       <li>
       Code merge with SQLite 3.2.5
-      <li>Added Itanium and x64 build settings to the project (needs testing)
+      <li>
+      Added Itanium and x64 build settings to the project (needs testing)
       <li>
       Bugfixes and enhancements to several schema types
       <li>
-      Additional design-time support to include index and foreign key enumerations.&nbsp;
-		Requires re-registering the designer using INSTALL.CMD.&nbsp; The new designer code
-		now allows the VS query designer and typed datasets to automatically link up foreign
-		keys, use indexes, and automatically generate relationships from the schema.<li>
+      Additional design-time support to include index and foreign key 
+      enumerations.&nbsp; Requires re-registering the designer using 
+      INSTALL.CMD.&nbsp; The new designer code now allows the VS query designer and 
+      typed datasets to automatically link up foreign keys, use indexes, and 
+      automatically generate relationships from the schema.<li>
         Additional static methods on SQLiteConnection to create a database file, 
         encrypt a file using the Encrypted File System (EFS) on NTFS (requires NT 2K or 
         above) and NTFS file compression</li>
     </ul>
-    <b>1.0.16 - August 24, 2005</b><br>
+    <p><b>1.0.16 - August 24, 2005</b></p>
     <ul>
       <li>
       Code merge with SQLite 3.2.4 with the large delete bugfix in CVS (which will 
@@ -182,7 +209,8 @@
       <li>
         Added new GetSchema() types: IndexColumns, ViewColumns, ForeignKeys</li>
     </ul>
-    <b>1.0.15 - August 22, 2005</b><br>
+    <p><b>1.0.15 - August 22, 2005</b><br>
+    </p>
     <ul>
       <li>
       Code merge with SQLite 3.2.3
@@ -190,7 +218,8 @@
         Minor updates for better design-time experience. More design-time code to 
         follow in subsequent releases.</LI>
     </ul>
-    <b>1.0.14 - August 16, 2005</b><br>
+    <p><b>1.0.14 - August 16, 2005</b><br>
+    </p>
     <ul>
       <li>
       Fixed a bug in the SQLiteDataAdapter due to insufficient implementation of the 
@@ -203,131 +232,159 @@
         Designer support for the provider.&nbsp; It's not 100%, but you can design 
         queries, add typed datasets and perform quite a number of tasks all within 
         Visual Studio now.</li></ul>
-    <b>1.0.13 - August 8, 2005</b><br>
-    <ul>
-      <li>
-      Fixed a named parameter bug when UseUTF16Encoding was True.
-      <li>
-        Fixed a performance issue in SQLite3_UTF16 involving string marshaling.</li>
-    </ul>
-    <b>1.0.12 - August 5, 2005</b><br>
-    <ul>
-      <li>
-        Full support for the Compact Framework.&nbsp; Each build (Debug/Release) now 
-        has a&nbsp;platform, either Win32 or Compact Framework.&nbsp; The correct 
-        projects are built accordingly.&nbsp; See the&nbsp;<a href="#redist">Distributing 
-          SQLite</a>
-      section for information on what files need to be distributed for each 
-      platform.&nbsp;
-      <li>
+    <P><B>1.0.13 - August 8, 2005</B><BR>
+    </P>
+    <DIV>
+      <UL>
+        <LI>
+        Fixed a named parameter bug in the base SQLite_UTF16 class, which of course 
+        only showed up when a database connection was opened using the 
+        UseUTF16Encoding=True parameter.
+        <LI>
+          Fixed a performance issue in SQLite_UTF16 involving string marshaling.</LI></UL>
+    </DIV>
+    <P><B>1.0.12 - August 5, 2005</B><BR>
+    </P>
+    <DIV>
+      <UL>
+        <LI>
+          Full support for the Compact Framework.&nbsp; Each build (Debug/Release) now 
+          has a&nbsp;platform, either Win32 or Compact Framework.&nbsp; The correct 
+          projects are built accordingly.&nbsp; See the&nbsp;<A href="#redist">Distributing 
+            SQLite</A>
+        section for information on what files need to be distributed for each 
+        platform.&nbsp;
+        <LI>
         Modified SQLite3.Reset() and Step() functions to transparently handle timeouts 
         while waiting on the database to become available (typically when a writer is 
-        waiting on a reader to finish, or a reader is waiting on a writer to finish).</li>
-    </ul>
-    <b>1.0.11 - August 1, 2005</b><br>
-    <ul>
-      <li>
-        <strong>For everything except the Compact Framework, System.Data.SQLite.DLL is 
-          now the <em>only</em> DLL required to use this provider!</strong>&nbsp; The 
+        waiting on a reader to finish, or a reader is waiting on a writer to finish).
+        <LI>
+        Lots of code cleanup&nbsp;as suggested&nbsp;by the Code Analyzer (FxCop).
+        <LI>
+        Lots of updates to the helpfile (as you can see).
+        <LI>
+          Statements&nbsp;were already prepared lazily&nbsp;in a SQLiteCommand, but now 
+          its even more lazy.&nbsp; Statements are now only prepared if the statements 
+          haven't been previously prepared and a Prepare() function is called (and the 
+          command is associated with a connection) or just prior to the command being 
+          executed.&nbsp;</LI></UL>
+    </DIV>
+    <P><B>1.0.11 - August 1, 2005</B><BR>
+    </P>
+    <UL>
+      <LI>
+        <STRONG>For everything except the Compact Framework, System.Data.SQLite.DLL is 
+          now the <EM>only</EM> DLL required to use this provider!</STRONG>&nbsp; The 
       assembly is now a multi-module assembly, containing both the native SQLite3 
       codebase and the C# classes built on top of it.&nbsp; The Compact Framework 
       version (when completed) will not be able to support this feature, so backwards 
       compatibility with the Compact Framework has been preserved for the future.
-      <li>
+      <LI>
         Fixed a bug in SQLiteCommand.ExecuteScalar() that caused it to stop executing 
         commands once it obtained the first column of the first row-returning 
         resultset.&nbsp; Any remaining statements after the row-returning statement was 
-        ignored.</li>
-    </ul>
-    <b>1.0.10 - June 10, 2005</b><br>
-    <ul>
-      <li>
+        ignored.
+      </LI>
+    </UL>
+    <P><B>1.0.10 - June 10, 2005</B><BR>
+    </P>
+    <UL>
+      <LI>
       Fixed a bug in the SQLite3.cs Prepare() function that created a statement even 
       when the SQLite engine returned a NULL pointer. Typically this occurs when 
       multiple statements are processed and there are trailing comments at the end of 
       the statement.
-      <li>
+      <LI>
         Fixed a bug in SQLiteStatement.cs that retrieved parameter names for a 
         parameterized query.&nbsp; SQLite's parameters are 1-based, and the function 
         was starting at 0.&nbsp; This was fine when all parameters were unnamed, but 
-        for named parameters it caused the parameters to be out of whack.</li>
-    </ul>
-    <b>1.0.09a - May 25, 2005</b><br>
-    <ul>
-      <li>
+        for named parameters it caused the parameters to be out of whack.
+      </LI>
+    </UL>
+    <P><B>1.0.09a - May 25, 2005</B><BR>
+    </P>
+    <UL>
+      <LI>
       Fixed a broken helpfile and corrected some obsolete help remarks in 
-      SQLiteFunction.cs<li>Added a version resource to the SQLite.Interop.DLL.&nbsp;</li></ul>
-    <b>1.0.09 - May 24, 2005</b><br>
-    <ul>
-      <li>
+      SQLiteFunction.cs
+      <LI>
+        Added a version resource to the SQLite.Interop.DLL.&nbsp;</LI></UL>
+    <P><B>1.0.09 - May 24, 2005</B><BR>
+    </P>
+    <UL>
+      <LI>
       Code merge with the latest 3.21 version of SQLite.
-      <li>
-        Removed obsolete methods and properties for Whidbey Beta 2</li></ul>
-    <b>1.0.08 Refresh - Mar 24, 2005<br>
-    </b>
-    <ul>
-      <li>
+      <LI>
+        Removed obsolete methods and properties for Whidbey Beta 2</LI></UL>
+    <P><B>1.0.08 Refresh - Mar 24, 2005<BR>
+      </B>
+    </P>
+    <UL>
+      <LI>
       Code merge with the latest 3.20 version of SQLite.
-      <li>
-        Recompiled the help file to fix a build error in it.</li>
-    </ul>
-    <b>1.0.08 - Mar 11, 2005<br>
-    </b>
-    <ul>
-      <li>
+      <LI>
+        Recompiled the help file to fix a build error in it.
+      </LI>
+    </UL>
+    <P><B>1.0.08 - Mar 11, 2005<BR>
+      </B>
+    </P>
+    <UL>
+      <LI>
       Added additional #if statements to support the old beta 1 edition of VS2005.
-      <li>
-        Code merged the SQLite 3.14 source.</li>
-    </ul>
-    <b>1.0.07 - Mar 5, 2005</b><br>
-    <ul>
-      <li>
+      <LI>
+        Code merged the SQLite 3.14 source.
+      </LI>
+    </UL>
+    <P><B>1.0.07 - Mar 5, 2005</B><BR>
+    </P>
+    <UL>
+      <LI>
       Made more optimizations to frequently-called functions, resulting in 
       significant performance gains in all tests.
-      <li>
+      <LI>
         Recompiled the binaries using the latest VS2005 February CTP, resulting in yet 
         more significant speed gains.&nbsp; The 100k insert test used to take 3.5 
         seconds and the insertwithidentity took almost 8 seconds.&nbsp; With the above 
-        two changes, those tests are now executing in 1.9 and 4.9 seconds respectively.</li></ul>
-    <p>
-      <b>1.0.06 - Mar 1, 2005<br>
-      </b>
-    </p>
-    <ul>
-      <li>
+        two changes, those tests are now executing in 1.9 and 4.9 seconds respectively.</LI></UL>
+    <P><B>1.0.06 - Mar 1, 2005<BR>
+      </B>
+    </P>
+    <UL>
+      <LI>
       Speed-ups to SQLiteDataReader.&nbsp; It was interop'ing unnecessarily every 
       time it tried to fetch a field due to a logic error.
-      <li>
+      <LI>
       Changed/Added some code to SQLiteConvert's internal DbType, Type and 
       TypeAffinity functions.
-      <li>
+      <LI>
       Fixed the SQLiteDataReader to obey the flags set in the optional 
       CommandBehavior flag from SQLiteCommand.ExecuteReader().
-      <li>
+      <LI>
       Changed the default page size to 1024 to reflect the defaults of SQLite.&nbsp; 
       Ignores the "Page Size" connection string option for memory databases, as tests 
       revealed that changing it resulted in memory corruption errors.
-      <li>
+      <LI>
         Performance enhancements to the SQLiteCommand and SQLiteStatement classes which 
         reduced the 100,000 row insert execution time as well as the various Function 
-        execution times significantly.</li>
-    </ul>
-    <b>
-      <br>
-      1.0.05 - Feb 25, 2005</b>
-    <ul>
-      <li>
+        execution times significantly.
+      </LI>
+    </UL>
+    <P><B>1.0.05 - Feb 25, 2005</B>
+    </P>
+    <UL>
+      <LI>
       Fixed the SQLite3 C# class step/reset functions to accomodate schema changes 
       that invalidate a prepared statement.&nbsp; Statements are recompiled 
       transparently.
-      <li>
+      <LI>
       Moved all native DLL declarations to an UnsafeNativeMethods class.
-      <li>
+      <LI>
       Split several classes into their own modules for readability.
-      <li>
+      <LI>
       Renamed many internal variables, reviewed access to variables marked as 
       internal and altered their protection levels accordingly.
-      <li>
+      <LI>
       Due to the presence of the altered sqlite3 codebase and so many added interop 
       functions, I decided to rename the sqlite3 C project and the DLL to 
       SQLite.Interop.DLL.&nbsp; This is the same core sqlite3 codebase but designed 
@@ -337,74 +394,77 @@
       introduce a method of retrieving column usage for an arbitrary prepared 
       statement, I'll retool this library to be a lightweight function call wrapper 
       around the core binary distribution.
-      <li>
+      <LI>
       Added [SuppressUnmanagedCodeSecurity] attribute to the UnsafeNativeMethods 
       class which brings VS2005 November CTP execution speeds inline with the 
       December CTP.
-      <li>
-        Added a <b>bin</b>
+      <LI>
+        Added a <B>bin</B>
       directory to the project root where pre-compiled binaries can be found.
-      <li>
-        Added a <b>doc</b>
+      <LI>
+        Added a <B>doc</B>
       directory where preliminary documentation on the class library can be found.
-      <li>
-        Documented a lot more of the classes internally.</li>
-    </ul>
-    <b>
-      <br>
-      1.0.04 - Feb 24, 2005</b>
-    <ul>
-      <li>
+      <LI>
+        Documented a lot more of the classes internally.
+      </LI>
+    </UL>
+    <P><B>1.0.04 - Feb 24, 2005</B>
+    </P>
+    <UL>
+      <LI>
       Removed the SQLiteContext class and revamped the way UserFunctions work to 
       simplify the imlementation.
-      <li>
+      <LI>
       Fixed a counting bug in the TestCases class, specifically in the function tests 
       where I wasn't resetting the counter and it was consequently reporting 
       intrinsic and raw select calls as being much much faster than they actually 
       were.&nbsp; The numbers are now much closer to what I expected for performance, 
       with .NET user-functions still being the slowest, but only by a small margin.
-      <li>
+      <LI>
       Small performance tweaks to SQLiteDataReader.
-      <li>
+      <LI>
       Added PageSize to the SQLiteConnectionStringBuilder and subsequently to the 
       SQLiteConnection
-      <li>
+      <LI>
         Added a PRAGMA encoding=XXX execution statement to the SQLiteConnection after 
-        opening a connection.</li>
-    </ul>
-    <b>1.0.03 - Feb 23, 2005</b>
-    <ul>
-      <li>
+        opening a connection.
+      </LI>
+    </UL>
+    <P><B>1.0.03 - Feb 23, 2005</B>
+    </P>
+    <UL>
+      <LI>
       Fixed up SQLiteCommandBuilder to correct implementation errors, which resulted 
       in an enormous performance boost in the InsertMany test.&nbsp;&nbsp; 10,000 row 
       insert that executed in 1500ms now executes in 500ms.
-      <li>
+      <LI>
       Fixed several errors in the SQLite3_UTF16 class.&nbsp; ToString() was working 
       incorrectly and the Open() method failed to register user defined functions and 
       collations.
-      <li>
+      <LI>
       Fixed a bug in SQLiteCommand.ClearCommands() whereby only the first statement 
       was being properly cleaned up.
-      <li>
+      <LI>
       Fixed a bug in SQLiteDataReader whereby calling NextResult() would not properly 
       reset the previously-executed command in the sequence.
-      <li>
+      <LI>
         Added an InsertManyWithIdentityFetch test, which appends a select clause to 
         populate the ID of the last inserted row into the InsertCommand, demonstrating 
-        ADO.NET's ability to auto-fetch identity columns on insert.</li>
-    </ul>
-    <p>
-      <b>1.0.02 - Feb 21, 2005</b></p>
-    <ul>
-      <li>
+        ADO.NET's ability to auto-fetch identity columns on insert.
+      </LI>
+    </UL>
+    <P><B>1.0.02 - Feb 21, 2005</B></P>
+    <UL>
+      <LI>
       Tweaks to the xxx_interop functions that return char *'s, so they also return 
       the length.&nbsp; Saves an interop call to get the UTF-8 string length during 
       conversion to a .NET string.
-      <li>
+      <LI>
       Reworked the whole interop.c thing into interop.h and reduced the code required 
       to merge the main sqlite3 codebase.
-      <li>
-        Added support for user-defined collations.</li>
-    </ul>
+      <LI>
+        Added support for user-defined collations.
+      </LI>
+    </UL>
   </body>
 </html>

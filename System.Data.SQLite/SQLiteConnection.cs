@@ -222,10 +222,10 @@ namespace System.Data.SQLite
     /// Creates a database file.  This just creates a zero-byte file which SQLite
     /// will turn into a database when the file is opened properly.
     /// </summary>
-    /// <param name="databaseFilename">The file to create</param>
-    static public void CreateFile(string databaseFilename)
+    /// <param name="databaseFileName">The file to create</param>
+    static public void CreateFile(string databaseFileName)
     {
-      IO.FileStream fs = IO.File.Create(databaseFilename);
+      IO.FileStream fs = IO.File.Create(databaseFileName);
       fs.Close();
     }
 
@@ -233,20 +233,20 @@ namespace System.Data.SQLite
     /// On NTFS volumes, this function turns on the compression attribute for the given file.
     /// It must not be open or referenced at the time of the function call.
     /// </summary>
-    /// <param name="databaseFilename">The file to compress</param>
-    static public void CompressFile(string databaseFilename)
+    /// <param name="databaseFileName">The file to compress</param>
+    static public void CompressFile(string databaseFileName)
     {
-      UnsafeNativeMethods.sqlite3_compressfile(databaseFilename);
+      UnsafeNativeMethods.sqlite3_compressfile(databaseFileName);
     }
 
     /// <summary>
     /// On NTFS volumes, this function removes the compression attribute for the given file.
     /// It must not be open or referenced at the time of the function call.
     /// </summary>
-    /// <param name="databaseFilename">The file to decompress</param>
-    static public void DecompressFile(string databaseFilename)
+    /// <param name="databaseFileName">The file to decompress</param>
+    static public void DecompressFile(string databaseFileName)
     {
-      UnsafeNativeMethods.sqlite3_decompressfile(databaseFilename);
+      UnsafeNativeMethods.sqlite3_decompressfile(databaseFileName);
     }
 
     /// <summary>
@@ -258,10 +258,10 @@ namespace System.Data.SQLite
     /// Requires Win2K and above, plus a valid EFS certificate (which is beyond the scope
     /// of this function description).
     /// </remarks>
-    /// <param name="databaseFilename">The file to encrypt</param>
-    static public void EncryptFile(string databaseFilename)
+    /// <param name="databaseFileName">The file to encrypt</param>
+    static public void EncryptFile(string databaseFileName)
     {
-      int n = UnsafeNativeMethods.sqlite3_encryptfile(databaseFilename);
+      int n = UnsafeNativeMethods.sqlite3_encryptfile(databaseFileName);
       if (n == 0) throw new System.ComponentModel.Win32Exception();
     }
 
@@ -274,10 +274,10 @@ namespace System.Data.SQLite
     /// Requires Win2K and above, plus a valid EFS certificate (which is beyond the scope
     /// of this function description).
     /// </remarks>
-    /// <param name="databaseFilename">The file to decrypt</param>
-    static public void DecryptFile(string databaseFilename)
+    /// <param name="databaseFileName">The file to decrypt</param>
+    static public void DecryptFile(string databaseFileName)
     {
-      int n = UnsafeNativeMethods.sqlite3_decryptfile(databaseFilename);
+      int n = UnsafeNativeMethods.sqlite3_decryptfile(databaseFileName);
       if (n == 0) throw new System.ComponentModel.Win32Exception();
     }
 
@@ -288,12 +288,12 @@ namespace System.Data.SQLite
     /// Requires Win2K and above, plus a valid EFS certificate (which is beyond the scope
     /// of this function description).
     /// </remarks>
-    /// <param name="databaseFilename">The file to check</param>
+    /// <param name="databaseFileName">The file to check</param>
     /// <returns>true if the file is encrypted</returns>
-    static public bool IsEncrypted(string databaseFilename)
+    static public bool IsEncrypted(string databaseFileName)
     {
       int status;
-      int n = UnsafeNativeMethods.sqlite3_encryptedstatus(databaseFilename, out status);
+      int n = UnsafeNativeMethods.sqlite3_encryptedstatus(databaseFileName, out status);
       if (n == 0) throw new System.ComponentModel.Win32Exception();
 
       return (status == 1);
@@ -994,7 +994,7 @@ namespace System.Data.SQLite
                   tblSchema = rdTable.GetSchemaTable();
                   foreach (DataRow schemaRow in tblSchema.Rows)
                   {
-                    if (Convert.ToBoolean(schemaRow[SchemaTableColumn.IsKey]) == true)
+                    if (Convert.ToBoolean(schemaRow[SchemaTableColumn.IsKey], CultureInfo.CurrentCulture) == true)
                     {
                       row = tbl.NewRow();
                       row["TABLE_CATALOG"] = strCatalog;
@@ -1502,7 +1502,7 @@ namespace System.Data.SQLite
                   tblSchema = rdTable.GetSchemaTable();
                   foreach (DataRow schemaRow in tblSchema.Rows)
                   {
-                    if (Convert.ToBoolean(schemaRow[SchemaTableColumn.IsKey]) == true)
+                    if (Convert.ToBoolean(schemaRow[SchemaTableColumn.IsKey], CultureInfo.CurrentCulture) == true)
                     {
                       row = tbl.NewRow();
                       row["CONSTRAINT_CATALOG"] = strCatalog;
