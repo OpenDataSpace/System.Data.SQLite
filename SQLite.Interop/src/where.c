@@ -1,6 +1,3 @@
-#pragma unmanaged
-extern "C"
-{
 /*
 ** 2001 September 15
 **
@@ -19,7 +16,7 @@ extern "C"
 ** so is applicable.  Because this module is responsible for selecting
 ** indices, you might also think of this module as the "query optimizer".
 **
-** $Id: where.c,v 1.9 2005/08/27 23:19:40 rmsimpson Exp $
+** $Id: where.c,v 1.10 2005/09/01 06:07:56 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 
@@ -86,7 +83,7 @@ struct WhereTerm {
   i16 iParent;            /* Disable pWC->a[iParent] when this term disabled */
   i16 leftCursor;         /* Cursor number of X in "X <op> <expr>" */
   i16 leftColumn;         /* Column number of X in "X <op> <expr>" */
-  u16 _operator;           /* A WO_xx value describing <op> */
+  u16 operator;           /* A WO_xx value describing <op> */
   u8 flags;               /* Bit flags.  See below */
   u8 nChild;              /* Number of children that must disable us */
   WhereClause *pWC;       /* The clause this term is part of */
@@ -120,7 +117,7 @@ struct WhereClause {
 ** between VDBE cursor numbers and bits of the bitmasks in WhereTerm.
 **
 ** The VDBE cursor numbers are small integers contained in 
-** SrcList::SrcList_item.iCursor and Expr.iTable fields.  For any given WHERE 
+** SrcList_item.iCursor and Expr.iTable fields.  For any given WHERE 
 ** clause, the cursor numbers might not begin with 0 and they might
 ** contain gaps in the numbering sequence.  But we want to make maximum
 ** use of the bits in our bitmasks.  This structure provides a mapping
@@ -216,7 +213,7 @@ static int whereClauseInsert(WhereClause *pWC, Expr *p, int flags){
   int idx;
   if( pWC->nTerm>=pWC->nSlot ){
     WhereTerm *pOld = pWC->a;
-    pWC->a = (WhereTerm *)sqliteMalloc( sizeof(pWC->a[0])*pWC->nSlot*2 );
+    pWC->a = sqliteMalloc( sizeof(pWC->a[0])*pWC->nSlot*2 );
     if( pWC->a==0 ) return 0;
     memcpy(pWC->a, pOld, sizeof(pWC->a[0])*pWC->nTerm);
     if( pOld!=pWC->aStatic ){
@@ -414,7 +411,7 @@ static WhereTerm *findTerm(
     if( pTerm->leftCursor==iCur
        && (pTerm->prereqRight & notReady)==0
        && pTerm->leftColumn==iColumn
-       && (pTerm->_operator & op)!=0
+       && (pTerm->operator & op)!=0
     ){
       if( iCur>=0 && pIdx ){
         Expr *pX = pTerm->pExpr;
@@ -496,7 +493,7 @@ static int isLikeOrGlob(
     return 0;
   }
   sqlite3DequoteExpr(pRight);
-  z = (const char *)pRight->token.z;
+  z = pRight->token.z;
   for(cnt=0; (c=z[cnt])!=0 && c!=wc[0] && c!=wc[1] && c!=wc[2]; cnt++){}
   if( cnt==0 || 255==(u8)z[cnt] ){
     return 0;
@@ -539,7 +536,7 @@ static void exprAnalyze(
   pTerm->prereqAll = prereqAll = exprTableUsage(pMaskSet, pExpr);
   pTerm->leftCursor = -1;
   pTerm->iParent = -1;
-  pTerm->_operator = 0;
+  pTerm->operator = 0;
   idxRight = -1;
   if( allowedOp(pExpr->op) && (pTerm->prereqRight & prereqLeft)==0 ){
     Expr *pLeft = pExpr->pLeft;
@@ -547,7 +544,7 @@ static void exprAnalyze(
     if( pLeft->op==TK_COLUMN ){
       pTerm->leftCursor = pLeft->iTable;
       pTerm->leftColumn = pLeft->iColumn;
-      pTerm->_operator = operatorMask(pExpr->op);
+      pTerm->operator = operatorMask(pExpr->op);
     }
     if( pRight && pRight->op==TK_COLUMN ){
       WhereTerm *pNew;
@@ -572,7 +569,7 @@ static void exprAnalyze(
       pNew->leftColumn = pLeft->iColumn;
       pNew->prereqRight = prereqLeft;
       pNew->prereqAll = prereqAll;
-      pNew->_operator = operatorMask(pDup->op);
+      pNew->operator = operatorMask(pDup->op);
     }
   }
 
@@ -622,7 +619,7 @@ static void exprAnalyze(
       iCursor = sOr.a[j].leftCursor;
       ok = iCursor>=0;
       for(i=sOr.nTerm-1, pOrTerm=sOr.a; i>=0 && ok; i--, pOrTerm++){
-        if( pOrTerm->_operator!=WO_EQ ){
+        if( pOrTerm->operator!=WO_EQ ){
           goto or_not_possible;
         }
         if( pOrTerm->leftCursor==iCursor && pOrTerm->leftColumn==iColumn ){
@@ -731,7 +728,7 @@ static int isSortingIndex(
   int i, j;                    /* Loop counters */
   int sortOrder;               /* Which direction we are sorting */
   int nTerm;                   /* Number of ORDER BY terms */
-  struct ExprList::ExprList_item *pTerm; /* A term of the ORDER BY clause */
+  struct ExprList_item *pTerm; /* A term of the ORDER BY clause */
   sqlite3 *db = pParse->db;
 
   assert( pOrderBy!=0 );
@@ -850,7 +847,7 @@ static double estLog(double N){
 static double bestIndex(
   Parse *pParse,              /* The parsing context */
   WhereClause *pWC,           /* The WHERE clause */
-  struct SrcList::SrcList_item *pSrc,  /* The FROM clause term to search */
+  struct SrcList_item *pSrc,  /* The FROM clause term to search */
   Bitmask notReady,           /* Mask of cursors that are not available */
   ExprList *pOrderBy,         /* The order by clause */
   Index **ppIndex,            /* Make *ppIndex point to the best index */
@@ -878,7 +875,7 @@ static double bestIndex(
     Expr *pExpr;
     *ppIndex = 0;
     bestFlags = WHERE_ROWID_EQ;
-    if( pTerm->_operator & WO_EQ ){
+    if( pTerm->operator & WO_EQ ){
       /* Rowid== is always the best pick.  Look no further.  Because only
       ** a single row is generated, output is always in sorted order */
       *pFlags = WHERE_ROWID_EQ | WHERE_UNIQUE;
@@ -959,7 +956,7 @@ static double bestIndex(
       pTerm = findTerm(pWC, iCur, j, notReady, WO_EQ|WO_IN, pProbe);
       if( pTerm==0 ) break;
       flags |= WHERE_COLUMN_EQ;
-      if( pTerm->_operator & WO_IN ){
+      if( pTerm->operator & WO_IN ){
         Expr *pExpr = pTerm->pExpr;
         flags |= WHERE_COLUMN_IN;
         if( pExpr->pSelect!=0 ){
@@ -1145,7 +1142,7 @@ static void codeEqualityTerm(
     sqlite3VdbeAddOp(v, OP_Rewind, iTab, brk);
     VdbeComment((v, "# %.*s", pX->span.n, pX->span.z));
     pLevel->nIn++;
-    pLevel->aInLoop = aIn = (int *)sqliteRealloc(pLevel->aInLoop,
+    pLevel->aInLoop = aIn = sqliteRealloc(pLevel->aInLoop,
                                  sizeof(pLevel->aInLoop[0])*3*pLevel->nIn);
     if( aIn ){
       aIn += pLevel->nIn*3 - 3;
@@ -1348,7 +1345,7 @@ WhereInfo *sqlite3WhereBegin(
   WhereTerm *pTerm;          /* A single term in the WHERE clause */
   ExprMaskSet maskSet;       /* The expression mask set */
   WhereClause wc;            /* The WHERE clause is divided into these terms */
-  struct SrcList::SrcList_item *pTabItem;  /* A single entry from pTabList */
+  struct SrcList_item *pTabItem;  /* A single entry from pTabList */
   WhereLevel *pLevel;             /* A single level in the pWInfo list */
   int iFrom;                      /* First unused FROM clause element */
   int andFlags;              /* AND-ed combination of all wc.a[].flags */
@@ -1371,7 +1368,7 @@ WhereInfo *sqlite3WhereBegin(
   /* Allocate and initialize the WhereInfo structure that will become the
   ** return value.
   */
-  pWInfo = (WhereInfo *)sqliteMalloc( sizeof(WhereInfo) + pTabList->nSrc*sizeof(WhereLevel));
+  pWInfo = sqliteMalloc( sizeof(WhereInfo) + pTabList->nSrc*sizeof(WhereLevel));
   if( sqlite3_malloc_failed ){
     goto whereBeginNoMem;
   }
@@ -1945,7 +1942,7 @@ void sqlite3WhereEnd(WhereInfo *pWInfo){
   /* Close all of the cursors that were opened by sqlite3WhereBegin.
   */
   for(i=0, pLevel=pWInfo->a; i<pTabList->nSrc; i++, pLevel++){
-    struct SrcList::SrcList_item *pTabItem = &pTabList->a[pLevel->iFrom];
+    struct SrcList_item *pTabItem = &pTabList->a[pLevel->iFrom];
     Table *pTab = pTabItem->pTab;
     assert( pTab!=0 );
     if( pTab->isTransient || pTab->pSelect ) continue;
@@ -1997,5 +1994,4 @@ void sqlite3WhereEnd(WhereInfo *pWInfo){
   */
   sqliteFree(pWInfo);
   return;
-}
 }

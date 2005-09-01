@@ -1,6 +1,3 @@
-#pragma unmanaged
-extern "C"
-{
 /*
 ** 2005 June 16
 **
@@ -27,7 +24,7 @@ static FifoPage *allocatePage(int nEntry){
   if( nEntry>32767 ){
     nEntry = 32767;
   }
-  pPage = (FifoPage *)sqliteMallocRaw( sizeof(FifoPage) + sizeof(i64)*(nEntry-1) );
+  pPage = sqliteMallocRaw( sizeof(FifoPage) + sizeof(i64)*(nEntry-1) );
   if( pPage ){
     pPage->nSlot = nEntry;
     pPage->iWrite = 0;
@@ -114,5 +111,4 @@ void sqlite3VdbeFifoClear(Fifo *pFifo){
     sqliteFree(pPage);
   }
   sqlite3VdbeFifoInit(pFifo);
-}
 }

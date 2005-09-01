@@ -1,6 +1,3 @@
-#pragma unmanaged
-extern "C"
-{
 /*
 ** 2001 September 15
 **
@@ -17,7 +14,7 @@ extern "C"
 ** This file contains functions for allocating memory, comparing
 ** strings, and stuff like that.
 **
-** $Id: util.c,v 1.8 2005/08/27 23:19:40 rmsimpson Exp $
+** $Id: util.c,v 1.9 2005/09/01 06:07:56 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include <stdarg.h>
@@ -353,14 +350,14 @@ void *sqlite3Realloc(void *p, int n){
 char *sqlite3StrDup(const char *z){
   char *zNew;
   if( z==0 ) return 0;
-  zNew = (char *)sqliteMallocRaw(strlen(z)+1);
+  zNew = sqliteMallocRaw(strlen(z)+1);
   if( zNew ) strcpy(zNew, z);
   return zNew;
 }
 char *sqlite3StrNDup(const char *z, int n){
   char *zNew;
   if( z==0 ) return 0;
-  zNew = (char *)sqliteMallocRaw(n+1);
+  zNew = sqliteMallocRaw(n+1);
   if( zNew ){
     memcpy(zNew, z, n);
     zNew[n] = 0;
@@ -390,7 +387,7 @@ void sqlite3SetString(char **pz, ...){
   }
   va_end(ap);
   sqliteFree(*pz);
-  *pz = zResult = (char *)sqliteMallocRaw( nByte );
+  *pz = zResult = sqliteMallocRaw( nByte );
   if( zResult==0 ){
     return;
   }
@@ -993,4 +990,3 @@ void *sqlite3TextToPtr(const char *z){
   return p;
 }
 #endif
-}

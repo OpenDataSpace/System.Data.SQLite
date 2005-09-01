@@ -1,6 +1,3 @@
-#pragma unmanaged
-extern "C"
-{
 /*
 ** 2005 May 23 
 **
@@ -16,7 +13,7 @@ extern "C"
 ** This file contains functions used to access the internal hash tables
 ** of user defined functions and collation sequences.
 **
-** $Id: callback.c,v 1.3 2005/08/22 18:22:12 rmsimpson Exp $
+** $Id: callback.c,v 1.4 2005/09/01 06:07:55 rmsimpson Exp $
 */
 
 #include "sqliteInt.h"
@@ -40,7 +37,7 @@ static void callCollNeeded(sqlite3 *db, const char *zName, int nName){
     char const *zExternal;
     sqlite3_value *pTmp = sqlite3GetTransientValue(db);
     sqlite3ValueSetStr(pTmp, -1, zName, SQLITE_UTF8, SQLITE_STATIC);
-    zExternal = (const char *)sqlite3ValueText(pTmp, SQLITE_UTF16NATIVE);
+    zExternal = sqlite3ValueText(pTmp, SQLITE_UTF16NATIVE);
     if( !zExternal ) return;
     db->xCollNeeded16(db->pCollNeededArg, db, (int)db->enc, zExternal);
   }
@@ -158,10 +155,10 @@ static CollSeq *findCollSeqEntry(
 ){
   CollSeq *pColl;
   if( nName<0 ) nName = strlen(zName);
-  pColl = (CollSeq *)sqlite3HashFind(&db->aCollSeq, zName, nName);
+  pColl = sqlite3HashFind(&db->aCollSeq, zName, nName);
 
   if( 0==pColl && create ){
-    pColl = (CollSeq *)sqliteMalloc( 3*sizeof(*pColl) + nName + 1 );
+    pColl = sqliteMalloc( 3*sizeof(*pColl) + nName + 1 );
     if( pColl ){
       CollSeq *pDel = 0;
       pColl[0].zName = (char*)&pColl[3];
@@ -172,7 +169,7 @@ static CollSeq *findCollSeqEntry(
       pColl[2].enc = SQLITE_UTF16BE;
       memcpy(pColl[0].zName, zName, nName);
       pColl[0].zName[nName] = 0;
-      pDel = (CollSeq *)sqlite3HashInsert(&db->aCollSeq, pColl[0].zName, nName, pColl);
+      pDel = sqlite3HashInsert(&db->aCollSeq, pColl[0].zName, nName, pColl);
 
       /* If a malloc() failure occured in sqlite3HashInsert(), it will 
       ** return the pColl pointer to be deleted (because it wasn't added
@@ -289,7 +286,7 @@ FuncDef *sqlite3FindFunction(
   ** new entry to the hash table and return it.
   */
   if( createFlag && bestmatch<6 && 
-      (pBest = (FuncDef *)sqliteMalloc(sizeof(*pBest)+nName)) ){
+      (pBest = sqliteMalloc(sizeof(*pBest)+nName)) ){
     pBest->nArg = nArg;
     pBest->pNext = pFirst;
     pBest->iPrefEnc = enc;
@@ -305,5 +302,4 @@ FuncDef *sqlite3FindFunction(
     return pBest;
   }
   return 0;
-}
 }

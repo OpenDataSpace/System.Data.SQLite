@@ -1,6 +1,3 @@
-#pragma unmanaged
-extern "C"
-{
 /*
 ** 2004 May 22
 **
@@ -774,4 +771,3 @@ int sqlite3OsCurrentTime(double *prNow){
 }
 
 #endif /* OS_WIN */
-}

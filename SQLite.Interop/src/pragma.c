@@ -1,6 +1,3 @@
-#pragma unmanaged
-extern "C"
-{
 /*
 ** 2003 April 6
 **
@@ -14,7 +11,7 @@ extern "C"
 *************************************************************************
 ** This file contains code used to implement the PRAGMA command.
 **
-** $Id: pragma.c,v 1.7 2005/08/22 18:22:12 rmsimpson Exp $
+** $Id: pragma.c,v 1.8 2005/09/01 06:07:56 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include "os.h"
@@ -47,11 +44,11 @@ static int getSafetyLevel(const u8 *z){
   static const u8 iValue[] =  {1, 0, 0, 0, 1, 1, 2};
   int i, n;
   if( isdigit(*z) ){
-    return atoi((const char *)z);
+    return atoi(z);
   }
-  n = strlen((const char *)z);
+  n = strlen(z);
   for(i=0; i<sizeof(iLength); i++){
-    if( iLength[i]==n && sqlite3StrNICmp(&zText[iOffset[i]],(const char *)z,n)==0 ){
+    if( iLength[i]==n && sqlite3StrNICmp(&zText[iOffset[i]],z,n)==0 ){
       return iValue[i];
     }
   }
@@ -169,7 +166,7 @@ static int flagPragma(Parse *pParse, const char *zLeft, const char *zRight){
         if( zRight==0 ){
           returnSingleInt(pParse, p->zName, (db->flags & p->mask)!=0 );
         }else{
-          if( getBoolean((const u8 *)zRight) ){
+          if( getBoolean(zRight) ){
             db->flags |= p->mask;
           }else{
             db->flags &= ~p->mask;
@@ -322,7 +319,7 @@ void sqlite3Pragma(
           pBt ? sqlite3BtreeGetAutoVacuum(pBt) : SQLITE_DEFAULT_AUTOVACUUM;
       returnSingleInt(pParse, "auto_vacuum", auto_vacuum);
     }else{
-      sqlite3BtreeSetAutoVacuum(pBt, getBoolean((const u8 *)zRight));
+      sqlite3BtreeSetAutoVacuum(pBt, getBoolean(zRight));
     }
   }else
 #endif
@@ -430,7 +427,7 @@ void sqlite3Pragma(
         sqlite3ErrorMsg(pParse, 
             "Safety level may not be changed inside a transaction");
       }else{
-        pDb->safety_level = getSafetyLevel((const u8 *)zRight)+1;
+        pDb->safety_level = getSafetyLevel(zRight)+1;
         sqlite3BtreeSetSafetyLevel(pDb->pBt, pDb->safety_level);
       }
     }
@@ -621,7 +618,7 @@ void sqlite3Pragma(
   */
   if( sqlite3StrICmp(zLeft, "case_sensitive_like")==0 ){
     if( zRight ){
-      sqlite3RegisterLikeFunctions(db, getBoolean((const u8 *)zRight));
+      sqlite3RegisterLikeFunctions(db, getBoolean(zRight));
     }
   }else
 
@@ -667,7 +664,7 @@ void sqlite3Pragma(
       /* Do an integrity check of the B-Tree
       */
       for(x=sqliteHashFirst(&db->aDb[i].tblHash); x; x=sqliteHashNext(x)){
-        Table *pTab = (Table *)sqliteHashData(x);
+        Table *pTab = sqliteHashData(x);
         Index *pIdx;
         sqlite3VdbeAddOp(v, OP_Integer, pTab->tnum, 0);
         cnt++;
@@ -693,7 +690,7 @@ void sqlite3Pragma(
       */
       sqlite3CodeVerifySchema(pParse, i);
       for(x=sqliteHashFirst(&db->aDb[i].tblHash); x; x=sqliteHashNext(x)){
-        Table *pTab = (Table *)sqliteHashData(x);
+        Table *pTab = sqliteHashData(x);
         Index *pIdx;
         int loopTop;
 
@@ -946,4 +943,3 @@ pragma_out:
 }
 
 #endif /* SQLITE_OMIT_PRAGMA || SQLITE_OMIT_PARSER */
-}

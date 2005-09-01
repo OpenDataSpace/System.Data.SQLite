@@ -1,6 +1,3 @@
-#pragma unmanaged
-extern "C"
-{
 /*
 ** 2004 April 6
 **
@@ -12,7 +9,7 @@ extern "C"
 **    May you share freely, never taking more than you give.
 **
 *************************************************************************
-** $Id: btree.c,v 1.9 2005/08/27 23:19:40 rmsimpson Exp $
+** $Id: btree.c,v 1.10 2005/09/01 06:07:55 rmsimpson Exp $
 **
 ** This file implements a external (disk-based) database using BTrees.
 ** For a detailed discussion of BTrees, refer to
@@ -571,7 +568,7 @@ static u8 *findOverflowCell(MemPage *pPage, int iCell){
   int i;
   for(i=pPage->nOverflow-1; i>=0; i--){
     int k;
-    struct MemPage::_OvflCell *pOvfl;
+    struct _OvflCell *pOvfl;
     pOvfl = &pPage->aOvfl[i];
     k = pOvfl->idx;
     if( k<=iCell ){
@@ -815,7 +812,7 @@ static int defragmentPage(MemPage *pPage){
   assert( pPage->pBt!=0 );
   assert( pPage->pBt->usableSize <= SQLITE_MAX_PAGE_SIZE );
   assert( pPage->nOverflow==0 );
-  temp = (unsigned char *)sqliteMalloc( pPage->pBt->pageSize );
+  temp = sqliteMalloc( pPage->pBt->pageSize );
   if( temp==0 ) return SQLITE_NOMEM;
   data = pPage->aData;
   hdr = pPage->hdrOffset;
@@ -1234,7 +1231,7 @@ int sqlite3BtreeOpen(
   assert( sizeof(u16)==2 );
   assert( sizeof(Pgno)==4 );
 
-  pBt = (Btree *)sqliteMalloc( sizeof(*pBt) );
+  pBt = sqliteMalloc( sizeof(*pBt) );
   if( pBt==0 ){
     *ppBtree = 0;
     return SQLITE_NOMEM;
@@ -1537,7 +1534,7 @@ static void unlockBtreeIfUnused(Btree *pBt){
   if( pBt->inTrans==TRANS_NONE && pBt->pCursor==0 && pBt->pPage1!=0 ){
     if( pBt->pPage1->aData==0 ){
       MemPage *pPage = pBt->pPage1;
-      pPage->aData = (u8 *)&((char*)pPage)[-pBt->pageSize];
+      pPage->aData = &((char*)pPage)[-pBt->pageSize];
       pPage->pBt = pBt;
       pPage->pgno = 1;
     }
@@ -2178,7 +2175,7 @@ int sqlite3BtreeCursor(
       return rc;
     }
   }
-  pCur = (BtCursor *)sqliteMallocRaw( sizeof(*pCur) );
+  pCur = sqliteMallocRaw( sizeof(*pCur) );
   if( pCur==0 ){
     rc = SQLITE_NOMEM;
     goto create_cursor_exception;
@@ -2455,7 +2452,7 @@ int sqlite3BtreeData(BtCursor *pCur, u32 offset, u32 amt, void *pBuf){
   assert( pCur->isValid );
   assert( pCur->pPage!=0 );
   assert( pCur->idx>=0 && pCur->idx<pCur->pPage->nCell );
-  return getPayload(pCur, offset, amt, (unsigned char *)pBuf, 1);
+  return getPayload(pCur, offset, amt, pBuf, 1);
 }
 
 /*
@@ -3332,12 +3329,12 @@ static int fillInCell(
   /* Fill in the payload */
   nPayload = nData;
   if( pPage->intKey ){
-    pSrc = (const u8 *)pData;
+    pSrc = pData;
     nSrc = nData;
     nData = 0;
   }else{
     nPayload += nKey;
-    pSrc = (const u8 *)pKey;
+    pSrc = pKey;
     nSrc = nKey;
   }
   *pnSize = info.nSize;
@@ -3385,7 +3382,7 @@ static int fillInCell(
     spaceLeft -= n;
     if( nSrc==0 ){
       nSrc = nData;
-      pSrc = (const u8 *)pData;
+      pSrc = pData;
     }
   }
   releasePage(pToRelease);
@@ -3403,7 +3400,7 @@ static int reparentPage(Btree *pBt, Pgno pgno, MemPage *pNewParent, int idx){
 
   if( pgno==0 ) return SQLITE_OK;
   assert( pBt->pPager!=0 );
-  aData = (unsigned char *)sqlite3pager_lookup(pBt->pPager, pgno);
+  aData = sqlite3pager_lookup(pBt->pPager, pgno);
   if( aData ){
     pThis = (MemPage*)&aData[pBt->pageSize];
     assert( pThis->aData==aData );
@@ -3921,7 +3918,7 @@ static int balance_nonroot(MemPage *pPage){
   /*
   ** Allocate space for memory structures
   */
-  apCell = (u8 **)sqliteMallocRaw( 
+  apCell = sqliteMallocRaw( 
        nMaxCells*sizeof(u8*)                           /* apCell */
      + nMaxCells*sizeof(int)                           /* szCell */
      + ROUND8(sizeof(MemPage))*NB                      /* aCopy */
@@ -4342,7 +4339,7 @@ static int balance_shallower(MemPage *pPage){
   assert( pPage->nCell==0 );
   pBt = pPage->pBt;
   mxCellPerPage = MX_CELL(pBt);
-  apCell = (u8 **)sqliteMallocRaw( mxCellPerPage*(sizeof(u8*)+sizeof(int)) );
+  apCell = sqliteMallocRaw( mxCellPerPage*(sizeof(u8*)+sizeof(int)) );
   if( apCell==0 ) return SQLITE_NOMEM;
   szCell = (int*)&apCell[mxCellPerPage];
   if( pPage->leaf ){
@@ -4580,7 +4577,7 @@ int sqlite3BtreeInsert(
   assert( pPage->isInit );
   rc = sqlite3pager_write(pPage->aData);
   if( rc ) return rc;
-  newCell = (unsigned char *)sqliteMallocRaw( MX_CELL_SIZE(pBt) );
+  newCell = sqliteMallocRaw( MX_CELL_SIZE(pBt) );
   if( newCell==0 ) return SQLITE_NOMEM;
   rc = fillInCell(pPage, newCell, pKey, nKey, pData, nData, &szNew);
   if( rc ) goto end_insert;
@@ -4688,7 +4685,7 @@ int sqlite3BtreeDelete(BtCursor *pCur){
       pNext = findCell(leafCur.pPage, leafCur.idx);
       szNext = cellSizePtr(leafCur.pPage, pNext);
       assert( MX_CELL_SIZE(pBt)>=szNext+4 );
-      tempCell = (unsigned char *)sqliteMallocRaw( MX_CELL_SIZE(pBt) );
+      tempCell = sqliteMallocRaw( MX_CELL_SIZE(pBt) );
       if( tempCell==0 ){
         rc = SQLITE_NOMEM;
       }
@@ -5565,7 +5562,7 @@ static int checkTreePage(
   */
   data = pPage->aData;
   hdr = pPage->hdrOffset;
-  hit = (char *)sqliteMalloc( usableSize );
+  hit = sqliteMalloc( usableSize );
   if( hit ){
     memset(hit, 1, get2byte(&data[hdr+5]));
     nCell = get2byte(&data[hdr+3]);
@@ -5642,7 +5639,7 @@ char *sqlite3BtreeIntegrityCheck(Btree *pBt, int *aRoot, int nRoot){
     unlockBtreeIfUnused(pBt);
     return 0;
   }
-  sCheck.anRef = (int *)sqliteMallocRaw( (sCheck.nPage+1)*sizeof(sCheck.anRef[0]) );
+  sCheck.anRef = sqliteMallocRaw( (sCheck.nPage+1)*sizeof(sCheck.anRef[0]) );
   if( !sCheck.anRef ){
     unlockBtreeIfUnused(pBt);
     return sqlite3MPrintf("Unable to malloc %d bytes", 
@@ -5836,4 +5833,3 @@ int sqlite3BtreeReset(Btree *pBt){
   return sqlite3pager_reset(pBt->pPager);
 }
 #endif
-}

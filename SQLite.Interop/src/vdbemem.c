@@ -1,6 +1,3 @@
-#pragma unmanaged
-extern "C"
-{
 /*
 ** 2004 May 26
 **
@@ -67,7 +64,7 @@ int sqlite3VdbeMemDynamicify(Mem *pMem){
   }
   assert( (pMem->flags & MEM_Dyn)==0 );
   assert( pMem->flags & (MEM_Str|MEM_Blob) );
-  z = (u8 *)sqliteMallocRaw( n+2 );
+  z = sqliteMallocRaw( n+2 );
   if( z==0 ){
     return SQLITE_NOMEM;
   }
@@ -76,7 +73,7 @@ int sqlite3VdbeMemDynamicify(Mem *pMem){
   memcpy(z, pMem->z, n );
   z[n] = 0;
   z[n+1] = 0;
-  pMem->z = (char *)z;
+  pMem->z = z;
   pMem->flags &= ~(MEM_Ephem|MEM_Static|MEM_Short);
   return SQLITE_OK;
 }
@@ -96,10 +93,10 @@ int sqlite3VdbeMemMakeWriteable(Mem *pMem){
   assert( (pMem->flags & MEM_Dyn)==0 );
   assert( pMem->flags & (MEM_Str|MEM_Blob) );
   if( (n = pMem->n)+2<sizeof(pMem->zShort) ){
-    z = (u8 *)pMem->zShort;
+    z = pMem->zShort;
     pMem->flags |= MEM_Short|MEM_Term;
   }else{
-    z = (u8 *)sqliteMallocRaw( n+2 );
+    z = sqliteMallocRaw( n+2 );
     if( z==0 ){
       return SQLITE_NOMEM;
     }
@@ -109,7 +106,7 @@ int sqlite3VdbeMemMakeWriteable(Mem *pMem){
   memcpy(z, pMem->z, n );
   z[n] = 0;
   z[n+1] = 0;
-  pMem->z = (char *)z;
+  pMem->z = z;
   pMem->flags &= ~(MEM_Ephem|MEM_Static);
   return SQLITE_OK;
 }
@@ -137,7 +134,7 @@ int sqlite3VdbeMemNulTerminate(Mem *pMem){
   if( pMem->flags & (MEM_Static|MEM_Ephem) ){
     return sqlite3VdbeMemMakeWriteable(pMem);
   }else{
-    char *z = (char *)sqliteMalloc(pMem->n+2);
+    char *z = sqliteMalloc(pMem->n+2);
     if( !z ) return SQLITE_NOMEM;
     memcpy(z, pMem->z, pMem->n);
     z[pMem->n] = 0;
@@ -165,7 +162,7 @@ int sqlite3VdbeMemNulTerminate(Mem *pMem){
 int sqlite3VdbeMemStringify(Mem *pMem, int enc){
   int rc = SQLITE_OK;
   int fg = pMem->flags;
-  u8 *z = (u8 *)pMem->zShort;
+  u8 *z = pMem->zShort;
 
   assert( !(fg&(MEM_Str|MEM_Blob)) );
   assert( fg&(MEM_Int|MEM_Real) );
@@ -177,13 +174,13 @@ int sqlite3VdbeMemStringify(Mem *pMem, int enc){
   ** FIX ME: It would be better if sqlite3_snprintf() could do UTF-16.
   */
   if( fg & MEM_Real ){
-    sqlite3_snprintf(NBFS, (char *)z, "%!.15g", pMem->r);
+    sqlite3_snprintf(NBFS, z, "%!.15g", pMem->r);
   }else{
     assert( fg & MEM_Int );
-    sqlite3_snprintf(NBFS, (char *)z, "%lld", pMem->i);
+    sqlite3_snprintf(NBFS, z, "%lld", pMem->i);
   }
-  pMem->n = strlen((const char *)z);
-  pMem->z = (char *)z;
+  pMem->n = strlen(z);
+  pMem->z = z;
   pMem->enc = SQLITE_UTF8;
   pMem->flags |= MEM_Str | MEM_Short | MEM_Term;
   sqlite3VdbeChangeEncoding(pMem, enc);
@@ -703,7 +700,7 @@ const void *sqlite3ValueText(sqlite3_value* pVal, u8 enc){
 ** Create a new sqlite3_value object.
 */
 sqlite3_value* sqlite3ValueNew(){
-  Mem *p = (Mem *)sqliteMalloc(sizeof(*p));
+  Mem *p = sqliteMalloc(sizeof(*p));
   if( p ){
     p->flags = MEM_Null;
     p->type = SQLITE_NULL;
@@ -738,7 +735,7 @@ int sqlite3ValueFromExpr(
   op = pExpr->op;
 
   if( op==TK_STRING || op==TK_FLOAT || op==TK_INTEGER ){
-    zVal = sqliteStrNDup((const char *)pExpr->token.z, pExpr->token.n);
+    zVal = sqliteStrNDup(pExpr->token.z, pExpr->token.n);
     pVal = sqlite3ValueNew();
     if( !zVal || !pVal ) goto no_mem;
     sqlite3Dequote(zVal);
@@ -758,11 +755,11 @@ int sqlite3ValueFromExpr(
   else if( op==TK_BLOB ){
     int nVal;
     pVal = sqlite3ValueNew();
-    zVal = sqliteStrNDup((const char *)pExpr->token.z+1, pExpr->token.n-1);
+    zVal = sqliteStrNDup(pExpr->token.z+1, pExpr->token.n-1);
     if( !zVal || !pVal ) goto no_mem;
     sqlite3Dequote(zVal);
     nVal = strlen(zVal)/2;
-    sqlite3VdbeMemSetStr(pVal, (const char *)sqlite3HexToBlob(zVal), nVal, 0, sqlite3FreeX);
+    sqlite3VdbeMemSetStr(pVal, sqlite3HexToBlob(zVal), nVal, 0, sqlite3FreeX);
     sqliteFree(zVal);
   }
 #endif
@@ -787,7 +784,7 @@ void sqlite3ValueSetStr(
   u8 enc,
   void (*xDel)(void*)
 ){
-  if( v ) sqlite3VdbeMemSetStr((Mem *)v, (const char *)z, n, enc, xDel);
+  if( v ) sqlite3VdbeMemSetStr((Mem *)v, z, n, enc, xDel);
 }
 
 /*
@@ -809,5 +806,4 @@ int sqlite3ValueBytes(sqlite3_value *pVal, u8 enc){
     return p->n;
   }
   return 0;
-}
 }

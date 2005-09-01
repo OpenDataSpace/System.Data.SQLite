@@ -1,6 +1,3 @@
-#pragma unmanaged
-extern "C"
-{
 /*
 ** 2001 September 15
 **
@@ -21,7 +18,7 @@ extern "C"
 ** file simultaneously, or one process from reading the database while
 ** another is writing.
 **
-** @(#) $Id: pager.c,v 1.8 2005/08/27 23:19:40 rmsimpson Exp $
+** @(#) $Id: pager.c,v 1.9 2005/09/01 06:07:55 rmsimpson Exp $
 */
 #ifndef SQLITE_OMIT_DISKIO
 #include "sqliteInt.h"
@@ -1010,7 +1007,7 @@ static int pager_playback_one_page(Pager *pPager, OsFile *jfd, int useCksum){
     rc = read32bits(jfd, &cksum);
     if( rc ) return rc;
     pPager->journalOff += 4;
-    if( pager_cksum(pPager, pgno, (const char *)aData)!=cksum ){
+    if( pager_cksum(pPager, pgno, aData)!=cksum ){
       return SQLITE_DONE;
     }
   }
@@ -1639,7 +1636,7 @@ int sqlite3pager_open(
     return rc;
   }
   nameLen = strlen(zFullPathname);
-  pPager = (Pager *)sqliteMalloc( sizeof(*pPager) + nameLen*3 + 30 );
+  pPager = sqliteMalloc( sizeof(*pPager) + nameLen*3 + 30 );
   if( pPager==0 ){
     sqlite3OsClose(&fd);
     sqliteFree(zFullPathname);
@@ -2384,7 +2381,7 @@ int sqlite3pager_get(Pager *pPager, Pgno pgno, void **ppPage){
     TEST_INCR(pPager->nMiss);
     if( pPager->nPage<pPager->mxPage || pPager->pFirst==0 || MEMDB ){
       /* Create a new page */
-      pPg = (PgHdr *)sqliteMallocRaw( sizeof(*pPg) + pPager->pageSize
+      pPg = sqliteMallocRaw( sizeof(*pPg) + pPager->pageSize
                               + sizeof(u32) + pPager->nExtra
                               + MEMDB*sizeof(PgHistory) );
       if( pPg==0 ){
@@ -2631,7 +2628,7 @@ static int pager_open_journal(Pager *pPager){
   assert( pPager->useJournal );
   assert( pPager->aInJournal==0 );
   sqlite3pager_pagecount(pPager);
-  pPager->aInJournal = (u8 *)sqliteMalloc( pPager->dbSize/8 + 1 );
+  pPager->aInJournal = sqliteMalloc( pPager->dbSize/8 + 1 );
   if( pPager->aInJournal==0 ){
     rc = SQLITE_NOMEM;
     goto failed_to_open_journal;
@@ -2812,14 +2809,14 @@ int sqlite3pager_write(void *pData){
           PgHistory *pHist = PGHDR_TO_HIST(pPg, pPager);
           TRACE3("JOURNAL %d page %d\n", PAGERID(pPager), pPg->pgno);
           assert( pHist->pOrig==0 );
-          pHist->pOrig = (u8 *)sqliteMallocRaw( pPager->pageSize );
+          pHist->pOrig = sqliteMallocRaw( pPager->pageSize );
           if( pHist->pOrig ){
             memcpy(pHist->pOrig, PGHDR_TO_DATA(pPg), pPager->pageSize);
           }
         }else{
           u32 cksum;
           CODEC(pPager, pData, pPg->pgno, 7);
-          cksum = pager_cksum(pPager, pPg->pgno, (const char *)pData);
+          cksum = pager_cksum(pPager, pPg->pgno, pData);
           saved = *(u32*)PGHDR_TO_EXTRA(pPg, pPager);
           store32bits(cksum, pPg, pPager->pageSize);
           szPg = pPager->pageSize+8;
@@ -2865,7 +2862,7 @@ int sqlite3pager_write(void *pData){
       if( MEMDB ){
         PgHistory *pHist = PGHDR_TO_HIST(pPg, pPager);
         assert( pHist->pStmt==0 );
-        pHist->pStmt = (u8 *)sqliteMallocRaw( pPager->pageSize );
+        pHist->pStmt = sqliteMallocRaw( pPager->pageSize );
         if( pHist->pStmt ){
           memcpy(pHist->pStmt, PGHDR_TO_DATA(pPg), pPager->pageSize);
         }
@@ -3233,7 +3230,7 @@ int sqlite3pager_stmt_begin(Pager *pPager){
     return SQLITE_OK;
   }
   assert( pPager->journalOpen );
-  pPager->aInStmt = (u8 *)sqliteMalloc( pPager->dbSize/8 + 1 );
+  pPager->aInStmt = sqliteMalloc( pPager->dbSize/8 + 1 );
   if( pPager->aInStmt==0 ){
     sqlite3OsLock(&pPager->fd, SHARED_LOCK);
     return SQLITE_NOMEM;
@@ -3612,4 +3609,3 @@ void sqlite3pager_refdump(Pager *pPager){
 #endif
 
 #endif /* SQLITE_OMIT_DISKIO */
-}

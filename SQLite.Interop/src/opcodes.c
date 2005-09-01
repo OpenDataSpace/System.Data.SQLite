@@ -1,10 +1,7 @@
-#pragma unmanaged
-extern "C"
-{
 /* Automatically generated.  Do not edit */
 /* See the mkopcodec.awk script for details. */
 #if !defined(SQLITE_OMIT_EXPLAIN) || !defined(NDEBUG) || defined(VDBE_PROFILE) || defined(SQLITE_DEBUG)
-extern const char * sqlite3OpcodeNames[] = { "?",
+const char *const sqlite3OpcodeNames[] = { "?",
  /*   1 */ "MemLoad",
  /*   2 */ "Column",
  /*   3 */ "SetCookie",
@@ -138,4 +135,3 @@ extern const char * sqlite3OpcodeNames[] = { "?",
  /* 131 */ "HexBlob",
 };
 #endif
-}

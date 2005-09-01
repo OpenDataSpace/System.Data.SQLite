@@ -1,6 +1,3 @@
-#pragma unmanaged
-extern "C"
-{
 /*
 ** 2005 July 8
 **
@@ -14,7 +11,7 @@ extern "C"
 *************************************************************************
 ** This file contains code associated with the ANALYZE command.
 **
-** @(#) $Id: analyze.c,v 1.1 2005/08/22 18:22:12 rmsimpson Exp $
+** @(#) $Id: analyze.c,v 1.2 2005/09/01 06:07:55 rmsimpson Exp $
 */
 #ifndef SQLITE_OMIT_ANALYZE
 #include "sqliteInt.h"
@@ -366,7 +363,7 @@ void sqlite3AnalysisLoad(sqlite3 *db, int iDb){
 
   /* Clear any prior statistics */
   for(i=sqliteHashFirst(&db->aDb[iDb].idxHash); i; i=sqliteHashNext(i)){
-    Index *pIdx = (Index *)sqliteHashData(i);
+    Index *pIdx = sqliteHashData(i);
     sqlite3DefaultRowEst(pIdx);
   }
 
@@ -389,4 +386,3 @@ void sqlite3AnalysisLoad(sqlite3 *db, int iDb){
 
 
 #endif /* SQLITE_OMIT_ANALYZE */
-}

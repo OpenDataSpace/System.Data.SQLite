@@ -1,6 +1,3 @@
-#pragma unmanaged
-extern "C"
-{
 /*
 ** 2005 April 1 - Nuno Lucas
 **
@@ -782,5 +779,3 @@ int sqlite3OsIsDirWritable(char *zBuf){
 
 
 #endif /* _WIN32_WCE */
-
-}

@@ -1,6 +1,3 @@
-#pragma unmanaged
-extern "C"
-{
 /*
 ** 2001 September 15
 **
@@ -17,7 +14,7 @@ extern "C"
 ** other files are for internal use by SQLite and should not be
 ** accessed by users of the library.
 **
-** $Id: legacy.c,v 1.7 2005/08/22 18:22:12 rmsimpson Exp $
+** $Id: legacy.c,v 1.8 2005/09/01 06:07:55 rmsimpson Exp $
 */
 
 #include "sqliteInt.h"
@@ -71,7 +68,7 @@ int sqlite3_exec(
     nCallback = 0;
 
     nCol = sqlite3_column_count(pStmt);
-    azCols = (char **)sqliteMalloc(2*nCol*sizeof(const char *));
+    azCols = sqliteMalloc(2*nCol*sizeof(const char *));
     if( nCol && !azCols ){
       rc = SQLITE_NOMEM;
       goto exec_out;
@@ -129,7 +126,7 @@ exec_out:
     rc = SQLITE_NOMEM;
   }
   if( rc!=SQLITE_OK && rc==sqlite3_errcode(db) && pzErrMsg ){
-    *pzErrMsg = (char *)malloc(1+strlen(sqlite3_errmsg(db)));
+    *pzErrMsg = malloc(1+strlen(sqlite3_errmsg(db)));
     if( *pzErrMsg ){
       strcpy(*pzErrMsg, sqlite3_errmsg(db));
     }
@@ -138,5 +135,4 @@ exec_out:
   }
 
   return rc;
-}
 }

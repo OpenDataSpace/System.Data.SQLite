@@ -1,6 +1,3 @@
-#pragma unmanaged
-extern "C"
-{
 /*
 ** 2001 September 15
 **
@@ -18,7 +15,7 @@ extern "C"
 ** individual tokens and sends those tokens one-by-one over to the
 ** parser for analysis.
 **
-** $Id: tokenize.c,v 1.9 2005/08/27 23:19:40 rmsimpson Exp $
+** $Id: tokenize.c,v 1.10 2005/09/01 06:07:56 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include "os.h"
@@ -58,7 +55,7 @@ extern "C"
 ** SQLite will allow '$' in identifiers for compatibility.
 ** But the feature is undocumented.
 */
-extern const char sqlite3IsIdChar[] = {
+const char sqlite3IsIdChar[] = {
 /* x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 xA xB xC xD xE xF */
     0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  /* 2x */
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0,  /* 3x */
@@ -360,7 +357,7 @@ int sqlite3RunParser(Parse *pParse, const char *zSql, char **pzErrMsg){
   pParse->zTail = pParse->zSql = zSql;
   while( sqlite3_malloc_failed==0 && zSql[i]!=0 ){
     assert( i>=0 );
-    pParse->sLastToken.z = (const unsigned char *)&zSql[i];
+    pParse->sLastToken.z = &zSql[i];
     assert( pParse->sLastToken.dyn==0 );
     pParse->sLastToken.n = getToken((unsigned char*)&zSql[i],&tokenType);
     i += pParse->sLastToken.n;
@@ -433,5 +430,4 @@ abort_parse:
     pParse->rc = SQLITE_ERROR;
   }
   return nErr;
-}
 }

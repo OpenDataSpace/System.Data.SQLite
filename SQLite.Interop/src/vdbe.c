@@ -1,6 +1,3 @@
-#pragma unmanaged
-extern "C"
-{
 /*
 ** 2001 September 15
 **
@@ -46,7 +43,7 @@ extern "C"
 ** in this file for details.  If in doubt, do not deviate from existing
 ** commenting and indentation practices when changing or adding code.
 **
-** $Id: vdbe.c,v 1.7 2005/08/22 18:22:12 rmsimpson Exp $
+** $Id: vdbe.c,v 1.8 2005/09/01 06:07:56 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include "os.h"
@@ -173,7 +170,7 @@ static int AggInsert(Agg *p, char *zKey, int nKey){
   AggElem *pElem;
   int i;
   int rc;
-  pElem = (AggElem *)sqliteMalloc( sizeof(AggElem) + nKey +
+  pElem = sqliteMalloc( sizeof(AggElem) + nKey +
                         (p->nMem-1)*sizeof(pElem->aMem[0]) );
   if( pElem==0 ) return SQLITE_NOMEM;
   pElem->zKey = (char*)&pElem->aMem[p->nMem];
@@ -251,7 +248,7 @@ static Cursor *allocateCursor(Vdbe *p, int iCur){
   if( p->apCsr[iCur] ){
     sqlite3VdbeFreeCursor(p->apCsr[iCur]);
   }
-  p->apCsr[iCur] = pCx = (Cursor *)sqliteMalloc( sizeof(Cursor) );
+  p->apCsr[iCur] = pCx = sqliteMalloc( sizeof(Cursor) );
   return pCx;
 }
 
@@ -793,7 +790,7 @@ case OP_HexBlob: {            /* same as TK_BLOB */
   pOp->opcode = OP_Blob;
   pOp->p1 = strlen(pOp->p3)/2;
   if( pOp->p1 ){
-    char *zBlob = (char *)sqlite3HexToBlob(pOp->p3);
+    char *zBlob = sqlite3HexToBlob(pOp->p3);
     if( !zBlob ) goto no_mem;
     if( pOp->p3type==P3_DYNAMIC ){
       sqliteFree(pOp->p3);
@@ -1002,7 +999,7 @@ case OP_Concat: {           /* same as TK_CONCAT */
     /* Otherwise malloc() space for the result and concatenate all the
     ** stack values.
     */
-    zNew = (char *)sqliteMallocRaw( nByte+2 );
+    zNew = sqliteMallocRaw( nByte+2 );
     if( zNew==0 ) goto no_mem;
     j = 0;
     pTerm = &pTos[1-nField];
@@ -1902,7 +1899,7 @@ case OP_Column: {
       payloadSize = 0;
     }else if( pC->cacheValid ){
       payloadSize = pC->payloadSize;
-      zRec = (char *)pC->aRow;
+      zRec = pC->aRow;
     }else if( pC->isIndex ){
       i64 payloadSize64;
       sqlite3BtreeKeySize(pCrsr, &payloadSize64);
@@ -1947,7 +1944,7 @@ case OP_Column: {
     if( pC && pC->aType ){
       aType = pC->aType;
     }else{
-      aType = (u32 *)sqliteMallocRaw( 2*nField*sizeof(aType) );
+      aType = sqliteMallocRaw( 2*nField*sizeof(aType) );
     }
     aOffset = &aType[nField];
     if( aType==0 ){
@@ -1969,12 +1966,12 @@ case OP_Column: {
       ** the record.
       */
       if( avail>=payloadSize ){
-        zRec = (char *)(pC->aRow = (u8 *)zData);
+        zRec = pC->aRow = zData;
       }else{
         pC->aRow = 0;
       }
     }
-    idx = sqlite3GetVarint32((const unsigned char *)zData, &szHdr);
+    idx = sqlite3GetVarint32(zData, &szHdr);
 
 
     /* The KeyFetch() or DataFetch() above are fast and will get the entire
@@ -2001,7 +1998,7 @@ case OP_Column: {
     i = 0;
     while( idx<szHdr && i<nField && offset<=payloadSize ){
       aOffset[i] = offset;
-      idx += sqlite3GetVarint32((const unsigned char *)&zData[idx], &aType[i]);
+      idx += sqlite3GetVarint32(&zData[idx], &aType[i]);
       offset += sqlite3VdbeSerialTypeLen(aType[i]);
       i++;
     }
@@ -2055,7 +2052,7 @@ case OP_Column: {
       }
       zData = sMem.z;
     }
-    sqlite3VdbeSerialGet((const unsigned char *)zData, aType[p2], pTos);
+    sqlite3VdbeSerialGet(zData, aType[p2], pTos);
     pTos->enc = db->enc;
   }else{
     if( pOp->p3type==P3_MEM ){
@@ -2213,12 +2210,12 @@ case OP_MakeRecord: {
 
   /* Allocate space for the new record. */
   if( nByte>sizeof(zTemp) ){
-    zNewRecord = (unsigned char *)sqliteMallocRaw(nByte);
+    zNewRecord = sqliteMallocRaw(nByte);
     if( !zNewRecord ){
       goto no_mem;
     }
   }else{
-    zNewRecord = (unsigned char *)zTemp;
+    zNewRecord = zTemp;
   }
 
   /* Write the record */
@@ -2252,7 +2249,7 @@ case OP_MakeRecord: {
     pTos->flags = MEM_Blob | MEM_Short;
   }else{
     assert( zNewRecord!=(unsigned char *)zTemp );
-    pTos->z = (char *)zNewRecord;
+    pTos->z = zNewRecord;
     pTos->flags = MEM_Blob | MEM_Dyn;
     pTos->xDel = 0;
   }
@@ -2947,7 +2944,7 @@ case OP_IsUnique: {        /* no-push */
     zKey = pNos->z;
     nKey = pNos->n;
 
-    szRowid = sqlite3VdbeIdxRowidLen(nKey, (const u8 *)zKey);
+    szRowid = sqlite3VdbeIdxRowidLen(nKey, zKey);
     len = nKey-szRowid;
 
     /* Search for an entry in P1 where all but the last four bytes match K.
@@ -2964,7 +2961,7 @@ case OP_IsUnique: {        /* no-push */
         break;
       }
     }
-    rc = sqlite3VdbeIdxKeyCompare(pCx, len, (const unsigned char *)zKey, &res); 
+    rc = sqlite3VdbeIdxKeyCompare(pCx, len, zKey, &res); 
     if( rc!=SQLITE_OK ) goto abort_due_to_error;
     if( res>0 ){
       pc = pOp->p2 - 1;
@@ -3240,7 +3237,7 @@ case OP_Insert: {         /* no-push */
         pC->pData = pTos->z;
         pTos->flags = MEM_Null;
       }else{
-        pC->pData = (char *)sqliteMallocRaw( pC->nData+2 );
+        pC->pData = sqliteMallocRaw( pC->nData+2 );
         if( !pC->pData ) goto no_mem;
         memcpy(pC->pData, pTos->z, pC->nData);
         pC->pData[pC->nData] = 0;
@@ -3361,7 +3358,7 @@ case OP_RowData: {
       pTos->flags = MEM_Blob | MEM_Short;
       pTos->z = pTos->zShort;
     }else{
-      char *z = (char *)sqliteMallocRaw( n );
+      char *z = sqliteMallocRaw( n );
       if( z==0 ) goto no_mem;
       pTos->flags = MEM_Blob | MEM_Dyn;
       pTos->xDel = 0;
@@ -3702,7 +3699,7 @@ case OP_IdxGE: {        /* no-push */
     assert( pC->deferredMoveto==0 );
     *pC->pIncrKey = pOp->p3!=0;
     assert( pOp->p3==0 || pOp->opcode!=OP_IdxGT );
-    rc = sqlite3VdbeIdxKeyCompare(pC, pTos->n, (const unsigned char *)pTos->z, &res);
+    rc = sqlite3VdbeIdxKeyCompare(pC, pTos->n, pTos->z, &res);
     *pC->pIncrKey = 0;
     if( rc!=SQLITE_OK ){
       break;
@@ -3740,9 +3737,9 @@ case OP_IdxIsNull: {        /* no-push */
   assert( pTos->flags & MEM_Blob );
   z = pTos->z;
   n = pTos->n;
-  k = sqlite3GetVarint32((const unsigned char *)z, &serial_type);
+  k = sqlite3GetVarint32(z, &serial_type);
   for(; k<n && i>0; i--){
-    k += sqlite3GetVarint32((const unsigned char *)&z[k], &serial_type);
+    k += sqlite3GetVarint32(&z[k], &serial_type);
     if( serial_type==0 ){   /* Serial type 0 is a NULL */
       pc = pOp->p2-1;
       break;
@@ -3965,7 +3962,7 @@ case OP_IntegrityCk: {
     if( (pTos[-nRoot].flags & MEM_Int)==0 ) break;
   }
   assert( nRoot>0 );
-  aRoot = (int *)sqliteMallocRaw( sizeof(int*)*(nRoot+1) );
+  aRoot = sqliteMallocRaw( sizeof(int*)*(nRoot+1) );
   if( aRoot==0 ) goto no_mem;
   for(j=0; j<nRoot; j++){
     Mem *pMem = &pTos[-j];
@@ -4066,7 +4063,7 @@ case OP_ContextPush: {        /* no-push */
   /* FIX ME: This should be allocated as part of the vdbe at compile-time */
   if( i>=p->contextStackDepth ){
     p->contextStackDepth = i+1;
-    p->contextStack = (Context *)sqliteRealloc(p->contextStack, sizeof(Context)*(i+1));
+    p->contextStack = sqliteRealloc(p->contextStack, sizeof(Context)*(i+1));
     if( p->contextStack==0 ) goto no_mem;
   }
   pContext = &p->contextStack[i];
@@ -4105,7 +4102,7 @@ case OP_SortInsert: {        /* no-push */
   Sorter *pSorter;
   assert( pNos>=p->aStack );
   if( Dynamicify(pTos, db->enc) ) goto no_mem;
-  pSorter = (Sorter *)sqliteMallocRaw( sizeof(Sorter) );
+  pSorter = sqliteMallocRaw( sizeof(Sorter) );
   if( pSorter==0 ) goto no_mem;
   pSorter->pNext = 0;
   if( p->pSortTail ){
@@ -4322,7 +4319,7 @@ case OP_AggReset: {        /* no-push */
   if( rc!=SQLITE_OK ){
     goto abort_due_to_error;
   }
-  p->pAgg->apFunc = (FuncDef **)sqliteMalloc( p->pAgg->nMem*sizeof(p->pAgg->apFunc[0]) );
+  p->pAgg->apFunc = sqliteMalloc( p->pAgg->nMem*sizeof(p->pAgg->apFunc[0]) );
   if( p->pAgg->apFunc==0 ) goto no_mem;
   break;
 }
@@ -4391,7 +4388,7 @@ case OP_AggFunc: {        /* no-push */
     ctx.pColl = (CollSeq *)pOp[-1].p3;
   }
   (ctx.pFunc->xStep)(&ctx, n, apVal);
-  pMem->z = (char *)ctx.pAgg;
+  pMem->z = ctx.pAgg;
   pMem->flags = MEM_AggCtx;
   popStack(&pTos, n+1);
   if( ctx.isError ){
@@ -4555,7 +4552,7 @@ case OP_AggNext: {        /* no-push */
       ctx.cnt = pMem->i;
       ctx.pFunc = pFunc;
       pFunc->xFinalize(&ctx);
-      pMem->z = (char *)ctx.pAgg;
+      pMem->z = ctx.pAgg;
       if( pMem->z && pMem->z!=pMem->zShort ){
         sqliteFree( pMem->z );
       }
@@ -4720,5 +4717,4 @@ abort_due_to_interrupt:
   p->rc = rc;
   sqlite3SetString(&p->zErrMsg, sqlite3ErrStr(rc), (char*)0);
   goto vdbe_halt;
-}
 }

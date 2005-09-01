@@ -1,6 +1,3 @@
-#pragma unmanaged
-extern "C"
-{
 /*
 ** 2001 September 15
 **
@@ -15,7 +12,7 @@ extern "C"
 ** This file contains C code routines that are called by the parser
 ** to handle UPDATE statements.
 **
-** $Id: update.c,v 1.7 2005/08/22 18:22:12 rmsimpson Exp $
+** $Id: update.c,v 1.8 2005/09/01 06:07:56 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 
@@ -134,7 +131,7 @@ void sqlite3Update(
       goto update_cleanup;
     }
   }
-  aXRef = (int *)sqliteMallocRaw( sizeof(int) * pTab->nCol );
+  aXRef = sqliteMallocRaw( sizeof(int) * pTab->nCol );
   if( aXRef==0 ) goto update_cleanup;
   for(i=0; i<pTab->nCol; i++) aXRef[i] = -1;
 
@@ -221,7 +218,7 @@ void sqlite3Update(
     if( i<pIdx->nColumn ) nIdx++;
   }
   if( nIdxTotal>0 ){
-    apIdx = (Index **)sqliteMallocRaw( sizeof(Index*) * nIdx + nIdxTotal );
+    apIdx = sqliteMallocRaw( sizeof(Index*) * nIdx + nIdxTotal );
     if( apIdx==0 ) goto update_cleanup;
     aIdxUsed = (char*)&apIdx[nIdx];
   }
@@ -506,5 +503,4 @@ update_cleanup:
   sqlite3ExprListDelete(pChanges);
   sqlite3ExprDelete(pWhere);
   return;
-}
 }

@@ -1,6 +1,3 @@
-#pragma unmanaged
-extern "C"
-{
 /*
 ** 2005 May 25
 **
@@ -16,7 +13,7 @@ extern "C"
 ** interface, and routines that contribute to loading the database schema
 ** from disk.
 **
-** $Id: prepare.c,v 1.3 2005/08/22 18:22:12 rmsimpson Exp $
+** $Id: prepare.c,v 1.4 2005/09/01 06:07:56 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include "os.h"
@@ -514,7 +511,7 @@ int sqlite3_prepare16(
   }
   pTmp = sqlite3GetTransientValue(db);
   sqlite3ValueSetStr(pTmp, -1, zSql, SQLITE_UTF16NATIVE, SQLITE_STATIC);
-  zSql8 = (const char *)sqlite3ValueText(pTmp, SQLITE_UTF8);
+  zSql8 = sqlite3ValueText(pTmp, SQLITE_UTF8);
   if( !zSql8 ){
     sqlite3Error(db, SQLITE_NOMEM, 0);
     return SQLITE_NOMEM;
@@ -534,4 +531,3 @@ int sqlite3_prepare16(
   return rc;
 }
 #endif /* SQLITE_OMIT_UTF16 */
-}

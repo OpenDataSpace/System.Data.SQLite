@@ -1,6 +1,3 @@
-#pragma unmanaged
-extern "C"
-{
 /*
 ** 2001 September 22
 **
@@ -15,7 +12,7 @@ extern "C"
 ** This is the implementation of generic hash-tables
 ** used in SQLite.
 **
-** $Id: hash.c,v 1.7 2005/08/22 18:22:12 rmsimpson Exp $
+** $Id: hash.c,v 1.8 2005/09/01 06:07:55 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include <assert.h>
@@ -193,7 +190,7 @@ static int (*compareFunction(int keyClass))(const void*,int,const void*,int){
 */
 static void insertElement(
   Hash *pH,              /* The complete hash table */
-struct Hash::_ht *pEntry,    /* The entry into which pNew is inserted */
+  struct _ht *pEntry,    /* The entry into which pNew is inserted */
   HashElem *pNew         /* The element to be inserted */
 ){
   HashElem *pHead;       /* First element already in pEntry */
@@ -220,12 +217,12 @@ struct Hash::_ht *pEntry,    /* The entry into which pNew is inserted */
 ** to resize if sqliteMalloc() fails.
 */
 static void rehash(Hash *pH, int new_size){
-  struct Hash::_ht *new_ht;            /* The new hash table */
+  struct _ht *new_ht;            /* The new hash table */
   HashElem *elem, *next_elem;    /* For looping over existing elements */
   int (*xHash)(const void*,int); /* The hash function */
 
   assert( (new_size & (new_size-1))==0 );
-  new_ht = (struct Hash::_ht *)sqliteMalloc( new_size*sizeof(struct Hash::_ht) );
+  new_ht = (struct _ht *)sqliteMalloc( new_size*sizeof(struct _ht) );
   if( new_ht==0 ) return;
   if( pH->ht ) sqliteFree(pH->ht);
   pH->ht = new_ht;
@@ -253,7 +250,7 @@ static HashElem *findElementGivenHash(
   int (*xCompare)(const void*,int,const void*,int);  /* comparison function */
 
   if( pH->ht ){
-    struct Hash::_ht *pEntry = &pH->ht[h];
+    struct _ht *pEntry = &pH->ht[h];
     elem = pEntry->chain;
     count = pEntry->count;
     xCompare = compareFunction(pH->keyClass);
@@ -275,7 +272,7 @@ static void removeElementGivenHash(
   HashElem* elem,   /* The element to be removed from the pH */
   int h             /* Hash value for the element */
 ){
-  struct Hash::_ht *pEntry;
+  struct _ht *pEntry;
   if( elem->prev ){
     elem->prev->next = elem->next; 
   }else{
@@ -387,5 +384,4 @@ void *sqlite3HashInsert(Hash *pH, const void *pKey, int nKey, void *data){
   insertElement(pH, &pH->ht[h], new_elem);
   new_elem->data = data;
   return 0;
-}
 }

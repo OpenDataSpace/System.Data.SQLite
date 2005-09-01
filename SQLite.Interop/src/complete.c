@@ -1,6 +1,3 @@
-#pragma unmanaged
-extern "C"
-{
 /*
 ** 2001 September 15
 **
@@ -19,7 +16,7 @@ extern "C"
 ** separating it out, the code will be automatically omitted from
 ** static links that do not use it.
 **
-** $Id: complete.c,v 1.1 2005/08/22 18:22:12 rmsimpson Exp $
+** $Id: complete.c,v 1.2 2005/09/01 06:07:55 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #ifndef SQLITE_OMIT_COMPLETE
@@ -255,7 +252,7 @@ int sqlite3_complete16(const void *zSql){
 
   pVal = sqlite3ValueNew();
   sqlite3ValueSetStr(pVal, -1, zSql, SQLITE_UTF16NATIVE, SQLITE_STATIC);
-  zSql8 = (const char *)sqlite3ValueText(pVal, SQLITE_UTF8);
+  zSql8 = sqlite3ValueText(pVal, SQLITE_UTF8);
   if( zSql8 ){
     rc = sqlite3_complete(zSql8);
   }
@@ -264,4 +261,3 @@ int sqlite3_complete16(const void *zSql){
 }
 #endif /* SQLITE_OMIT_UTF16 */
 #endif /* SQLITE_OMIT_COMPLETE */
-}

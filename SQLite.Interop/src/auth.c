@@ -1,6 +1,3 @@
-#pragma unmanaged
-extern "C"
-{
 /*
 ** 2003 January 11
 **
@@ -17,7 +14,7 @@ extern "C"
 ** systems that do not need this facility may omit it by recompiling
 ** the library with -DSQLITE_OMIT_AUTHORIZATION=1
 **
-** $Id: auth.c,v 1.7 2005/08/22 18:22:12 rmsimpson Exp $
+** $Id: auth.c,v 1.8 2005/09/01 06:07:55 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 
@@ -226,4 +223,3 @@ void sqlite3AuthContextPop(AuthContext *pContext){
 }
 
 #endif /* SQLITE_OMIT_AUTHORIZATION */
-}
