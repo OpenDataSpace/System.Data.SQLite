@@ -501,7 +501,6 @@ namespace System.Data.SQLite
     {
       string s = _connectionString;
       int n;
-      KeyValuePair<string, string> kv;
       List<KeyValuePair<string, string>> ls = new List<KeyValuePair<string, string>>();
 
       // First split into semi-colon delimited values.  The Split() function of SQLiteBase accounts for and properly
@@ -516,9 +515,7 @@ namespace System.Data.SQLite
         arPiece = SQLiteConvert.Split(arParts[n], '=');
         if (arPiece.Length == 2)
         {
-          kv.Key = arPiece[0];
-          kv.Value = arPiece[1];
-          ls.Add(kv);
+          ls.Add(new KeyValuePair<string, string>(arPiece[0], arPiece[1]));
         }
       }
       KeyValuePair<string, string>[] ar = new KeyValuePair<string, string>[ls.Count];

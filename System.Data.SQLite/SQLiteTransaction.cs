@@ -78,14 +78,14 @@ namespace System.Data.SQLite
     /// <summary>
     /// Disposes the transaction.  If it is currently active, any changes are rolled back.
     /// </summary>
-    public override void Dispose()
+    protected override void Dispose(bool disposing)
     {
       if (_cnn != null) 
         Rollback();
 
       _cnn = null;
 
-      GC.SuppressFinalize(this);
+      base.Dispose(disposing);
     }
 
     /// <summary>

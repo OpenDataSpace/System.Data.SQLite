@@ -108,10 +108,10 @@ namespace System.Data.SQLite
     /// <summary>
     /// Disposes the datareader.  Calls Close() to ensure everything is cleaned up.
     /// </summary>
-    public override void Dispose()
+    protected override void Dispose(bool disposing)
     {
       Close();
-      GC.SuppressFinalize(this);
+      base.Dispose(disposing);
     }
 
     /// <summary>

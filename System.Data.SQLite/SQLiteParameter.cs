@@ -298,20 +298,6 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// Not implemented
-    /// </summary>
-    public override int Offset
-    {
-      get
-      {
-        throw new NotImplementedException();
-      }
-      set
-      {
-      }
-    }
-
-    /// <summary>
     /// Returns the parameter name
     /// </summary>
     public override string ParameterName

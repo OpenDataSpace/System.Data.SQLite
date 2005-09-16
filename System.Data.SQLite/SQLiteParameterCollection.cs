@@ -170,6 +170,20 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
+    /// Adds a named/unnamed parameter and its value to the parameter collection.
+    /// </summary>
+    /// <param name="parameterName">Name of the parameter, or null to indicate an unnamed parameter</param>
+    /// <param name="value">The initial value of the parameter</param>
+    /// <returns>Returns the SQLiteParameter object created during the call.</returns>
+    public SQLiteParameter AddWithValue(string parameterName, object value)
+    {
+      SQLiteParameter param = new SQLiteParameter(parameterName, value);
+      Add(param);
+
+      return param;
+    }
+
+    /// <summary>
     /// Adds an array of parameters to the collection
     /// </summary>
     /// <param name="values">The array of parameters to add</param>
