@@ -14,7 +14,7 @@
 ** This file contains functions for allocating memory, comparing
 ** strings, and stuff like that.
 **
-** $Id: util.c,v 1.9 2005/09/01 06:07:56 rmsimpson Exp $
+** $Id: util.c,v 1.10 2005/10/05 19:38:29 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include <stdarg.h>
@@ -365,6 +365,19 @@ char *sqlite3StrNDup(const char *z, int n){
   return zNew;
 }
 #endif /* !defined(SQLITE_MEMDEBUG) */
+
+/*
+** Reallocate a buffer to a different size.  This is similar to
+** sqliteRealloc() except that if the allocation fails the buffer
+** is freed.
+*/
+void sqlite3ReallocOrFree(void **ppBuf, int newSize){
+  void *pNew = sqliteRealloc(*ppBuf, newSize);
+  if( pNew==0 ){
+    sqliteFree(*ppBuf);
+  }
+  *ppBuf = pNew;
+}
 
 /*
 ** Create a string from the 2nd and subsequent arguments (up to the

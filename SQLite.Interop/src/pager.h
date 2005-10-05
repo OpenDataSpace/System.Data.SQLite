@@ -13,7 +13,7 @@
 ** subsystem.  The page cache subsystem reads and writes a file a page
 ** at a time and provides a journal for rollback.
 **
-** @(#) $Id: pager.h,v 1.9 2005/09/01 06:07:56 rmsimpson Exp $
+** @(#) $Id: pager.h,v 1.10 2005/10/05 19:38:29 rmsimpson Exp $
 */
 
 /*
@@ -34,7 +34,7 @@
 ** reasonable, like 1024.
 */
 #ifndef SQLITE_MAX_PAGE_SIZE
-# define SQLITE_MAX_PAGE_SIZE 8192
+# define SQLITE_MAX_PAGE_SIZE 32768
 #endif
 
 /*

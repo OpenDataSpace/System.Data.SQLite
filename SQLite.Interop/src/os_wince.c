@@ -107,6 +107,12 @@ int isatty( int handle )
 	return 1;
 }
 
+// Stubbed in WinCE
+DWORD WINAPI GetFullPathNameW(LPCWSTR lpFileName, DWORD nBufferLength, LPWSTR lpBuffer, LPWSTR *lpFilePart)
+{
+  return 0;
+}
+
 /*
 ** Converts a relative path to an absolute path.
 ** There is no current directory concept on Windows CE, so we assume
@@ -220,6 +226,8 @@ typedef struct sqlitewce_lockdata_t
 static void lock_file( OsFile *id )
 {
 	DWORD res;
+  if (id->lockdata == NULL) return;
+
 	while ( 1 )
 	{
 		res = WaitForSingleObject( id->hMux, INFINITE );
@@ -245,7 +253,8 @@ static void lock_file( OsFile *id )
 */
 static void unlock_file( OsFile *id )
 {
-	ReleaseMutex( id->hMux );
+  if (id->hMux)
+    ReleaseMutex( id->hMux );
 }
 
 /*
@@ -255,7 +264,10 @@ static void unlock_file( OsFile *id )
 static int getLock( OsFile *id, int locktype )
 {
 	int rc = 0;
-	lock_file( id );
+  if (id->lockdata == NULL) return 1;
+
+  lock_file( id );
+  
 	if ( locktype == SHARED_LOCK )
 	{
 		assert( id->lockdata->shared >= 0 );
@@ -282,7 +294,9 @@ static int getLock( OsFile *id, int locktype )
 static void unsetLock( OsFile *id, int locktype )
 {
 	assert( locktype >= SHARED_LOCK );
-	lock_file( id );
+  if (id->lockdata == NULL) return;
+
+  lock_file( id );
 	if ( locktype == SHARED_LOCK )
 	{
 		assert( id->lockdata->shared > 0 );
@@ -491,10 +505,9 @@ int sqlite3OsOpenExclusive( const char *zFilename, OsFile *id, int delFlag )
 	id->wFilename = wFilename;
 	id->delOnClose = delFlag;
 #ifndef SQLITE_WCE_OMIT_FILELOCK
-	// Not shared, so no need to lock file (it would fail to open)
-	id->hMux = NULL;
-	id->hMem = NULL;
-	id->lockdata = NULL;
+  id->lockdata = NULL;
+  id->hMux = NULL;
+  id->hMem = NULL;
 #endif
 	OpenCounter(+1);
 	TRACE3("OPEN EX %d \"%s\"\n", h, zFilename);
@@ -527,10 +540,9 @@ int sqlite3OsOpenReadOnly( const char *zFilename, OsFile *id )
 	id->wFilename = wFilename;
 	id->delOnClose = 0;
 #ifndef SQLITE_WCE_OMIT_FILELOCK
-	// Not shared, so no need to lock file
-	id->hMux = NULL;
-	id->hMem = NULL;
-	id->lockdata = NULL;
+  id->lockdata = NULL;
+  id->hMux = NULL;
+  id->hMem = NULL;
 #endif
 	OpenCounter(+1);
 	TRACE3("OPEN RO %d \"%s\"\n", h, zFilename);

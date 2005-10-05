@@ -49,7 +49,6 @@ struct OsFile {
 #define SQLITE_TEMPNAME_SIZE (MAX_PATH+50)
 #define SQLITE_MIN_SLEEP_MS 1
 
-
 /*
 ** This are WIN32 API functions not present in WinCE.
 ** They are implemented in the "os_wince.c" file.
@@ -77,6 +76,4 @@ void sqlitewce_GetSystemTimeAsFileTime( LPFILETIME );
 #if _WIN32_WCE >= 400
 # define localtime					sqlitewce_localtime
 #endif
-
-
 #endif /* _SQLITE_OS_WIN_H_ */
