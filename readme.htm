@@ -5,13 +5,14 @@
   </head>
   <body>
     ADO.NET 2.0 SQLite Data Provider<br>
-    Version 1.0.18- Sep 1, 2005<br>
-    Interop using SQLite 3.2.5<br>
+    Version 1.0.19 - Oct 5, 2005<br>
+    Interop using SQLite 3.2.7<br>
     Written by Robert Simpson (<a href="mailto:robert@blackcastlesoft.com">robert@blackcastlesoft.com</a>)<br>
     Released to the public domain, use at your own risk!<br>
     <br>
-    This provider was written and tested using the Visual Studio 2005 Beta 2 
-    release.<br>
+    This provider was written and tested using the Visual Studio 2005 Team System 
+    Release Candidate<br>
+    VS2005 Beta 2 users should continue using the 1.0.18.1 release.<br>
     <br>
     The latest version can be downloaded <a href="http://sourceforge.net/projects/sqlite-dotnet2">
       here</a>
@@ -105,11 +106,10 @@
     either your application's app.config or the system's machine.config located in 
     the %SystemRoot%\Microsoft.Net\Framework\v2.xxxx\Config folder:<br>
     <br>
-    <pre>
-&lt;configuration&gt;
+    <pre>&lt;configuration&gt;
   &lt;system.data&gt;
     &lt;DbProviderFactories&gt;
-      &lt;add name="SQLite Data Provider" invariant="System.Data.SQLite" description=".Net Framework Data Provider for SQLite"<BR > type="System.Data.SQLite.SQLiteFactory, System.Data.SQLite, Version=1.0.18.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139" /&gt;
+      &lt;add name="SQLite Data Provider" invariant="System.Data.SQLite" description=".Net Framework Data Provider for SQLite"<BR > type="System.Data.SQLite.SQLiteFactory, System.Data.SQLite, Version=1.0.19.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139" /&gt;
     &lt;/DbProviderFactories&gt;
   &lt;/system.data&gt;
 &lt;/configuration&gt;
@@ -177,6 +177,21 @@
     <b></b>
     <h2>
       <b>Version History</b></h2>
+    <p><b>1.0.19 - October 5, 2005</b></p>
+    <UL>
+      <li>
+      Code merge with SQLite 3.2.7
+      <LI>
+      Fixed bugs in the CE port code (os_wince.c)&nbsp;which were brought to 
+      light&nbsp;by&nbsp;recent changes in the SQLite engine.
+      <LI>
+        Recompiled and modified to be compatible with the September VS2005 Release 
+        Candidate.<br>
+        Beta 2 users should continue to use 1.0.18.1</LI></UL>
+    <p><b>1.0.18.1 - September 19, 2005</b></p>
+    <UL>
+      <li>
+        Code merge with SQLite 3.2.6</li></UL>
     <p><b>1.0.18 - September 1, 2005</b></p>
     <UL>
       <li>

@@ -36,7 +36,7 @@
 			<Tool
 				Name="VCPreBuildEventTool"
 				Description="Building SQLite netmodule ..."
-				CommandLine="cd ..\System.Data.SQLite&#x0D;&#x0A;csc /target:module /out:..\SQLite.Interop\SQlite.netmodule /o SQLite3.cs SQLite3_UTF16.cs SQLiteBase.cs SQLiteCommand.cs SQLiteCommandBuilder.cs SQLiteConnection.cs SQLiteConnectionStringBuilder.cs SQLiteConvert.cs SQLiteDataAdapter.cs SQLiteDataReader.cs SQLiteException.cs SQLiteFactory.cs SQLiteFunction.cs SQLiteFunctionAttribute.cs SQLiteParameter.cs SQLiteParameterCollection.cs SQLiteStatement.cs SQLiteTransaction.cs UnsafeNativeMethods.cs AssemblyInfo.cs&#x0D;&#x0A;cd ..\SQLite.Interop&#x0D;&#x0A;"
+				CommandLine="cd ..\System.Data.SQLite&#x0D;&#x0A;csc /target:module /out:..\SQLite.Interop\SQlite.netmodule /o SQLite3.cs SQLite3_UTF16.cs SQLiteBase.cs SQLiteCommand.cs SQLiteCommandBuilder.cs SQLiteConnection.cs SQLiteConnectionStringBuilder.cs SQLiteConvert.cs SQLiteDataAdapter.cs SQLiteDataReader.cs SQLiteException.cs SQLiteFactory.cs SQLiteFunction.cs SQLiteFunctionAttribute.cs SQLiteParameter.cs SQLiteParameterCollection.cs SQLiteStatement.cs SQLiteTransaction.cs UnsafeNativeMethods.cs assemblyinfo.cs&#x0D;&#x0A;cd ..\SQLite.Interop&#x0D;&#x0A;"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -57,7 +57,7 @@
 				FavorSizeOrSpeed="1"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;NO_TCL;THREADSAFE"
 				StringPooling="true"
-				RuntimeLibrary="0"
+				RuntimeLibrary="2"
 				DebugInformationFormat="3"
 			/>
 			<Tool
@@ -71,9 +71,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalOptions="/MANIFEST /MANIFESTFILE:&quot;Release\System.Data.SQLite.DLL.intermediate.manifest&quot;"
 				AdditionalDependencies="SQLite.netmodule $(NOINHERIT)"
 				OutputFile="$(SolutionDir)bin/System.Data.SQLite.DLL"
-				GenerateManifest="false"
 				ModuleDefinitionFile="src\sqlite3.def"
 				GenerateDebugInformation="true"
 				ImportLibrary="$(TargetDir)$(TargetName).lib"
@@ -136,8 +136,10 @@
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
 				AdditionalOptions="/GS-"
+				Optimization="3"
 				PreprocessorDefinitions="_WIN32_WCE=$(CEVER);UNDER_CE=$(CEVER);WINCE;$(PLATFORMDEFINES);NDEBUG;_WINDOWS;_USRDLL;CPPSMART_EXPORTS;$(ARCHFAM);$(_ARCHFAM_);UNICODE;_UNICODE"
 				StringPooling="true"
+				RuntimeLibrary="2"
 				DebugInformationFormat="3"
 			/>
 			<Tool
@@ -162,6 +164,7 @@
 				AddModuleNamesToAssembly=""
 				GenerateDebugInformation="true"
 				ImportLibrary="$(TargetDir)$(TargetName).lib"
+				TargetMachine="3"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -221,7 +224,7 @@
 				FavorSizeOrSpeed="1"
 				PreprocessorDefinitions="NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;NO_TCL;THREADSAFE;WIN64"
 				StringPooling="true"
-				RuntimeLibrary="0"
+				RuntimeLibrary="2"
 				DebugInformationFormat="3"
 			/>
 			<Tool
@@ -237,7 +240,6 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="SQLite.netmodule $(NOINHERIT)"
 				OutputFile="$(SolutionDir)bin/Itanium/System.Data.SQLite.DLL"
-				GenerateManifest="false"
 				ModuleDefinitionFile="src\sqlite3.def"
 				GenerateDebugInformation="true"
 				ImportLibrary="$(TargetDir)$(TargetName).lib"
@@ -304,7 +306,7 @@
 				FavorSizeOrSpeed="1"
 				PreprocessorDefinitions="NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;NO_TCL;THREADSAFE;WIN64"
 				StringPooling="true"
-				RuntimeLibrary="0"
+				RuntimeLibrary="2"
 				DebugInformationFormat="3"
 			/>
 			<Tool
@@ -320,7 +322,6 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="SQLite.netmodule $(NOINHERIT)"
 				OutputFile="$(SolutionDir)bin/x64/System.Data.SQLite.DLL"
-				GenerateManifest="false"
 				ModuleDefinitionFile="src\sqlite3.def"
 				GenerateDebugInformation="true"
 				ImportLibrary="$(TargetDir)$(TargetName).lib"

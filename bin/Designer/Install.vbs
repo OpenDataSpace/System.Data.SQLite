@@ -1,4 +1,4 @@
-Const SQLiteVersion = "1.0.18.0"
+Const SQLiteVersion = "1.0.19.0"
 
 Main
 
@@ -49,7 +49,7 @@ Sub Main()
    Dim machineConfigFile
    Dim machineConfigPath
    
-   machineConfigPath = fso.GetSpecialFolder(WindowsFolder).Path & "\Microsoft.NET\Framework\v2.0.50215\CONFIG"   
+   machineConfigPath = fso.GetSpecialFolder(WindowsFolder).Path & "\Microsoft.NET\Framework\v2.0.50727\CONFIG"   
    Set machineConfigFile = fso.OpenTextFile(machineConfigPath & "\machine.config")
    machineConfig = machineConfigFile.ReadAll()
    machineConfigFile.Close()

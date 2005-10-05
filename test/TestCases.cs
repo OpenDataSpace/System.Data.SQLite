@@ -112,7 +112,7 @@ namespace test
       try { UserAggregate(cnn); Console.WriteLine(""); }
       catch (Exception) { Console.WriteLine("FAIL - UserAggregate"); }
 
-      try { UserCollation(cnn); Console.WriteLine(""); }
+      try { UserCollation(cnn); Console.WriteLine("SUCCESS - UserCollation"); }
       catch (Exception) { Console.WriteLine("FAIL - UserCollation"); }
 
       try { DropTable(cnn); Console.WriteLine("SUCCESS - DropTable"); }
@@ -175,7 +175,7 @@ namespace test
         }
       }
     }
-
+    
     internal static void CoersionTest(DbConnection cnn)
     {
       using (DbCommand cmd = cnn.CreateCommand())
