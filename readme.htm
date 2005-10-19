@@ -5,7 +5,7 @@
   </head>
   <body>
     ADO.NET 2.0 SQLite Data Provider<br>
-    Version 1.0.19 - Oct 5, 2005<br>
+    Version 1.0.20 - Oct 19, 2005<br>
     Interop using SQLite 3.2.7<br>
     Written by Robert Simpson (<a href="mailto:robert@blackcastlesoft.com">robert@blackcastlesoft.com</a>)<br>
     Released to the public domain, use at your own risk!<br>
@@ -177,6 +177,11 @@
     <b></b>
     <h2>
       <b>Version History</b></h2>
+    <p><b>1.0.20 - October 19, 2005</b></p>
+    <UL>
+      <li>
+      Fixed a shortcut in SQLiteBase.GetValue which was insufficient for international
+      environments.&nbsp; The shortcut was removed and the "proper" procedure put in.</UL>
     <p><b>1.0.19 - October 5, 2005</b></p>
     <UL>
       <li>
