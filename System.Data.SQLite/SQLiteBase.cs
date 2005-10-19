@@ -149,16 +149,22 @@ namespace System.Data.SQLite
       
       Type t = SQLiteConvert.SQLiteTypeToType(typ);
 
-      if (t == typeof(byte[]))
+      switch (TypeToAffinity(t))
       {
-        int n = (int)GetBytes(stmt, index, 0, null, 0, 0);
-        byte[] b = new byte[n];
-        GetBytes(stmt, index, 0, b, 0, n);
-
-        return b;
+        case TypeAffinity.Blob:
+          int n = (int)GetBytes(stmt, index, 0, null, 0, 0);
+          byte[] b = new byte[n];
+          GetBytes(stmt, index, 0, b, 0, n);
+          return b;
+        case TypeAffinity.DateTime:
+          return GetDateTime(stmt, index);
+        case TypeAffinity.Double:
+          return Convert.ChangeType(GetDouble(stmt, index), t, null);
+        case TypeAffinity.Int64:
+          return Convert.ChangeType(GetInt64(stmt, index), t, null);
+        default:
+          return GetText(stmt, index);
       }
-
-      return Convert.ChangeType(GetText(stmt, index), t, null);
     }
 
     internal abstract int  CreateCollation(string strCollation, SQLiteCollation func);
