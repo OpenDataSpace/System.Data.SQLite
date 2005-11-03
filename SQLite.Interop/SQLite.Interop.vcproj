@@ -71,8 +71,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="/MANIFEST /MANIFESTFILE:&quot;Release\System.Data.SQLite.DLL.intermediate.manifest&quot;"
-				AdditionalDependencies="SQLite.netmodule $(NOINHERIT)"
+				AdditionalDependencies="SQLite.netmodule  $(NOINHERIT)"
 				OutputFile="$(SolutionDir)bin/System.Data.SQLite.DLL"
 				ModuleDefinitionFile="src\sqlite3.def"
 				GenerateDebugInformation="true"

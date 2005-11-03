@@ -29,7 +29,7 @@ namespace SQLite.Designer
       AddProperty(DefaultSchema);
       AddProperty(DefaultCatalog, "main");
       AddProperty(SupportsAnsi92Sql, true);
-      AddProperty(SupportsQuotedIdentifierParts, false);
+      AddProperty(SupportsQuotedIdentifierParts, true);
       AddProperty(IdentifierOpenQuote, "[");
       AddProperty(IdentifierCloseQuote, "]");
       AddProperty(CatalogSeparator, ".");
