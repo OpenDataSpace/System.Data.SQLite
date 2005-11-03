@@ -471,7 +471,7 @@ namespace System.Data.SQLite
 
         // Create a new command based on the original.  The only difference being that this new command returns
         // fully-qualified Database.Table.Column column names because of the above pragma
-        using (SQLiteCommand cmd = new SQLiteCommand(_activeStatement._sqlStatement, cnn))
+        using (SQLiteCommand cmd = (SQLiteCommand)_command.Clone())
         {
           using (DbDataReader rd = cmd.ExecuteReader(CommandBehavior.SchemaOnly))
           {
@@ -492,7 +492,7 @@ namespace System.Data.SQLite
               row[SchemaTableColumn.ProviderType] = GetSQLiteType(n).Type;
               row[SchemaTableColumn.IsLong] = false;
               row[SchemaTableColumn.AllowDBNull] = true;
-              row[SchemaTableOptionalColumn.IsReadOnly] = true;
+              row[SchemaTableOptionalColumn.IsReadOnly] = false;
               row[SchemaTableOptionalColumn.IsRowVersion] = false;
               row[SchemaTableColumn.IsUnique] = false;
               row[SchemaTableColumn.IsKey] = false;
@@ -546,8 +546,7 @@ namespace System.Data.SQLite
                         row[SchemaTableColumn.AllowDBNull] = (!bNotNull && !bPrimaryKey);
                         row[SchemaTableColumn.IsUnique] = bPrimaryKey;
                         row[SchemaTableColumn.IsKey] = bPrimaryKey;
-                        row[SchemaTableOptionalColumn.IsAutoIncrement] = (String.Compare(strType, "autoincrement", true, CultureInfo.InvariantCulture) == 0);
-                        row[SchemaTableOptionalColumn.IsReadOnly] = (bool)row[SchemaTableOptionalColumn.IsAutoIncrement];
+                        row[SchemaTableOptionalColumn.IsAutoIncrement] = bPrimaryKey;
                         if (rdTable.IsDBNull(4) == false)
                           row[SchemaTableOptionalColumn.DefaultValue] = rdTable[4];
                         break;
