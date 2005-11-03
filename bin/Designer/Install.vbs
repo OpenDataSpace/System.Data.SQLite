@@ -1,4 +1,4 @@
-Const SQLiteVersion = "1.0.20.0"
+Const SQLiteVersion = "1.0.21.0"
 
 Main
 
@@ -6,6 +6,20 @@ Sub Main()
 
    Dim WshShell
    Set WshShell = WScript.CreateObject("WScript.Shell")
+
+   Dim GacPath
+   Dim oExec
+   GacPath = WshShell.RegRead("HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\.NETFramework\sdkInstallRootv2.0")
+   
+   Set oExec = WshShell.Exec(GacPath & "\bin\gacutil.exe -u System.Data.SQLite")
+   Do While oExec.Status = 0
+     WScript.Sleep(100)
+   Loop
+   
+   Set oExec = WshShell.Exec(GacPath & "\bin\gacutil.exe -if ..\System.Data.SQLite.DLL")
+   Do While oExec.Status = 0
+     WScript.Sleep(100)
+   Loop
 
    Dim fso
    Set fso = WScript.CreateObject("Scripting.FileSystemObject")
@@ -37,7 +51,6 @@ Sub Main()
    genRegFile.Close()
    regFile.Close()
 
-   Dim oExec
    Set oExec = WshShell.Exec("regedit /s """ & myDir & "\SQLiteDesigner.gen.reg""")
    Do While oExec.Status = 0
       WScript.Sleep(100)
@@ -45,38 +58,31 @@ Sub Main()
 
    fso.DeleteFile(myDir & "\SQLiteDesigner.gen.reg")
 
-   Dim machineConfig
    Dim machineConfigFile
-   Dim machineConfigPath
+   Dim machineConfig
    
-   machineConfigPath = fso.GetSpecialFolder(WindowsFolder).Path & "\Microsoft.NET\Framework\v2.0.50727\CONFIG"   
-   Set machineConfigFile = fso.OpenTextFile(machineConfigPath & "\machine.config")
-   machineConfig = machineConfigFile.ReadAll()
-   machineConfigFile.Close()
+   machineConfigFile = fso.GetSpecialFolder(WindowsFolder).Path & "\Microsoft.NET\Framework\v2.0.50727\CONFIG\machine.config"
+   Set machineConfig = CreateObject("Microsoft.XMLDOM")
+   machineConfig.load machineConfigFile
    
-   Dim n
-   Dim x
+   Dim xmlNode
+   Dim xmlParent
    
-   n = InStr(1, machineConfig, "System.Data.SQLite, Version=1", 1)
-   
-   If (n = 0) Then
-     n = InStr(1, machineConfig, "</DbProviderFactories>", 1)
-     If n > 0 Then
-       n = InStrRev(machineConfig, vbCrLf, n, 1)
-       If n > 0 Then
-         machineConfig = Left(machineConfig, n + 1) & "      <add name=""SQLite Data Provider"" invariant=""System.Data.SQLite"" description="".Net Framework Data Provider for SQLite"" type=""System.Data.SQLite.SQLiteFactory, System.Data.SQLite, Version=" & SQLiteVersion & ", Culture=neutral, PublicKeyToken=db937bc2d44ff139"" />" & vbCrLf & Mid(machineConfig, n + 2)
-       End If
-     End If
-   Else
-     n = n + 27
-     x = InStr(n, machineConfig, ",", 1)
-     If x > 0 Then
-       machineConfig = Left(machineConfig, n) & SQLiteVersion & Mid(machineConfig, x)
-     End If
+   Set xmlNode = machineConfig.selectSingleNode("configuration/system.data/DbProviderFactories/add[@invariant=""System.Data.SQLite""]")
+   If xmlNode Is Nothing Then
+     Set xmlParent = machineConfig.selectSingleNode("configuration/system.data/DbProviderFactories")
+     Set xmlNode = machineConfig.createNode(1, "add", "")
+     xmlNode.attributes.setNamedItem(machineConfig.createAttribute("name"))
+     xmlNode.attributes.setNamedItem(machineConfig.createAttribute("invariant"))
+     xmlNode.attributes.setNamedItem(machineConfig.createAttribute("description"))
+     xmlNode.attributes.setNamedItem(machineConfig.createAttribute("type"))
+     xmlParent.appendChild xmlNode
    End If
    
-   Set machineConfigFile = fso.CreateTextFile(machineConfigPath & "\machine.config", true)
-   machineConfigFile.Write(machineConfig)
-   machineConfigFile.Close()
-   
+   xmlNode.attributes.getNamedItem("name").value = "SQLite Data Provider"
+   xmlNode.attributes.getNamedItem("invariant").value = "System.Data.SQLite"
+   xmlNode.attributes.getNamedItem("description").value = ".Net Framework Data Provider for SQLite"
+   xmlNode.attributes.getNamedItem("type").value = "System.Data.SQLite.SQLiteFactory, System.Data.SQLite, Version=" & SQLiteVersion & ", Culture=neutral, PublicKeyToken=db937bc2d44ff139"
+
+   machineConfig.save machineConfigFile
 End Sub
