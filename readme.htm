@@ -5,14 +5,10 @@
   </head>
   <body>
     ADO.NET 2.0 SQLite Data Provider<br>
-    Version 1.0.20 - Oct 19, 2005<br>
+    Version 1.0.21- Nov 4, 2005<br>
     Interop using SQLite 3.2.7<br>
     Written by Robert Simpson (<a href="mailto:robert@blackcastlesoft.com">robert@blackcastlesoft.com</a>)<br>
     Released to the public domain, use at your own risk!<br>
-    <br>
-    This provider was written and tested using the Visual Studio 2005 Team System 
-    Release Candidate<br>
-    VS2005 Beta 2 users should continue using the 1.0.18.1 release.<br>
     <br>
     The latest version can be downloaded <a href="http://sourceforge.net/projects/sqlite-dotnet2">
       here</a>
@@ -80,43 +76,26 @@
     <strong></strong>
     <h2>
       <strong>Design-Time Support (new as of 1.0.14)</strong></h2>
-    <P>Until an installer is created, the steps for registering the provider for 
-      design-time support are:</P>
-    <OL>
-      <LI>
-        Register the <STRONG>System.Data.SQLite.DLL</STRONG> in the Global Assembly 
-        Cache either by using the .Net 2.0 version of GACUTIL, or through <STRONG>Administrative 
-          Tools -&gt; Microsoft .NET Framework 2.0 Configuration</STRONG>.
-      <LI>
-        Through a command-prompt or Windows Explorer, navigate to the <STRONG>SQLite.NET\bin\Designer</STRONG>
+    <P>Until an installer is created, through a command-prompt or Windows Explorer, navigate to the <STRONG>SQLite.NET\bin\Designer</STRONG>
         folder and execute the <STRONG>INSTALL.CMD</STRONG>
-      file.
-      <LI>
-        <STRONG>NOTE:&nbsp; Enabling Design-Time support for SQLite causes the SQLite 
-          Provider to be registered in your machine.config.</STRONG>&nbsp;&nbsp; If you 
-        have already added the XML shown below to your <STRONG>app.config</STRONG> in 
-        your applications, <STRONG>you need to remove it.</STRONG>&nbsp; If you 
-      don't, it will cause a unique constraint violation when you run your program.
-      <LI>
-        Delete the <STRONG>test.exe.config</STRONG> file from the <STRONG>SQLite.NET\bin</STRONG>
-        folder -- it is no longer necessary.</LI></OL>
+      file.&nbsp; The script and
+      batch file will register the System.Data.SQLite DLL in the Global Assembly Cache,
+      and modify the machine.config file to add SQLite to the list of default data providers.</P>
     <H2><STRONG>DbFactory Support (Non-Compact Framework)</STRONG></H2>
     In order to use the SQLiteFactory and have the SQLite data provider enumerated 
-    in the DbProviderFactories methods, you must add the following segment into 
-    either your application's app.config or the system's machine.config located in 
-    the %SystemRoot%\Microsoft.Net\Framework\v2.xxxx\Config folder:<br>
+    in the DbProviderFactories methods, you must add the following segment into your application's app.config file:<br>
     <br>
     <pre>&lt;configuration&gt;
   &lt;system.data&gt;
     &lt;DbProviderFactories&gt;
-      &lt;add name="SQLite Data Provider" invariant="System.Data.SQLite" description=".Net Framework Data Provider for SQLite"<BR > type="System.Data.SQLite.SQLiteFactory, System.Data.SQLite, Version=1.0.19.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139" /&gt;
+      &lt;remove invariant="System.Data.SQLite"/&gt;
+      &lt;add name="SQLite Data Provider" invariant="System.Data.SQLite" description=".Net Framework Data Provider for SQLite"<BR > type="System.Data.SQLite.SQLiteFactory, System.Data.SQLite" /&gt;
     &lt;/DbProviderFactories&gt;
   &lt;/system.data&gt;
 &lt;/configuration&gt;
 </pre>
-    <P>If you choose to install the Visual Studio Design-Time support for SQLite, you 
-      must not add the above XML to your app.config.&nbsp; The installer will have 
-      already added it to your machine's machine.config file.</P>
+    <p>See the help documentation for further details on implementing both version-specific (GAC enabled) and version independent DBProviderFactories support.
+      </p>
     <h3>
       Compiling for the Compact Framework</h3>
     <p>
@@ -144,44 +123,48 @@
     <H2><B>Development Notes Regarding the SQLite 3 Source Code</B></H2>
     <p></p>
     <p>
-      Steps for merging the sqlite3 core codebase:</p>
-    <p>
-      <strong>This section is obsolete, but remains for historical purposes.&nbsp; The 
-        1.0.11+ versions of the ADO.NET 2.0 SQLite provider make significant changes to 
-        the core sqlite3 codebase in order to support C++ /clr compiling.&nbsp; 
-        Specifically, all the implicit casts throughout the core codebase must be 
-        modified.&nbsp; There are several hundred of these casts and they must be fixed 
-        up every time a new sqlite version is released.</strong></p>
+      Steps for merging the sqlite3 core codebase (without Compact Framework support --
+      that's another story):</p>
     <ol>
       <li>
-        <FONT color="silver">Download the latest sqlite3 source from </FONT><a href="http://www.sqlite.org/download.html">
-          <FONT color="silver">http://www.sqlite.org/download.html</FONT></a><FONT color="silver">
-        </FONT>
+        Download the latest sqlite3 source from <a href="http://www.sqlite.org/download.html">
+          http://www.sqlite.org/download.html</a>
+        
       <li>
-        <FONT color="silver">Extract the source code to the <b>SQLite.Interop\src</b> directory 
-          of this project </FONT>
+        Extract the source code to the <b>SQLite.Interop\src</b> directory 
+          of this project 
       <li>
-        <FONT color="silver">Open the <b>src\select.c</b> file. </FONT>
+        Open the <b>src\select.c</b> file. 
       <li>
-        <FONT color="silver">Add <b>#include "../interop.h" </b>to the top of the file 
-          where the other include's are. </FONT>
+        Add <b>#include "../interop.h" </b>to the top of the file 
+          where the other include's are. 
       <li>
-        <FONT color="silver">Scroll down the <b>select.c</b> file to around line <b>748</b>.&nbsp; 
+        Scroll down the <b>select.c</b> file to around line <b>822</b>.&nbsp; 
           Change the name of the function <b>static void generateColumnNames </b>to <b>static 
             void _generateColumnNames</b> (<i>note the underscore in front of the name</i>).
-        </FONT>
+        
       <li>
-        <FONT color="silver">Compile it. </FONT>
+        Compile it. 
       </li>
     </ol>
     <b></b>
     <h2>
       <b>Version History</b></h2>
+    <p><b>1.0.21 - November 4, 2005</b></p>
+    <UL>
+      <li>Fixed a designer bug when creating typed datasets with parameterized queries.</li>
+      <li>The above fix then exposed another bug in the datareader's ability to query schema
+        information on parameterized commands, which was also fixed.</li>
+      <li>Compiled against the RTM version of VS2005.</li>
+      <li>Rewrote the design-time install script to use the XML DOM objects when writing
+        to the machine.config and to automatically register the DLL in the GAC.</li><li>Made changes to the app.config descriptions and help file to improve version-independent
+        factory support.</li></UL>
     <p><b>1.0.20 - October 19, 2005</b></p>
     <UL>
       <li>
-      Fixed a shortcut in SQLiteBase.GetValue which was insufficient for international
-      environments.&nbsp; The shortcut was removed and the "proper" procedure put in.</UL>
+        Fixed a shortcut in SQLiteBase.GetValue which was insufficient for 
+        international environments.&nbsp; The shortcut was removed and the "proper" 
+        procedure put in.</li></UL>
     <p><b>1.0.19 - October 5, 2005</b></p>
     <UL>
       <li>

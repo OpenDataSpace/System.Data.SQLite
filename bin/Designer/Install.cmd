@@ -24,9 +24,11 @@ GOTO ParseCmdLine
 ECHO Installing DDEX Data Provider for SQLite
 ECHO   VS Registry Root: %REGROOT%
 ECHO   XML File Path:    %XMLPATH%
+ECHO   SQLite.DLL Path:  %MYDIR%..\
 
 IF NOT EXIST "%XMLPATH%\SQLiteDataViewSupport.xml" ECHO The data view support XML file was not found.& GOTO End
 IF NOT EXIST "%XMLPATH%\SQLiteDataObjectSupport.xml" ECHO The data object support XML file was not found.& GOTO End
+IF NOT EXIST "..\System.Data.SQLite.DLL" ECHO The ..\System.Data.SQLite.DLL could not be found.& GOTO End
 
 CScript "%MYDIR%\Install.vbs" //NoLogo "%REGROOT%" "%XMLPATH%"
 

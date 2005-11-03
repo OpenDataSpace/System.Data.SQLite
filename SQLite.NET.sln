@@ -12,13 +12,16 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "test", "test\test.csproj", 
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{39A3B743-1EBD-4CC0-8E37-ACE3DD38B1C0}"
-	ProjectSection(SolutionItems) = postProject
+	ProjectSection(SolutionItems) = preProject
 		readme.htm = readme.htm
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SQLite.Interop", "SQLite.Interop\SQLite.Interop.vcproj", "{10B51CE8-A838-44DE-BD82-B658F0296F80}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "testce", "testce\testce.csproj", "{B86CE504-C4E4-496F-A0F0-E613BCFD3DF7}"
+	ProjectSection(ProjectDependencies) = postProject
+		{AC139951-261A-4463-B6FA-AEBC25283A66} = {AC139951-261A-4463-B6FA-AEBC25283A66}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SQLite.Designer", "SQLite.Designer\SQLite.Designer.csproj", "{9B4A5CF6-5BE5-4926-ACC7-B729A8C05198}"
 EndProject
