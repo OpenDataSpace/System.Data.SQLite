@@ -55,7 +55,7 @@ namespace System.Data.SQLite
     /// <summary>
     /// Used internally
     /// </summary>
-    None = 256,
+    None = 11,
   }
 
   /// <summary>
@@ -354,6 +354,7 @@ namespace System.Data.SQLite
       null,
       null,
       typeof(DateTime),
+      null,
     };
 
     /// <summary>
