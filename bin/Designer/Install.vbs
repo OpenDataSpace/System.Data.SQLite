@@ -1,4 +1,4 @@
-Const SQLiteVersion = "1.0.21.0"
+Const SQLiteVersion = "1.0.22.0"
 
 Main
 
