@@ -487,7 +487,7 @@ namespace System.Data.SQLite
       int x = _typeNames.Length;
       for (int n = 0; n < x; n++)
       {
-        if (String.Compare(Name, 0, _typeNames[n].typeName, 0, _typeNames[n].typeName.Length, true, CultureInfo.CurrentCulture) == 0)
+        if (String.Compare(Name, 0, _typeNames[n].typeName, 0, _typeNames[n].typeName.Length, true, CultureInfo.InvariantCulture) == 0)
           return _typeNames[n].dataType; 
       }
       return DbType.Object;

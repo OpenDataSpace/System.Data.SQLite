@@ -512,7 +512,7 @@ namespace System.Data.SQLite
               // If we have a table-bound column, extract the extra information from it
               if (arName.Length > 1)
               {
-                using (SQLiteCommand cmdTable = new SQLiteCommand(String.Format(CultureInfo.CurrentCulture, "PRAGMA [{1}].TABLE_INFO([{0}])", strTable, strCatalog), cnn))
+                using (SQLiteCommand cmdTable = new SQLiteCommand(String.Format(CultureInfo.InvariantCulture, "PRAGMA [{1}].TABLE_INFO([{0}])", strTable, strCatalog), cnn))
                 {
                   if (arName.Length < 3) strCatalog = "main";
 
@@ -520,7 +520,7 @@ namespace System.Data.SQLite
                   {
                     while (rdTable.Read())
                     {
-                      if (String.Compare(arName[arName.Length - 1], rdTable.GetString(1), true, CultureInfo.CurrentCulture) == 0)
+                      if (String.Compare(arName[arName.Length - 1], rdTable.GetString(1), true, CultureInfo.InvariantCulture) == 0)
                       {
                         string strType = rdTable.GetString(2);
                         string[] arSize = strType.Split('(');

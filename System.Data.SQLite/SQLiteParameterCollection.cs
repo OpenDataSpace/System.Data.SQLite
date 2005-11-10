@@ -282,7 +282,7 @@ namespace System.Data.SQLite
       int x = _parameterList.Count;
       for (int n = 0; n < x; n++)
       {
-        if (String.Compare(parameterName, _parameterList[n].ParameterName, true, CultureInfo.CurrentCulture) == 0)
+        if (String.Compare(parameterName, _parameterList[n].ParameterName, true, CultureInfo.InvariantCulture) == 0)
           return n;
       }
       return -1;
