@@ -153,6 +153,9 @@
     <p><b>1.0.22 - November 11, 2005</b></p>
     <ul>
     <li>Fixed some globalization issues which resulted in incorrect case-insensitive comparisons</li>
+      <li>Fixed a bug in the routine that finds all user-defined functions in a loaded assembly.&nbsp;
+        It would throw an exception if any of the types in the assembly could not be loaded.&nbsp;
+        The exception is now caught and handled appropriately.</li>
     </ul>
     <p><b>1.0.21 - November 4, 2005</b></p>
     <UL>
