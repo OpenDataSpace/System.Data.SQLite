@@ -409,10 +409,21 @@ namespace System.Data.SQLite
 
       for (int n = 0; n < w; n++)
       {
-        Type[] arTypes = arAssemblies[n].GetTypes();
+        Type[] arTypes;
+        try
+        {
+          arTypes = arAssemblies[n].GetTypes();
+        }
+        catch (Reflection.ReflectionTypeLoadException e)
+        {
+          arTypes = e.Types;
+        }
+
         int v = arTypes.Length;
         for (int x = 0; x < v; x++)
         {
+          if (arTypes[x] == null) continue;
+
           object[] arAtt = arTypes[x].GetCustomAttributes(false);
           int u = arAtt.Length;
           for (int y = 0; y < u; y++)
