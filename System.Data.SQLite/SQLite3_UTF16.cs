@@ -107,15 +107,13 @@ namespace System.Data.SQLite
 
     internal override string ColumnType(SQLiteStatement stmt, int index, out TypeAffinity nAffinity)
     {
-      nAffinity = TypeAffinity.None;
-      
       int len;
       IntPtr p = UnsafeNativeMethods.sqlite3_column_decltype16_interop(stmt._sqlite_stmt, index, out len);
+      nAffinity = UnsafeNativeMethods.sqlite3_column_type_interop(stmt._sqlite_stmt, index);
 
       if (p != IntPtr.Zero) return ToString(p, len);
       else
       {
-        nAffinity = UnsafeNativeMethods.sqlite3_column_type_interop(stmt._sqlite_stmt, index);
         switch (nAffinity)
         {
           case TypeAffinity.Int64:

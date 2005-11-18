@@ -175,35 +175,32 @@ namespace System.Data.SQLite
 
       if (t.Type == typ) return;
 
-      if (t.Type != DbType.Object)
-      {
         // Coercable type, usually a literal of some kind
-        switch (_fieldTypeArray[i].Affinity)
-        {
-          case TypeAffinity.Int64:
-            if (typ == DbType.Int16) return;
-            if (typ == DbType.Int32) return;
-            if (typ == DbType.Int64) return;
-            if (typ == DbType.Boolean) return;
-            if (typ == DbType.Byte) return;
-            break;
-          case TypeAffinity.Double:
-            if (typ == DbType.Single) return;
-            if (typ == DbType.Double) return;
-            if (typ == DbType.Decimal) return;
-            break;
-          case TypeAffinity.Text:
-            if (typ == DbType.SByte) return;
-            if (typ == DbType.String) return;
-            if (typ == DbType.SByte) return;
-            if (typ == DbType.Guid) return;
-            if (typ == DbType.DateTime) return;
-            break;
-          case TypeAffinity.Blob:
-            if (typ == DbType.String) return;
-            if (typ == DbType.Binary) return;
-            break;
-        }
+      switch (_fieldTypeArray[i].Affinity)
+      {
+        case TypeAffinity.Int64:
+          if (typ == DbType.Int16) return;
+          if (typ == DbType.Int32) return;
+          if (typ == DbType.Int64) return;
+          if (typ == DbType.Boolean) return;
+          if (typ == DbType.Byte) return;
+          break;
+        case TypeAffinity.Double:
+          if (typ == DbType.Single) return;
+          if (typ == DbType.Double) return;
+          if (typ == DbType.Decimal) return;
+          break;
+        case TypeAffinity.Text:
+          if (typ == DbType.SByte) return;
+          if (typ == DbType.String) return;
+          if (typ == DbType.SByte) return;
+          if (typ == DbType.Guid) return;
+          if (typ == DbType.DateTime) return;
+          break;
+        case TypeAffinity.Blob:
+          if (typ == DbType.String) return;
+          if (typ == DbType.Binary) return;
+          break;
       }
 
       throw new InvalidCastException();
@@ -730,7 +727,7 @@ namespace System.Data.SQLite
       CheckClosed();
       if (_fieldTypeArray == null) _fieldTypeArray = new SQLiteType[_fieldCount];
 
-      if (_fieldTypeArray[i].Affinity == 0)
+      if (_fieldTypeArray[i].Affinity == TypeAffinity.Uninitialized || _fieldTypeArray[i].Affinity == TypeAffinity.Null)
         _fieldTypeArray[i].Type = SQLiteConvert.TypeNameToDbType(_activeStatement._sql.ColumnType(_activeStatement, i, out _fieldTypeArray[i].Affinity));
       return _fieldTypeArray[i];
     }
