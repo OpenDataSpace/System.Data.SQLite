@@ -503,6 +503,8 @@ namespace System.Data.SQLite
       new SQLiteTypeNames("COUNTER", DbType.Int64),
       new SQLiteTypeNames("AUTOINCREMENT", DbType.Int64),
       new SQLiteTypeNames("IDENTITY", DbType.Int64),
+      new SQLiteTypeNames("LONGTEXT", DbType.String),
+      new SQLiteTypeNames("LONGCHAR", DbType.String),
       new SQLiteTypeNames("LONG", DbType.Int64),
       new SQLiteTypeNames("TINYINT", DbType.Byte),
       new SQLiteTypeNames("INTEGER", DbType.Int64),
@@ -534,8 +536,6 @@ namespace System.Data.SQLite
       new SQLiteTypeNames("UNIQUEIDENTIFIER", DbType.Guid),
       new SQLiteTypeNames("MEMO", DbType.String),
       new SQLiteTypeNames("NOTE", DbType.String),
-      new SQLiteTypeNames("LONGTEXT", DbType.String),
-      new SQLiteTypeNames("LONGCHAR", DbType.String),
       new SQLiteTypeNames("SMALLINT", DbType.Int16),
       new SQLiteTypeNames("BIGINT", DbType.Int64),
     };
