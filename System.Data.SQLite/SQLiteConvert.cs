@@ -112,15 +112,20 @@ namespace System.Data.SQLite
     /// <summary>
     /// An array of ISO8601 datetime formats we support conversion from
     /// </summary>
-    private static string[] _datetimeFormats = new string[] {"yyyy-MM-dd HH:mm:ss",
-																	  "yyyyMMddHHmmss",
-																	  "yyyyMMddTHHmmssfffffff",
-																	  "yyyy-MM-dd",
-																	  "yy-MM-dd",
-																	  "yyyyMMdd",
-																	  "HH:mm:ss",
-																	  "THHmmss"
-															 };
+    private static string[] _datetimeFormats = new string[] {
+      "yyyy-MM-dd HH:mm:ss",
+      "yyyy-MM-dd HH:mm",                               
+      "yyyyMMddHHmmss",
+      "yyyyMMddHHmm",
+      "yyyyMMddTHHmmssfffffff",
+      "yyyy-MM-dd",
+      "yy-MM-dd",
+      "yyyyMMdd",
+      "HH:mm:ss",
+      "HH:mm",
+      "THHmmss",
+      "THHmm"
+    };
 
     /// <summary>
     /// An UTF-8 Encoding instance, so we can convert strings to and from UTF-8
