@@ -5,7 +5,7 @@
   </head>
   <body>
     ADO.NET 2.0 SQLite Data Provider<br>
-    Version 1.0.22.0 - Nov 11, 2005<br>
+    Version 1.0.23.0 - Nov 21, 2005<br>
     Interop using SQLite 3.2.7<br>
     Written by Robert Simpson (<a href="mailto:robert@blackcastlesoft.com">robert@blackcastlesoft.com</a>)<br>
     Released to the public domain, use at your own risk!<br>
@@ -150,6 +150,15 @@
     <b></b>
     <h2>
       <b>Version History</b></h2>
+    <p><b>1.0.23 - November 21, 2005</b></p>
+    <ul>
+    <li>Named parameters may now begin with <strong>@</strong> to ease portability of
+      the provider. SQLite's named parameters are ordinarily prefixed with a <strong>: </strong>
+      or<strong> $</strong>.&nbsp; The designer will still use the <strong>$</strong>
+      prefix however, since its more compatible with the default SQLite engine.</li><li>Added several alternate ISO8601 date/time formats to SQLiteConvert.cs to increase
+    compatibility.</li>
+      <li>Relaxed coersion restrictions to work better with SQLite's inherent typelessenss.&nbsp;</li>
+    </ul>
     <p><b>1.0.22 - November 11, 2005</b></p>
     <ul>
     <li>Fixed some globalization issues which resulted in incorrect case-insensitive comparisons</li>
