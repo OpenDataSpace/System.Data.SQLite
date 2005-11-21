@@ -242,11 +242,12 @@ namespace test
       }
     }
 
+    // Inserts binary data into the database using a named parameter
     internal static void BinaryInsert(DbConnection cnn)
     {
       using (DbCommand cmd = cnn.CreateCommand())
       {
-        cmd.CommandText = "INSERT INTO TestCase(Field6) VALUES($bin)";
+        cmd.CommandText = "INSERT INTO TestCase(Field6) VALUES(@bin)";
         DbParameter Field6 = cmd.CreateParameter();
 
         byte[] b = new byte[4000];
@@ -256,7 +257,7 @@ namespace test
         b[2000] = 4;
         b[3000] = 5;
 
-        Field6.ParameterName = "$bin";
+        Field6.ParameterName = "@bin";
         Field6.Value = b;
 
         cmd.Parameters.Add(Field6);
