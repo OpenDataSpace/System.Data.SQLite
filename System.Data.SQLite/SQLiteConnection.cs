@@ -1189,6 +1189,7 @@ namespace System.Data.SQLite
               row = tbl.NewRow();
 
               row["CATALOG_NAME"] = rd.GetString(1);
+              row["DESCRIPTION"] = rd.GetString(2);
 
               tbl.Rows.Add(row);
             }
