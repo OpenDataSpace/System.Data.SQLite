@@ -124,6 +124,15 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
+    /// Throw an error if a row is not loaded
+    /// </summary>
+    private void CheckValidRow()
+    {
+      if (_readingState != 0)
+        throw new InvalidOperationException("No current row");
+    }
+
+    /// <summary>
     /// Enumerator support
     /// </summary>
     /// <returns>Returns a DbEnumerator object.</returns>
@@ -171,6 +180,7 @@ namespace System.Data.SQLite
     /// <param name="typ">The type we want to get out of the column</param>
     private void VerifyType(int i, DbType typ)
     {
+      CheckValidRow();
       SQLiteType t = GetSQLiteType(i);
 
       if (t.Type == typ) return;
@@ -598,7 +608,6 @@ namespace System.Data.SQLite
     /// <returns>The number of columns retrieved</returns>
     public override int GetValues(object[] values)
     {
-      CheckClosed();
       int nMax = _fieldCount;
       if (values.Length < nMax) nMax = values.Length;
 
