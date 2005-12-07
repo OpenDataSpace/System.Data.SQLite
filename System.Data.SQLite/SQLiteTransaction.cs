@@ -29,7 +29,7 @@ namespace System.Data.SQLite
     {
       try
       {
-        cnn._sql.Execute("BEGIN");
+        cnn._sql.Execute("BEGIN IMMEDIATE");
         _cnn = cnn;
       }
       catch (SQLiteException)

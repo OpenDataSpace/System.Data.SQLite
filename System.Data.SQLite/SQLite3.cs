@@ -168,9 +168,8 @@ namespace System.Data.SQLite
       if (n == 17) // SQLITE_SCHEMA
       {
         // Recreate a dummy statement
-        int nc = 0;
         string str;
-        using (SQLiteStatement tmp = Prepare(stmt._sqlStatement, ref nc, out str))
+        using (SQLiteStatement tmp = Prepare(stmt._sqlStatement, null, out str))
         {
           // Finalize the existing statement
           FinalizeStatement(stmt);
@@ -199,7 +198,7 @@ namespace System.Data.SQLite
       return ToString(UnsafeNativeMethods.sqlite3_errmsg_interop(_sql, out len), len);
     }
 
-    internal override SQLiteStatement Prepare(string strSql, ref int nParamStart, out string strRemain)
+    internal override SQLiteStatement Prepare(string strSql, SQLiteStatement previous, out string strRemain)
     {
       int stmt;
       IntPtr ptr;
@@ -213,7 +212,7 @@ namespace System.Data.SQLite
       strRemain = ToString(ptr, len);
 
       SQLiteStatement cmd = null;
-      if (stmt > 0) cmd = new SQLiteStatement(this, stmt, strSql.Substring(0, strSql.Length - strRemain.Length), ref nParamStart);
+      if (stmt > 0) cmd = new SQLiteStatement(this, stmt, strSql.Substring(0, strSql.Length - strRemain.Length), previous);
 
       return cmd;
     }

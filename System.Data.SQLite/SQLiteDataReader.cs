@@ -672,10 +672,12 @@ namespace System.Data.SQLite
             // Reset the previously-executed command
             _activeStatement._sql.Reset(_activeStatement);
 
-            while (_activeStatementIndex + 1 != _command._statementList.Length)
+            for (;;)
             {
+              stmt = _command.GetStatement(_activeStatementIndex);
               _activeStatementIndex++;
-              stmt = _command._statementList[_activeStatementIndex];
+              if (stmt == null) break;
+
               stmt._sql.Step(stmt);
               stmt._sql.Reset(stmt); // Gotta reset after every step to release any locks and such!
             }
@@ -687,7 +689,8 @@ namespace System.Data.SQLite
         }
 
         // If we've reached the end of the statements, return false, no more resultsets
-        if (_activeStatementIndex + 1 == _command._statementList.Length)
+        stmt = _command.GetStatement(_activeStatementIndex + 1);
+        if (stmt == null)
           return false;
 
         // If we were on a resultset, set the state to "done reading" for it
@@ -696,7 +699,6 @@ namespace System.Data.SQLite
 
         _activeStatementIndex++;
 
-        stmt = _command._statementList[_activeStatementIndex];
         fieldCount = stmt._sql.ColumnCount(stmt);
 
         // If we're told to get schema information only, then don't perform an initial step() through the resultset

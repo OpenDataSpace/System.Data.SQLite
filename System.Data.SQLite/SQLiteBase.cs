@@ -67,16 +67,12 @@ namespace System.Data.SQLite
     /// Prepares a SQL statement for execution.
     /// </summary>
     /// <param name="strSql">The SQL command text to prepare</param>
-    /// <param name="nParamStart">When preparing multiple statements that are tied together into a single command,
-    /// this value should be initialized to 0 for the first statement prepared.  On return from this function, the
-    /// variable will automatically be incremented by 1 for each unnamed parameter that occurred in the statement.
-    /// When implementing this function, one need only pass the nParamStart variable by reference to the SQLiteStatement()
-    /// constructor.  SQLiteStatement will take care of it.</param>
+    /// <param name="previous">The previous statement in a multi-statement command, or null if no previous statement exists</param>
     /// <param name="strRemain">The remainder of the statement that was not processed.  Each call to prepare parses the
     /// SQL up to to either the end of the text or to the first semi-colon delimiter.  The remaining text is returned
     /// here for a subsequent call to Prepare() until all the text has been processed.</param>
     /// <returns>Returns an initialized SQLiteStatement.</returns>
-    internal abstract SQLiteStatement Prepare(string strSql, ref int nParamStart, out string strRemain);
+    internal abstract SQLiteStatement Prepare(string strSql, SQLiteStatement previous, out string strRemain);
     /// <summary>
     /// Steps through a prepared statement.
     /// </summary>

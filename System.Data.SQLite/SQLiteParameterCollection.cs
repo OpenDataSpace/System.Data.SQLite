@@ -372,9 +372,9 @@ namespace System.Data.SQLite
     /// Since named parameters may span multiple statements, this function makes sure all statements are bound
     /// to the same named parameter.  Unnamed parameters are bound in sequence.
     /// </summary>
-    internal void MapParameters()
+    internal void MapParameters(SQLiteStatement activeStatement)
     {
-      if (_unboundFlag == false || _parameterList.Count == 0) return;
+      if (_unboundFlag == false || _parameterList.Count == 0 || _command._statementList == null) return;
 
       int nUnnamed = 0;
       string s;
@@ -392,18 +392,25 @@ namespace System.Data.SQLite
           nUnnamed++;
         }
 
-        int x = _command._statementList.Length;
+        int x;
         bool isMapped = false;
 
+        if (activeStatement == null)
+          x = _command._statementList.Count;
+        else
+          x = 1;
+
+        stmt = activeStatement;
         for (n = 0; n < x; n++)
         {
           isMapped = false;
-          stmt = _command._statementList[n];
+          if (stmt == null) stmt = _command._statementList[n];
           if (stmt._paramNames != null)
           {
             if (stmt.MapParameter(s, p) == true)
               isMapped = true;
           }
+          stmt = null;
         }
 
         // If the parameter has a name, but the SQL statement uses unnamed references, this can happen -- attempt to map
@@ -412,18 +419,20 @@ namespace System.Data.SQLite
         {
           s = String.Format(CultureInfo.InvariantCulture, ";{0}", y);
 
+          stmt = activeStatement;
           for (n = 0; n < x; n++)
           {
-            stmt = _command._statementList[n];
+            if (stmt == null) stmt = _command._statementList[n];
             if (stmt._paramNames != null)
             {
               if (stmt.MapParameter(s, p) == true)
                 isMapped = true;
             }
+            stmt = null;
           }
         }
       }
-      _unboundFlag = false;
+      if (activeStatement == null) _unboundFlag = false;
     }
   }
 }

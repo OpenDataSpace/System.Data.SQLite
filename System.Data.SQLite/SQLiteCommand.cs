@@ -46,9 +46,13 @@ namespace System.Data.SQLite
     /// </summary>
     private SQLiteParameterCollection _parameterCollection;
     /// <summary>
-    /// The SQL command text, broken into individual SQL statements
+    /// The SQL command text, broken into individual SQL statements as they are executed
     /// </summary>
-    internal SQLiteStatement[] _statementList;
+    internal List<SQLiteStatement> _statementList;
+    /// <summary>
+    /// Unprocessed SQL text that has not been executed
+    /// </summary>
+    internal string _remainingText;
 
     ///<overloads>
     /// Constructs a new SQLiteCommand
@@ -143,7 +147,7 @@ namespace System.Data.SQLite
     {
       if (_statementList == null) return;
 
-      int x = _statementList.Length;
+      int x = _statementList.Count;
       for (int n = 0; n < x; n++)
         _statementList[n].Dispose();
 
@@ -155,36 +159,51 @@ namespace System.Data.SQLite
     /// <summary>
     /// Builds an array of prepared statements for each complete SQL statement in the command text
     /// </summary>
-    internal void BuildCommands()
+    internal SQLiteStatement BuildNextCommand()
     {
-      ClearCommands();
-
-      if (_cnn.State != ConnectionState.Open) return;
-
-      string strRemain = _commandText;
-      SQLiteStatement itm;
-      int nStart = 0;
-      List<SQLiteStatement> lst = new List<SQLiteStatement>();
+      SQLiteStatement stmt;
 
       try
       {
-        while (strRemain.Length > 0)
+        if (_statementList == null)
+          _remainingText = _commandText;
+
+        stmt = _cnn._sql.Prepare(_remainingText, (_statementList == null) ? null : _statementList[_statementList.Count - 1], out _remainingText);
+        if (stmt != null)
         {
-          itm = _cnn._sql.Prepare(strRemain, ref nStart, out strRemain);
-          if (itm != null)
-          {
-            itm._command = this;
-            lst.Add(itm);
-          }
-        }
+          stmt._command = this;
+          if (_statementList == null)
+            _statementList = new List<SQLiteStatement>();
+
+          _statementList.Add(stmt);
+          _parameterCollection.MapParameters(stmt);
+          stmt.BindParameters();
+        }        
+        return stmt;
       }
       catch (Exception)
       {
         ClearCommands();
         throw;
       }
-      _statementList = new SQLiteStatement[lst.Count];
-      lst.CopyTo(_statementList, 0);
+    }
+
+    internal SQLiteStatement GetStatement(int index)
+    {
+      // Haven't built any statements yet
+      if (_statementList == null) return BuildNextCommand();
+
+      // If we're at the last built statement and want the next unbuilt statement, then build it
+      if (index == _statementList.Count)
+      {
+        if (String.IsNullOrEmpty(_remainingText) == false) return BuildNextCommand();
+        else return null; // No more commands
+      }
+
+      SQLiteStatement stmt = _statementList[index];
+      stmt.BindParameters();
+
+      return stmt;
     }
 
     /// <summary>
@@ -376,19 +395,8 @@ namespace System.Data.SQLite
       if (_cnn.State != ConnectionState.Open)
         throw new InvalidOperationException("Database is not open");
 
-      // Make sure all statements are prepared
-      Prepare();
-
-      // Make sure all parameters are mapped properly to associated statement(s)
-      _parameterCollection.MapParameters();
-
-      // Bind all parameters to their statements
-      int n;
-      int x;
-
-      x = _statementList.Length;
-      for (n = 0; n < x; n++)
-        _statementList[n].BindParameters();
+      // Map all parameters for statements already built
+      _parameterCollection.MapParameters(null);
 
       // Set the default command timeout
       _cnn._sql.SetTimeout(_commandTimeout * 1000);
@@ -445,16 +453,18 @@ namespace System.Data.SQLite
       InitializeForReader();
 
       int nAffected = 0;
-      int n;
-      int x;
+      int x = 0;
+      SQLiteStatement stmt;
 
-      x = _statementList.Length;
-
-      for (n = 0; n < x; n++)
+      for(;;)
       {
-        _cnn._sql.Step(_statementList[n]);
+        stmt = GetStatement(x);
+        x++;
+        if (stmt == null) break;
+
+        _cnn._sql.Step(stmt);
         nAffected += _cnn._sql.Changes;
-        _cnn._sql.Reset(_statementList[n]);
+        _cnn._sql.Reset(stmt);
       }
 
       return nAffected;
@@ -469,22 +479,24 @@ namespace System.Data.SQLite
     {
       InitializeForReader();
 
-      int n;
-      int x;
+      int x = 0;
       object ret = null;
       SQLiteType typ = new SQLiteType();
-
-      x = _statementList.Length;
+      SQLiteStatement stmt;
 
       // We step through every statement in the command, but only grab the first row of the first resultset.
       // We keep going even after obtaining it.
-      for (n = 0; n < x; n++)
+      for (;;)
       {
-        if (_cnn._sql.Step(_statementList[n]) == true && ret == null)
+        stmt = GetStatement(x);
+        x++;
+        if (stmt == null) break;
+
+        if (_cnn._sql.Step(stmt) == true && ret == null)
         {
-          ret = _cnn._sql.GetValue(_statementList[n], 0, ref typ);
+          ret = _cnn._sql.GetValue(stmt, 0, ref typ);
         }
-        _cnn._sql.Reset(_statementList[n]);
+        _cnn._sql.Reset(stmt);
       }
 
       if (ret == null) ret = DBNull.Value;
@@ -493,19 +505,10 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// Prepares the command for execution.
+    /// Does nothing.  Commands are prepared as they are executed the first time, and kept in prepared state afterwards.
     /// </summary>
     public override void Prepare()
     {
-      if (_statementList != null)
-      {
-        if (_statementList.Length == 0)
-        {
-          BuildCommands();
-        }
-      }
-      else
-        BuildCommands();
     }
 
     /// <summary>

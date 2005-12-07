@@ -31,7 +31,7 @@ namespace System.Data.SQLite
     /// <summary>
     /// An index from which unnamed parameters begin
     /// </summary>
-    internal int               _unnamedParameterStart;
+    internal int               _unnamedParameters;
     /// <summary>
     /// Names of the parameters as SQLite understands them to be
     /// </summary>
@@ -52,20 +52,24 @@ namespace System.Data.SQLite
     /// <param name="stmt">The statement</param>
     /// <param name="strCommand">The command text for this statement</param>
     /// <param name="nCmdStart">The index at which to start numbering unnamed parameters</param>
-    internal SQLiteStatement(SQLiteBase sqlbase, int stmt, string strCommand, ref int nCmdStart)
+    internal SQLiteStatement(SQLiteBase sqlbase, int stmt, string strCommand, SQLiteStatement previous)
     {
-      _unnamedParameterStart   = nCmdStart;
+      _unnamedParameters = 0;
       _sql     = sqlbase;
       _sqlite_stmt = stmt;
       _sqlStatement  = strCommand;
 
       // Determine parameters for this statement (if any) and prepare space for them.
+      int nCmdStart = 0;
       int n = _sql.Bind_ParamCount(this);
       int x;
       string s;
 
       if (n > 0)
       {
+        if (previous != null)
+          nCmdStart = previous._unnamedParameters;
+
         _paramNames = new string[n];
         _paramValues = new SQLiteParameter[n];
 
@@ -76,6 +80,7 @@ namespace System.Data.SQLite
           {
             s = String.Format(CultureInfo.InvariantCulture, ";{0}", nCmdStart);
             nCmdStart++;
+            _unnamedParameters++;
           }
           _paramNames[x] = s;
           _paramValues[x] = null;
@@ -143,6 +148,9 @@ namespace System.Data.SQLite
     /// <param name="param">The parameter we're binding</param>
     private void BindParameter(int index, SQLiteParameter param)
     {
+      if (param == null)
+        throw new SQLiteException((int)SQLiteErrorCode.Error, "Insufficient parameters supplied to the command");
+
       object obj = param.Value;
 
       if (Convert.IsDBNull(obj) || obj == null)

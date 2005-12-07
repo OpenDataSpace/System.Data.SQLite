@@ -56,7 +56,7 @@ namespace System.Data.SQLite
       return ToString(UnsafeNativeMethods.sqlite3_errmsg16_interop(_sql, out len), len);
     }
 
-    internal override SQLiteStatement Prepare(string strSql, ref int nParamStart, out string strRemain)
+    internal override SQLiteStatement Prepare(string strSql, SQLiteStatement previous, out string strRemain)
     {
       int stmt;
       IntPtr ptr;
@@ -67,7 +67,7 @@ namespace System.Data.SQLite
 
       strRemain = ToString(ptr, len);
 
-      SQLiteStatement cmd = new SQLiteStatement(this, stmt, strSql.Substring(0, strSql.Length - strRemain.Length), ref nParamStart);
+      SQLiteStatement cmd = new SQLiteStatement(this, stmt, strSql.Substring(0, strSql.Length - strRemain.Length), previous);
 
       return cmd;
     }
