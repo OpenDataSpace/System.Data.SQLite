@@ -51,7 +51,7 @@ namespace System.Data.SQLite
     /// <param name="sqlbase">The base SQLite object</param>
     /// <param name="stmt">The statement</param>
     /// <param name="strCommand">The command text for this statement</param>
-    /// <param name="nCmdStart">The index at which to start numbering unnamed parameters</param>
+    /// <param name="previous">The previous command in a multi-statement command</param>
     internal SQLiteStatement(SQLiteBase sqlbase, int stmt, string strCommand, SQLiteStatement previous)
     {
       _unnamedParameters = 0;
