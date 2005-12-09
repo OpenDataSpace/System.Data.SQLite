@@ -319,8 +319,23 @@ namespace System.Data.SQLite
     /// Creates a new SQLiteTransaction if one isn't already active on the connection.
     /// </summary>
     /// <param name="isolationLevel">SQLite doesn't support varying isolation levels, so this parameter is ignored.</param>
+    /// <param name="deferredLock">When TRUE, SQLite defers obtaining a write lock until a write operation is requested.
+    /// When FALSE, a writelock is obtained immediately.  The default is TRUE, but in a multi-threaded multi-writer 
+    /// environment, one may instead choose to lock the database immediately to avoid any possible writer deadlock.</param>
     /// <returns>Returns a SQLiteTransaction object.</returns>
-    public new SQLiteTransaction BeginTransaction(IsolationLevel isolationLevel)
+    public SQLiteTransaction BeginTransaction(IsolationLevel isolationLevel, bool deferredLock)
+    {
+      return BeginTransaction(true);
+    }
+
+    /// <summary>
+    /// Creates a new SQLiteTransaction if one isn't already active on the connection.
+    /// </summary>
+    /// <param name="deferredLock">When TRUE, SQLite defers obtaining a write lock until a write operation is requested.
+    /// When FALSE, a writelock is obtained immediately.  The default is TRUE, but in a multi-threaded multi-writer 
+    /// environment, one may instead choose to lock the database immediately to avoid any possible writer deadlock.</param>
+    /// <returns>Returns a SQLiteTransaction object.</returns>
+    public SQLiteTransaction BeginTransaction(bool deferredLock)
     {
       if (_connectionState != ConnectionState.Open)
         throw new InvalidOperationException();
@@ -328,8 +343,18 @@ namespace System.Data.SQLite
       if (_activeTransaction != null)
         throw new ArgumentException("Transaction already pending");
 
-      _activeTransaction = new SQLiteTransaction(this);
+      _activeTransaction = new SQLiteTransaction(this, deferredLock);
       return _activeTransaction;
+    }
+
+    /// <summary>
+    /// Creates a new SQLiteTransaction if one isn't already active on the connection.
+    /// </summary>
+    /// <param name="isolationLevel">SQLite doesn't support varying isolation levels, so this parameter is ignored.</param>
+    /// <returns>Returns a SQLiteTransaction object.</returns>
+    public new SQLiteTransaction BeginTransaction(IsolationLevel isolationLevel)
+    {
+      return BeginTransaction(true);
     }
 
     /// <summary>
@@ -338,7 +363,7 @@ namespace System.Data.SQLite
     /// <returns>Returns a SQLiteTransaction object.</returns>
     public new SQLiteTransaction BeginTransaction()
     {
-      return BeginTransaction(IsolationLevel.Unspecified);
+      return BeginTransaction(true);
     }
 
     /// <summary>
@@ -348,7 +373,7 @@ namespace System.Data.SQLite
     /// <returns></returns>
     protected override DbTransaction BeginDbTransaction(IsolationLevel isolationLevel)
     {
-      return BeginTransaction(isolationLevel);
+      return BeginTransaction(isolationLevel, true);
     }
 
     /// <summary>
