@@ -30,13 +30,13 @@ IF NOT EXIST "%XMLPATH%\SQLiteDataViewSupport.xml" ECHO The data view support XM
 IF NOT EXIST "%XMLPATH%\SQLiteDataObjectSupport.xml" ECHO The data object support XML file was not found.& GOTO End
 IF NOT EXIST "..\System.Data.SQLite.DLL" ECHO The ..\System.Data.SQLite.DLL could not be found.& GOTO End
 
-CScript "%MYDIR%\Install.vbs" //NoLogo "%REGROOT%" "%XMLPATH%"
+CScript //D "%MYDIR%\Install.vbs" //NoLogo "%REGROOT%" "%XMLPATH%"
 
 GOTO End
 
 :Help
 
-ECHO DDEX Data Provider for SQL Server (sample 1) Installation
+ECHO DDEX Data Provider for SQLite Installation
 ECHO   Usage: install [/?] [/regroot ^<regroot^>] [/xmlpath ^<xmlpath^>]
 
 :End
