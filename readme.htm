@@ -5,7 +5,7 @@
   </head>
   <body>
     ADO.NET 2.0 SQLite Data Provider<br>
-    Version 1.0.23.0 - Nov 21, 2005<br>
+    Version 1.0.24.0 - Dec 9, 2005<br>
     Interop using SQLite 3.2.7<br>
     Written by Robert Simpson (<a href="mailto:robert@blackcastlesoft.com">robert@blackcastlesoft.com</a>)<br>
     Released to the public domain, use at your own risk!<br>
@@ -150,6 +150,18 @@
     <b></b>
     <h2>
       <b>Version History</b></h2>
+    <p><b>1.0.24 - December 9, 2005</b></p>
+    <ul>
+    <li>Fixed the<em> Catalogs</em> schema bug that caused attached databases not to be re-attached to a cloned connection
+    </li>
+      <li>Enhanced transactions to allow for a deferred or immediate writelock. &nbsp;SQLiteConnection.BeginTransaction()
+        now has an additional overload to support it&nbsp;</li><li>Commands are now prepared as they are executed instead of beforehand.&nbsp; This
+      fixes a bug whereby a multi-statement command that alters the database and subsequently
+      references the altered data would fail during Prepare().</li><li>Tightened up the SQLiteDataReader to prevent reading columns before calling
+    the first Read() and to prevent reading columns after the last Read().</li>
+      <li>A more descriptive error is thrown if there aren't enough parameters in the command
+        to satisfy the parameters required by the statement(s).&nbsp;</li>
+    </ul>
     <p><b>1.0.23 - November 21, 2005</b></p>
     <ul>
     <li>Named parameters may now begin with <strong>@</strong> to ease portability of
@@ -157,7 +169,7 @@
       or<strong> $</strong>.&nbsp; The designer will still use the <strong>$</strong>
       prefix however, since its more compatible with the default SQLite engine.</li><li>Added several alternate ISO8601 date/time formats to SQLiteConvert.cs to increase
     compatibility.</li>
-      <li>Relaxed coersion restrictions to work better with SQLite's inherent typelessenss.&nbsp;</li>
+      <li>Relaxed coersion restrictions to work better with SQLite's inherent typelessness.&nbsp;</li>
     </ul>
     <p><b>1.0.22 - November 11, 2005</b></p>
     <ul>
