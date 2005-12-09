@@ -1,5 +1,3 @@
-Const SQLiteVersion = "1.0.23.0"
-
 Main
 
 Sub Main()
@@ -10,23 +8,36 @@ Sub Main()
    Dim GacPath
    Dim oExec
    GacPath = WshShell.RegRead("HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\.NETFramework\sdkInstallRootv2.0")
-   
-   Set oExec = WshShell.Exec(GacPath & "\bin\gacutil.exe -u System.Data.SQLite")
-   Do While oExec.Status = 0
-     WScript.Sleep(100)
-   Loop
-   
-   Set oExec = WshShell.Exec(GacPath & "\bin\gacutil.exe -if ..\System.Data.SQLite.DLL")
-   Do While oExec.Status = 0
-     WScript.Sleep(100)
-   Loop
 
    Dim fso
    Set fso = WScript.CreateObject("Scripting.FileSystemObject")
 
    Dim myDir
    myDir = fso.GetParentFolderName(WScript.ScriptFullName)
+   
+   Set oExec = WshShell.Exec(GacPath & "\bin\gacutil.exe -u System.Data.SQLite")
+   Do While oExec.Status = 0
+     WScript.Sleep(100)
+   Loop
+   
+   oExec.StdOut.ReadAll()
+   
+   Set oExec = WshShell.Exec(GacPath & "\bin\gacutil.exe -if ..\System.Data.SQLite.DLL")
+   Do While oExec.Status = 0
+     WScript.Sleep(100)
+   Loop
+   oExec.StdOut.ReadAll()
 
+   Dim gacEntry
+   
+   Set oExec = WshShell.Exec(GacPath & "\bin\gacutil.exe -nologo -l System.Data.SQLite")
+   Do While oExec.Status = 0
+     WScript.Sleep(100)
+   Loop   
+   oExec.StdOut.SkipLine
+   gacEntry = oExec.StdOut.ReadLine()
+   oExec.StdOut.ReadAll()
+   
    Dim regRoot
    regRoot = WScript.Arguments(0)
    If Right(regRoot, 1) = "\" Then
@@ -55,6 +66,7 @@ Sub Main()
    Do While oExec.Status = 0
       WScript.Sleep(100)
    Loop
+   oExec.StdOut.ReadAll()
 
    fso.DeleteFile(myDir & "\SQLiteDesigner.gen.reg")
 
@@ -82,7 +94,7 @@ Sub Main()
    xmlNode.attributes.getNamedItem("name").value = "SQLite Data Provider"
    xmlNode.attributes.getNamedItem("invariant").value = "System.Data.SQLite"
    xmlNode.attributes.getNamedItem("description").value = ".Net Framework Data Provider for SQLite"
-   xmlNode.attributes.getNamedItem("type").value = "System.Data.SQLite.SQLiteFactory, System.Data.SQLite, Version=" & SQLiteVersion & ", Culture=neutral, PublicKeyToken=db937bc2d44ff139"
+   xmlNode.attributes.getNamedItem("type").value = "System.Data.SQLite.SQLiteFactory," & gacEntry
 
    machineConfig.save machineConfigFile
 End Sub
