@@ -424,7 +424,7 @@ namespace System.Data.SQLite
         {
           if (arTypes[x] == null) continue;
 
-          object[] arAtt = arTypes[x].GetCustomAttributes(false);
+          object[] arAtt = arTypes[x].GetCustomAttributes(typeof(SQLiteFunctionAttribute), false);
           int u = arAtt.Length;
           for (int y = 0; y < u; y++)
           {
