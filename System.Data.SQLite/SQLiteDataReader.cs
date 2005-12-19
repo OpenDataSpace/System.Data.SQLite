@@ -627,7 +627,7 @@ namespace System.Data.SQLite
       get
       {
         CheckClosed();
-        return (_readingState != 2);
+        return (_readingState < 2);
       }
     }
 
