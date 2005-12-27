@@ -79,7 +79,7 @@ namespace System.Data.SQLite
     {
       _activeStatementIndex = -1;
       _activeStatement = null;
-      _rowsAffected = -1;
+      _rowsAffected = 0;
       _fieldCount = -1;
     }
 
@@ -658,12 +658,12 @@ namespace System.Data.SQLite
     {
       CheckClosed();
 
-      SQLiteStatement stmt;
+      SQLiteStatement stmt = null;
       int fieldCount;
 
       while (true)
       {
-        if (_activeStatement != null)
+        if (_activeStatement != null && stmt == null)
         {
           // If we're only supposed to return a single rowset, step through all remaining statements once until
           // they are all done and return false to indicate no more resultsets exist.
@@ -672,28 +672,33 @@ namespace System.Data.SQLite
             // Reset the previously-executed command
             _activeStatement._sql.Reset(_activeStatement);
 
-            for (;;)
+            for (; ; )
             {
               stmt = _command.GetStatement(_activeStatementIndex);
               _activeStatementIndex++;
               if (stmt == null) break;
 
               stmt._sql.Step(stmt);
+              _rowsAffected += stmt._sql.Changes;
               stmt._sql.Reset(stmt); // Gotta reset after every step to release any locks and such!
             }
             return false;
           }
-
-          // Reset the previously-executed command
-          _activeStatement._sql.Reset(_activeStatement);
+          else
+          {
+            // Reset the previously-executed command
+            _activeStatement._sql.Reset(_activeStatement);
+          }
         }
 
-        // If we've reached the end of the statements, return false, no more resultsets
+        // Get the next statement to execute
         stmt = _command.GetStatement(_activeStatementIndex + 1);
+
+        // If we've reached the end of the statements, return false, no more resultsets
         if (stmt == null)
           return false;
 
-        // If we were on a resultset, set the state to "done reading" for it
+        // If we were on a current resultset, set the state to "done reading" for it
         if (_readingState < 1)
           _readingState = 1;
 
@@ -710,6 +715,7 @@ namespace System.Data.SQLite
           }
           else if (fieldCount == 0) // No rows returned, if fieldCount is zero, skip to the next statement
           {
+            _rowsAffected += stmt._sql.Changes;
             stmt._sql.Reset(stmt);
             continue; // Skip this command and move to the next, it was not a row-returning resultset
           }
@@ -772,7 +778,7 @@ namespace System.Data.SQLite
     /// </summary>
     public override int RecordsAffected
     {
-      get { return _rowsAffected; }
+      get { return (IsClosed) ? _rowsAffected : -1; }
     }
 
     /// <summary>
