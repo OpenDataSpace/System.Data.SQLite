@@ -99,7 +99,7 @@ namespace System.Data.SQLite
     /// <param name="value">The event's specifics</param>
     protected override void OnRowUpdated(RowUpdatedEventArgs value)
     {
-      EventHandler<RowUpdatedEventArgs> handler = base.Events[_updatingEventPH] as EventHandler<RowUpdatedEventArgs>;
+      EventHandler<RowUpdatedEventArgs> handler = base.Events[_updatedEventPH] as EventHandler<RowUpdatedEventArgs>;
 
       if (handler != null)
         handler(this, value);
