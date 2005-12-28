@@ -79,7 +79,7 @@ namespace System.Data.SQLite
     {
       _activeStatementIndex = -1;
       _activeStatement = null;
-      _rowsAffected = 0;
+      _rowsAffected = -1;
       _fieldCount = -1;
     }
 
@@ -665,29 +665,28 @@ namespace System.Data.SQLite
       {
         if (_activeStatement != null && stmt == null)
         {
+          // Reset the previously-executed statement
+          _activeStatement._sql.Reset(_activeStatement);
+          
           // If we're only supposed to return a single rowset, step through all remaining statements once until
           // they are all done and return false to indicate no more resultsets exist.
           if ((_commandBehavior & CommandBehavior.SingleResult) != 0)
           {
-            // Reset the previously-executed command
-            _activeStatement._sql.Reset(_activeStatement);
-
             for (; ; )
             {
-              stmt = _command.GetStatement(_activeStatementIndex);
-              _activeStatementIndex++;
+              stmt = _command.GetStatement(_activeStatementIndex + 1);
               if (stmt == null) break;
+              _activeStatementIndex++;
 
               stmt._sql.Step(stmt);
-              _rowsAffected += stmt._sql.Changes;
+              if (stmt._sql.ColumnCount(stmt) == 0)
+              {
+                if (_rowsAffected == -1) _rowsAffected = 0;
+                _rowsAffected += stmt._sql.Changes;
+              }
               stmt._sql.Reset(stmt); // Gotta reset after every step to release any locks and such!
             }
             return false;
-          }
-          else
-          {
-            // Reset the previously-executed command
-            _activeStatement._sql.Reset(_activeStatement);
           }
         }
 
@@ -706,7 +705,7 @@ namespace System.Data.SQLite
 
         fieldCount = stmt._sql.ColumnCount(stmt);
 
-        // If we're told to get schema information only, then don't perform an initial step() through the resultset
+        // If the statement is not a select statement or we're not retrieving schema only, then perform the initial step
         if ((_commandBehavior & CommandBehavior.SchemaOnly) == 0 || fieldCount == 0)
         {
           if (stmt._sql.Step(stmt))
@@ -715,6 +714,7 @@ namespace System.Data.SQLite
           }
           else if (fieldCount == 0) // No rows returned, if fieldCount is zero, skip to the next statement
           {
+            if (_rowsAffected == -1) _rowsAffected = 0;
             _rowsAffected += stmt._sql.Changes;
             stmt._sql.Reset(stmt);
             continue; // Skip this command and move to the next, it was not a row-returning resultset
@@ -778,7 +778,7 @@ namespace System.Data.SQLite
     /// </summary>
     public override int RecordsAffected
     {
-      get { return (IsClosed) ? _rowsAffected : -1; }
+      get { return _rowsAffected; }
     }
 
     /// <summary>
