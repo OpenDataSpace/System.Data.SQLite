@@ -5,7 +5,7 @@
   </head>
   <body>
     ADO.NET 2.0 SQLite Data Provider<br>
-    Version 1.0.24.1 - Dec 19, 2005<br>
+    Version 1.0.24.2 - Dec 30, 2005<br>
     Interop using SQLite 3.2.8<br>
     Written by Robert Simpson (<a href="mailto:robert@blackcastlesoft.com">robert@blackcastlesoft.com</a>)<br>
     Released to the public domain, use at your own risk!<br>
@@ -150,6 +150,18 @@
     <b></b>
     <h2>
       <b>Version History</b></h2>
+    <p><b>1.0.24.2 - December 30, 2005</b></p>
+    <ul>
+    <li>Fixed the SQLiteDataReader.HasRows property to return the proper value.</li>
+      <li>Implemented the inadvertently neglected RecordsAffected property on SQLiteDataReader.
+      </li>
+      <li>SQLiteFunction static constructor was changed to pre-filter classes with only the
+        SQLiteFunctionAttribute.&nbsp; The code was throwing an exception when certain
+        assemblies were referenced in a project. </li>
+      <li>Fixed the SQLiteDataAdapter OnRowUpdated event, which was using the wrong variable
+        to find the attached event handler and subsequently not raising the event.</li>
+      <li>Small optimizations and fixes to SQLiteDataReader.NextResult().&nbsp;</li>
+    </ul>
     <p><b>1.0.24.1 - December 19, 2005</b></p>
     <ul>
     <li>Update core SQLite engine to 3.2.8&nbsp;</li></ul>
