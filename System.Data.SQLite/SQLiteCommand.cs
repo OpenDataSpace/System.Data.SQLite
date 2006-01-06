@@ -134,9 +134,8 @@ namespace System.Data.SQLite
     protected override void Dispose(bool disposing)
     {
       base.Dispose(disposing);
-      ClearCommands();
+      Connection = null;
       _parameterCollection.Clear();
-      _cnn = null;
       _commandText = null;
     }
 
@@ -307,7 +306,9 @@ namespace System.Data.SQLite
         }
 
         _cnn = value;
-        _cnn._commandList.Add(this);
+
+        if (_cnn != null)
+          _cnn._commandList.Add(this);
       }
     }
 
