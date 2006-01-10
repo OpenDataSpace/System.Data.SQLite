@@ -12,7 +12,7 @@
 ** This file contains C code routines that are called by the parser
 ** to handle INSERT statements in SQLite.
 **
-** $Id: insert.c,v 1.11 2006/01/10 18:40:37 rmsimpson Exp $
+** $Id: insert.c,v 1.12 2006/01/10 21:09:55 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 
@@ -273,13 +273,6 @@ void sqlite3Insert(
   */
   if( isView && sqlite3ViewGetColumnNames(pParse, pTab) ){
     goto insert_cleanup;
-  }
-
-  /* Ensure all required collation sequences are available. */
-  for(pIdx=pTab->pIndex; pIdx; pIdx=pIdx->pNext){
-    if( sqlite3CheckIndexCollSeq(pParse, pIdx) ){
-      goto insert_cleanup;
-    }
   }
 
   /* Allocate a VDBE
@@ -1108,11 +1101,11 @@ void sqlite3OpenTableAndIndices(
   assert( v!=0 );
   sqlite3OpenTable(pParse, base, iDb, pTab, op);
   for(i=1, pIdx=pTab->pIndex; pIdx; pIdx=pIdx->pNext, i++){
+    KeyInfo *pKey = sqlite3IndexKeyinfo(pParse, pIdx);
     assert( pIdx->pSchema==pTab->pSchema );
     sqlite3VdbeAddOp(v, OP_Integer, iDb, 0);
     VdbeComment((v, "# %s", pIdx->zName));
-    sqlite3VdbeOp3(v, op, i+base, pIdx->tnum,
-                   (char*)&pIdx->keyInfo, P3_KEYINFO);
+    sqlite3VdbeOp3(v, op, i+base, pIdx->tnum, (char*)pKey, P3_KEYINFO_HANDOFF);
   }
   if( pParse->nTab<=base+i ){
     pParse->nTab = base+i;

@@ -11,7 +11,7 @@
 *************************************************************************
 ** Internal interface definitions for SQLite.
 **
-** @(#) $Id: sqliteInt.h,v 1.11 2006/01/10 18:40:37 rmsimpson Exp $
+** @(#) $Id: sqliteInt.h,v 1.12 2006/01/10 21:10:18 rmsimpson Exp $
 */
 #ifndef _SQLITEINT_H_
 #define _SQLITEINT_H_
@@ -294,8 +294,8 @@ struct ThreadData {
 
 #ifndef SQLITE_OMIT_MEMORY_MANAGEMENT
   u8 useMemoryManagement;  /* True if memory-management is enabled */
-  i64 nSoftHeapLimit;      /* Suggested max mem allocation.  No limit if <0 */
-  i64 nAlloc;              /* Number of bytes currently allocated */
+  int nSoftHeapLimit;      /* Suggested max mem allocation.  No limit if <0 */
+  int nAlloc;              /* Number of bytes currently allocated */
   Pager *pPager;           /* Linked list of all pagers in this thread */
 #endif
 
@@ -305,7 +305,7 @@ struct ThreadData {
 #endif
 
 #ifdef SQLITE_MEMDEBUG
-  i64 nMaxAlloc;           /* High water mark of ThreadData.nAlloc */
+  int nMaxAlloc;           /* High water mark of ThreadData.nAlloc */
   int mallocAllowed;       /* assert() in sqlite3Malloc() if not set */
   int isFail;              /* True if all malloc() calls should fail */
   const char *zFile;       /* Filename to associate debugging info with */
@@ -584,7 +584,7 @@ struct Column {
   char *zName;     /* Name of this column */
   Expr *pDflt;     /* Default value of this column */
   char *zType;     /* Data type for this column */
-  CollSeq *pColl;  /* Collating sequence.  If NULL, use the default */
+  char *zColl;     /* Collating sequence.  If NULL, use the default */
   u8 notNull;      /* True if there is a NOT NULL constraint */
   u8 isPrimKey;    /* True if this column is part of the PRIMARY KEY */
   char affinity;   /* One of the SQLITE_AFF_... values */
@@ -600,7 +600,7 @@ struct Column {
 ** processes text encoded in UTF-16 (CollSeq.xCmp16), using the machine
 ** native byte order. When a collation sequence is invoked, SQLite selects
 ** the version that will require the least expensive encoding
-** transalations, if any.
+** translations, if any.
 **
 ** The CollSeq.pUser member variable is an extra parameter that passed in
 ** as the first argument to the UTF-8 comparison function, xCmp.
@@ -674,8 +674,6 @@ struct CollSeq {
 ** is generated for each row of the table.  Table.hasPrimKey is true if
 ** the table has any PRIMARY KEY, INTEGER or otherwise.
 **
-** TODO: This comment is out of date. Table.iDb no longer exists.
-**
 ** Table.tnum is the page number for the root BTree page of the table in the
 ** database file.  If Table.iDb is the index of the database table backend
 ** in sqlite.aDb[].  0 is for the main database and 1 is for the file that
@@ -696,6 +694,7 @@ struct Table {
   int tnum;        /* Root BTree node for this table (see note above) */
   Select *pSelect; /* NULL for tables.  Points to definition if a view. */
   u8 readOnly;     /* True if this table should not be written by the user */
+// u8 iDb;          /* Index into sqlite.aDb[] of the backend for this table */
   u8 isTransient;  /* True if automatically deleted when VDBE finishes */
   u8 hasPrimKey;   /* True if there exists a primary key */
   u8 keyConf;      /* What to do in case of uniqueness conflict on iPKey */
@@ -807,7 +806,7 @@ struct KeyInfo {
   u8 enc;             /* Text encoding - one of the TEXT_Utf* values */
   u8 incrKey;         /* Increase 2nd key by epsilon before comparison */
   int nField;         /* Number of entries in aColl[] */
-  u8 *aSortOrder;     /* If defined and aSortOrder[i] is true, sort DESC */
+  u8 *aSortOrder;     /* If defined an aSortOrder[i] is true, sort DESC */
   CollSeq *aColl[1];  /* Collating sequence for each term of the key */
 };
 
@@ -849,7 +848,8 @@ struct Index {
   char *zColAff;   /* String defining the affinity of each column */
   Index *pNext;    /* The next index associated with the same table */
   Schema *pSchema; /* Schema containing this index */
-  KeyInfo keyInfo; /* Info on how to order keys.  MUST BE LAST */
+  u8 *aSortOrder;  /* Array of size Index.nColumn. True==DESC, False==ASC */
+  char **azColl;   /* Array of collation sequence names for index */
 };
 
 /*
@@ -958,6 +958,7 @@ struct AggInfo {
 struct Expr {
   u8 op;                 /* Operation performed by this node */
   char affinity;         /* The affinity of the column or 0 if not a column */
+//u8 iDb;                /* Database referenced by this expression */
   u8 flags;              /* Various flags.  See below */
   CollSeq *pColl;        /* The collation type of the column or 0 */
   Expr *pLeft, *pRight;  /* Left and right subnodes */
@@ -1735,6 +1736,7 @@ void sqlite3MinimumFileFormat(Parse*, int, int);
 void sqlite3SchemaFree(void *);
 Schema *sqlite3SchemaGet(Btree *);
 int sqlite3SchemaToIndex(sqlite3 *db, Schema *);
+KeyInfo *sqlite3IndexKeyinfo(Parse *, Index *);
 
 #ifndef SQLITE_OMIT_SHARED_CACHE
   void sqlite3TableLock(Parse *, int, int, u8, const char *);

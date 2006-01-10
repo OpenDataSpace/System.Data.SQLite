@@ -13,7 +13,7 @@
 ** This file contains functions used to access the internal hash tables
 ** of user defined functions and collation sequences.
 **
-** $Id: callback.c,v 1.7 2006/01/10 18:40:37 rmsimpson Exp $
+** $Id: callback.c,v 1.8 2006/01/10 21:09:55 rmsimpson Exp $
 */
 
 #include "sqliteInt.h"
@@ -130,6 +130,7 @@ int sqlite3CheckCollSeq(Parse *pParse, CollSeq *pColl){
       pParse->nErr++;
       return SQLITE_ERROR;
     }
+    assert( p==pColl );
   }
   return SQLITE_OK;
 }
@@ -199,7 +200,12 @@ CollSeq *sqlite3FindCollSeq(
   int nName,
   int create
 ){
-  CollSeq *pColl = findCollSeqEntry(db, zName, nName, create);
+  CollSeq *pColl;
+  if( zName ){
+    pColl = findCollSeqEntry(db, zName, nName, create);
+  }else{
+    pColl = db->pDfltColl;
+  }
   assert( SQLITE_UTF8==1 && SQLITE_UTF16LE==2 && SQLITE_UTF16BE==3 );
   assert( enc>=SQLITE_UTF8 && enc<=SQLITE_UTF16BE );
   if( pColl ) pColl += enc-1;

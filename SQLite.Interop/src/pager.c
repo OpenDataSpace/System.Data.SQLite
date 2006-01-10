@@ -18,7 +18,7 @@
 ** file simultaneously, or one process from reading the database while
 ** another is writing.
 **
-** @(#) $Id: pager.c,v 1.12 2006/01/10 18:40:37 rmsimpson Exp $
+** @(#) $Id: pager.c,v 1.13 2006/01/10 21:10:18 rmsimpson Exp $
 */
 #ifndef SQLITE_OMIT_DISKIO
 #include "sqliteInt.h"
