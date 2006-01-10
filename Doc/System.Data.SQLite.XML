@@ -919,6 +919,23 @@
                 &lt;IsSearchable&gt;true&lt;/Is [rest of string was truncated]&quot;;.
              </summary>
         </member>
+        <member name="P:System.Data.SQLite.SR.MetaDataCollections">
+             <summary>
+               Looks up a localized string similar to &lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot; ?&gt;
+            &lt;DocumentElement&gt;
+              &lt;MetaDataCollections&gt;
+                &lt;CollectionName&gt;MetaDataCollections&lt;/CollectionName&gt;
+                &lt;NumberOfRestrictions&gt;0&lt;/NumberOfRestrictions&gt;
+                &lt;NumberOfIdentifierParts&gt;0&lt;/NumberOfIdentifierParts&gt;
+              &lt;/MetaDataCollections&gt;
+              &lt;MetaDataCollections&gt;
+                &lt;CollectionName&gt;DataSourceInformation&lt;/CollectionName&gt;
+                &lt;NumberOfRestrictions&gt;0&lt;/NumberOfRestrictions&gt;
+                &lt;NumberOfIdentifierParts&gt;0&lt;/NumberOfIdentifierParts&gt;
+              &lt;/MetaDataCollections&gt;
+              &lt;MetaDataC [rest of string was truncated]&quot;;.
+             </summary>
+        </member>
         <member name="T:System.Data.SQLite.SQLiteFunctionAttribute">
             <summary>
             A simple custom attribute to enable us to easily find user-defined functions in
@@ -1768,6 +1785,12 @@
             <description>N</description>
             <description>1024</description>
             </item>
+            <item>
+            <description>Password</description>
+            <description>{password}</description>
+            <description>N</description>
+            <description></description>
+            </item>
             </list>
             </remarks>
         </member>
@@ -1980,6 +2003,40 @@
             Opens the connection using the parameters found in the <see cref="P:System.Data.SQLite.SQLiteConnection.ConnectionString">ConnectionString</see>
             </summary>
         </member>
+        <member name="M:System.Data.SQLite.SQLiteConnection.ChangePassword(System.String)">
+            <summary>
+            Change the password (or assign a password) to an open database.
+            </summary>
+            <remarks>
+            No readers or writers may be active for this process.  The database must already be open
+            and if it already was password protected, the existing password must already have been supplied.
+            </remarks>
+            <param name="newPassword">The new password to assign to the database</param>
+        </member>
+        <member name="M:System.Data.SQLite.SQLiteConnection.ChangePassword(System.Byte[])">
+            <summary>
+            Change the password (or assign a password) to an open database.
+            </summary>
+            <remarks>
+            No readers or writers may be active for this process.  The database must already be open
+            and if it already was password protected, the existing password must already have been supplied.
+            </remarks>
+            <param name="newPassword">The new password to assign to the database</param>
+        </member>
+        <member name="M:System.Data.SQLite.SQLiteConnection.SetPassword(System.String)">
+            <summary>
+            Sets the password for a password-protected database.  A password-protected database is
+            unusable for any operation until the password has been set.
+            </summary>
+            <param name="databasePassword">The password for the database</param>
+        </member>
+        <member name="M:System.Data.SQLite.SQLiteConnection.SetPassword(System.Byte[])">
+            <summary>
+            Sets the password for a password-protected database.  A password-protected database is
+            unusable for any operation until the password has been set.
+            </summary>
+            <param name="databasePassword">The password for the database</param>
+        </member>
         <member name="M:System.Data.SQLite.SQLiteConnection.GetSchema">
             <overloads>
              The following commands are used to extract schema information out of the database.  Valid schema types are:
@@ -2167,7 +2224,13 @@
             <description>Page Size</description>
             <description>{size in bytes}</description>
             <description>N</description>
-            <description>4096</description>
+            <description>1024</description>
+            </item>
+            <item>
+            <description>Password</description>
+            <description>{password}</description>
+            <description>N</description>
+            <description></description>
             </item>
             </list>
             </remarks>
@@ -2846,6 +2909,11 @@
         <member name="P:System.Data.SQLite.SQLiteConnectionStringBuilder.DataSource">
             <summary>
             Gets/Sets the filename to open on the connection string.
+            </summary>
+        </member>
+        <member name="P:System.Data.SQLite.SQLiteConnectionStringBuilder.Password">
+            <summary>
+            Gets/sets the database encryption password
             </summary>
         </member>
         <member name="P:System.Data.SQLite.SQLiteConnectionStringBuilder.PageSize">

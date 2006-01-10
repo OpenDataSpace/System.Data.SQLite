@@ -5,8 +5,8 @@
   </head>
   <body>
     ADO.NET 2.0 SQLite Data Provider<br>
-    Version 1.0.24.2 - Dec 30, 2005<br>
-    Interop using SQLite 3.2.8<br>
+    Version 1.0.24.3 (beta) - Jan 10, 2006<br>
+    Interop using SQLite CVS HEAD (beta)<br>
     Written by Robert Simpson (<a href="mailto:robert@blackcastlesoft.com">robert@blackcastlesoft.com</a>)<br>
     Released to the public domain, use at your own risk!<br>
     <br>
@@ -105,8 +105,6 @@
         functions must be explicitly registered.</STRONG>&nbsp; See the <STRONG>testce</STRONG>
       sample application for an example of how to explicitly register user-defined 
       collating sequences and functions.</p>
-    <P>Many thanks to the fine folks at <A href="http://sourceforge.net/projects/sqlite-wince">
-        http://sourceforge.net/projects/sqlite-wince</A> for the Windows CE code!</P>
     <h2>
       <b><A name="redist"></A>Distributing The SQLite Engine and ADO.NET Assembly</b></h2>
     <P>For Win32 platforms, only the <STRONG>System.Data.SQLite.DLL</STRONG> file in 
@@ -121,35 +119,37 @@
       Framework does not currently support managed C++, thus the reason for two 
       files.</P>
     <H2><B>Development Notes Regarding the SQLite 3 Source Code</B></H2>
+    <p>
+      The SQLite3 source code is compiled almost directly from the SQLite.org release
+      sources.&nbsp; All builds of sqlite after 3.2.8 have included support for Windows
+      CE (without file locking), but the ADO.NET sources here contain CE locking modifications
+      to the os_win.c.&nbsp; I hope eventually the locking code will be incorporated into
+      the root sqlite codebase.&nbsp; Additionally, two minor modifications are made to
+      the sources, those modifications are made automatically by the fixsource.vbs file
+      when the VS2005 solution is compiled.</p>
     <p></p>
     <p>
-      Steps for merging the sqlite3 core codebase (without Compact Framework support --
-      that's another story):</p>
-    <ol>
-      <li>
-        Download the latest sqlite3 source from <a href="http://www.sqlite.org/download.html">
-          http://www.sqlite.org/download.html</a>
-        
-      <li>
-        Extract the source code to the <b>SQLite.Interop\src</b> directory 
-          of this project 
-      <li>
-        Open the <b>src\select.c</b> file. 
-      <li>
-        Add <b>#include "../interop.h" </b>to the top of the file 
-          where the other include's are. 
-      <li>
-        Scroll down the <b>select.c</b> file to around line <b>822</b>.&nbsp; 
-          Change the name of the function <b>static void generateColumnNames </b>to <b>static 
-            void _generateColumnNames</b> (<i>note the underscore in front of the name</i>).
-        
-      <li>
-        Compile it. 
-      </li>
-    </ol>
-    <b></b>
-    <h2>
-      <b>Version History</b></h2>
+      <b>Version History</b></p>
+    <p><b>1.0.24.3 beta - January 10, 2006</b></p>
+    <ul>
+    <li>This beta is built from sqlite.org's CVS HEAD (as it appeared at of the date of
+      this beta) and contains development-in-progress code.&nbsp; Therefore no guarantees
+      can be made regarding its suitability for production use.</li><li>Added support for database encryption at the pager level.&nbsp; Databases
+    are encrypted using a 128-bit RC4 stream algorithm.&nbsp; To open an existing encrypted
+    database, you may now specify a "Password={password}" text in the ConnectionString,
+    or you may call the SQLiteConnection.SetPassword() function to set the password
+    on an open connection. &nbsp;To encrypt existing non-encrypted databases or to change
+    the password on an encrypted database, you must use the SQLiteConnection.ChangePassword()
+    function.&nbsp; If you use SetPassword() instead of specifying a password in the
+    connection string, or call ChangePassword() you may use a binary byte array or a
+    text string as the password.</li>
+      <li>Rewrote the locking implementation for the Compact Framework.&nbsp; It is now
+        more robust and incorporates into the SQLite codebase more efficiently than the
+        previous CE adaptation.</li>
+      <li>Moved some of the embedded schema XML data into a resource file to ease code readability.</li>
+      <li>Automated the fixup of the original sqlite codebase's source prior to compiling,
+        to ease merging with sqlite.org's source.&nbsp;</li>
+    </ul>
     <p><b>1.0.24.2 - December 30, 2005</b></p>
     <ul>
     <li>Fixed the SQLiteDataReader.HasRows property to return the proper value.</li>
