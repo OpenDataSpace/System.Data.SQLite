@@ -508,7 +508,7 @@ namespace System.Data.SQLite
               row[SchemaTableColumn.BaseColumnName] = GetName(n);
 
               // Try and extract the database, table and column from the datareader
-              arName = rd.GetName(n).Split('.');
+              arName = rd.GetName(n).Split('\x01');
 
               if (arName.Length > 1)
                 strTable = arName[arName.Length - 2];

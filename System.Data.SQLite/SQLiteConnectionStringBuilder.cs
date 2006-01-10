@@ -139,6 +139,24 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
+    /// Gets/sets the database encryption password
+    /// </summary>
+    [Browsable(true)]
+    public string Password
+    {
+      get
+      {
+        if (ContainsKey("Password") == false) return "";
+
+        return this["Password"].ToString();
+      }
+      set
+      {
+        this["Password"] = value;
+      }
+    }
+
+    /// <summary>
     /// Gets/Sets the page size for the connection.
     /// </summary>
     [DisplayName("Page Size")]

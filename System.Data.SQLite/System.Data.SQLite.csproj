@@ -14,10 +14,12 @@
     <PlatformID>3C41C503-53EF-4c2a-8DD4-A8217CAD115E</PlatformID>
     <OSVersion>4.20</OSVersion>
     <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
-    <FormFactorID>POCKET_PC_2003_PORTRAIT</FormFactorID>
+    <FormFactorID>
+    </FormFactorID>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>System.Data.SQLite.CF.snk</AssemblyOriginatorKeyFile>
     <DeployDirSuffix>testce</DeployDirSuffix>
+    <DeployDirPrefix>%25CSIDL_PROGRAM_FILES%25</DeployDirPrefix>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -86,10 +88,28 @@
     <Compile Include="SQLiteParameterCollection.cs" />
     <Compile Include="SQLiteStatement.cs" />
     <Compile Include="SQLiteTransaction.cs" />
+    <Compile Include="SR.Designer.cs">
+      <DependentUpon>SR.resx</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+    </Compile>
     <Compile Include="UnsafeNativeMethods.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="System.Data.SQLite.CF.snk" />
+    <EmbeddedResource Include="SR.resx">
+      <SubType>Designer</SubType>
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>SR.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="System.Data.SQLite.snk" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="DataTypes.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="MetaDataCollections.xml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />

@@ -524,5 +524,17 @@ namespace System.Data.SQLite
     {
       UnsafeNativeMethods.sqlite3_realcolnames(_sql, Convert.ToInt32(bOn));
     }
+
+    internal override void SetPassword(byte[] passwordBytes)
+    {
+      int n = UnsafeNativeMethods.sqlite3_key_interop(_sql, passwordBytes, passwordBytes.Length);
+      if (n > 0) throw new SQLiteException(n, SQLiteLastError());
+    }
+
+    internal override void ChangePassword(byte[] newPasswordBytes)
+    {
+      int n = UnsafeNativeMethods.sqlite3_rekey_interop(_sql, newPasswordBytes, (newPasswordBytes == null) ? 0 : newPasswordBytes.Length);
+      if (n > 0) throw new SQLiteException(n, SQLiteLastError());
+    }
   }
 }

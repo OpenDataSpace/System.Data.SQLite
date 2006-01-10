@@ -86,6 +86,12 @@ namespace System.Data.SQLite
   /// <description>N</description>
   /// <description>1024</description>
   /// </item>
+  /// <item>
+  /// <description>Password</description>
+  /// <description>{password}</description>
+  /// <description>N</description>
+  /// <description></description>
+  /// </item>
   /// </list>
   /// </remarks>
   public sealed class SQLiteConnection : DbConnection, ICloneable
@@ -259,6 +265,7 @@ namespace System.Data.SQLite
     /// of this function description).
     /// </remarks>
     /// <param name="databaseFileName">The file to encrypt</param>
+    [Obsolete("Define a password in the ConnectionString, call SetPassword() on a new open database, or call ChangePassword({password}) on an existing open database to encrypt the database file.")]
     static public void EncryptFile(string databaseFileName)
     {
       int n = UnsafeNativeMethods.sqlite3_encryptfile(databaseFileName);
@@ -275,6 +282,7 @@ namespace System.Data.SQLite
     /// of this function description).
     /// </remarks>
     /// <param name="databaseFileName">The file to decrypt</param>
+    [Obsolete("Call ChangePassword(null) on an open connection to decrypt an encrypted database file.")]
     static public void DecryptFile(string databaseFileName)
     {
       int n = UnsafeNativeMethods.sqlite3_decryptfile(databaseFileName);
@@ -290,6 +298,7 @@ namespace System.Data.SQLite
     /// </remarks>
     /// <param name="databaseFileName">The file to check</param>
     /// <returns>true if the file is encrypted</returns>
+    [Obsolete("EFS file encryption will be removed from future versions of this library")]
     static public bool IsEncrypted(string databaseFileName)
     {
       int status;
@@ -456,7 +465,13 @@ namespace System.Data.SQLite
     /// <description>Page Size</description>
     /// <description>{size in bytes}</description>
     /// <description>N</description>
-    /// <description>4096</description>
+    /// <description>1024</description>
+    /// </item>
+    /// <item>
+    /// <description>Password</description>
+    /// <description>{password}</description>
+    /// <description>N</description>
+    /// <description></description>
     /// </item>
     /// </list>
     /// </remarks>
@@ -542,6 +557,7 @@ namespace System.Data.SQLite
         {
           ls.Add(new KeyValuePair<string, string>(arPiece[0], arPiece[1]));
         }
+        else throw new ArgumentException(String.Format(CultureInfo.CurrentCulture, "Invalid ConnectionString format for parameter \"{0}\"", (arPiece.Length > 0) ? arPiece[0] : "null"));
       }
       KeyValuePair<string, string>[] ar = new KeyValuePair<string, string>[ls.Count];
       ls.CopyTo(ar, 0);
@@ -599,8 +615,13 @@ namespace System.Data.SQLite
           _sql = new SQLite3_UTF16(dateFormat);
         else
           _sql = new SQLite3(dateFormat);
+        
+        _sql.Open(strFile);
 
-          _sql.Open(strFile);
+        string password = FindKey(opts, "Password", null);
+
+        if (String.IsNullOrEmpty(password) == false)
+          _sql.SetPassword(String.IsNullOrEmpty(password) ? null : System.Text.UTF8Encoding.UTF8.GetBytes(password));
 
         _dataSource = System.IO.Path.GetFileNameWithoutExtension(strFile);
 
@@ -640,6 +661,58 @@ namespace System.Data.SQLite
       {
         return _connectionState;
       }
+    }
+
+    /// <summary>
+    /// Change the password (or assign a password) to an open database.
+    /// </summary>
+    /// <remarks>
+    /// No readers or writers may be active for this process.  The database must already be open
+    /// and if it already was password protected, the existing password must already have been supplied.
+    /// </remarks>
+    /// <param name="newPassword">The new password to assign to the database</param>
+    public void ChangePassword(string newPassword)
+    {
+      ChangePassword(String.IsNullOrEmpty(newPassword) ? null : System.Text.UTF8Encoding.UTF8.GetBytes(newPassword));
+    }
+
+    /// <summary>
+    /// Change the password (or assign a password) to an open database.
+    /// </summary>
+    /// <remarks>
+    /// No readers or writers may be active for this process.  The database must already be open
+    /// and if it already was password protected, the existing password must already have been supplied.
+    /// </remarks>
+    /// <param name="newPassword">The new password to assign to the database</param>
+    public void ChangePassword(byte[] newPassword)
+    {
+      if (_connectionState != ConnectionState.Open)
+        throw new InvalidOperationException();
+
+      _sql.ChangePassword(newPassword);
+    }
+
+    /// <summary>
+    /// Sets the password for a password-protected database.  A password-protected database is
+    /// unusable for any operation until the password has been set.
+    /// </summary>
+    /// <param name="databasePassword">The password for the database</param>
+    public void SetPassword(string databasePassword)
+    {
+      SetPassword(String.IsNullOrEmpty(databasePassword) ? null : System.Text.UTF8Encoding.UTF8.GetBytes(databasePassword));
+    }
+
+    /// <summary>
+    /// Sets the password for a password-protected database.  A password-protected database is
+    /// unusable for any operation until the password has been set.
+    /// </summary>
+    /// <param name="databasePassword">The password for the database</param>
+    public void SetPassword(byte[] databasePassword)
+    {
+      if (_connectionState != ConnectionState.Open)
+        throw new InvalidOperationException();
+
+      _sql.SetPassword(databasePassword);
     }
 
     ///<overloads>
@@ -740,7 +813,6 @@ namespace System.Data.SQLite
     private static DataTable Schema_MetaDataCollections()
     {
       DataTable tbl = new DataTable("MetaDataCollections");
-      DataRow row;
 
       tbl.Locale = CultureInfo.InvariantCulture;
       tbl.Columns.Add("CollectionName", typeof(string));
@@ -749,53 +821,9 @@ namespace System.Data.SQLite
 
       tbl.BeginLoadData();
 
-      row = tbl.NewRow();
-      row.ItemArray = new object[] { "MetaDataCollections", 0, 0 };
-      tbl.Rows.Add(row);
-
-      row = tbl.NewRow();
-      row.ItemArray = new object[] { "DataSourceInformation", 0, 0 };
-      tbl.Rows.Add(row);
-
-      row = tbl.NewRow();
-      row.ItemArray = new object[] { "DataTypes", 0, 0 };
-      tbl.Rows.Add(row);
-
-      //row = tbl.NewRow();
-      //row.ItemArray = new object[] { "ReservedWords", 0, 0 };
-      //tbl.Rows.Add(row);
-
-      row = tbl.NewRow();
-      row.ItemArray = new object[] { "Catalogs", 1, 1 };
-      tbl.Rows.Add(row);
-
-      row = tbl.NewRow();
-      row.ItemArray = new object[] { "Columns", 4, 4 };
-      tbl.Rows.Add(row);
-
-      row = tbl.NewRow();
-      row.ItemArray = new object[] { "Indexes", 5, 4 };
-      tbl.Rows.Add(row);
-
-      row = tbl.NewRow();
-      row.ItemArray = new object[] { "IndexColumns", 5, 4 };
-      tbl.Rows.Add(row);
-
-      row = tbl.NewRow();
-      row.ItemArray = new object[] { "Tables", 4, 3 };
-      tbl.Rows.Add(row);
-
-      row = tbl.NewRow();
-      row.ItemArray = new object[] { "Views", 3, 3 };
-      tbl.Rows.Add(row);
-
-      row = tbl.NewRow();
-      row.ItemArray = new object[] { "ViewColumns", 4, 4 };
-      tbl.Rows.Add(row);
-
-      row = tbl.NewRow();
-      row.ItemArray = new object[] { "ForeignKeys", 4, 3 };
-      tbl.Rows.Add(row);
+      IO.StringReader reader = new IO.StringReader(SR.MetaDataCollections);
+      tbl.ReadXml(reader);
+      reader.Close();
 
       tbl.AcceptChanges();
       tbl.EndLoadData();
@@ -1228,32 +1256,6 @@ namespace System.Data.SQLite
       return tbl;
     }
 
-    //private DataTable Schema_ReservedWords()
-    //{
-    //  DataTable tbl = new DataTable("ReservedWords");
-    //  DataRow row;
-    //  const string reservedWords = "LEFT INNER OUTER JOIN SELECT INSERT UPDATE LIKE ORDER BY INTEGER PRIMARY KEY ON AS IN BETWEEN";
-
-    //  tbl.Locale = CultureInfo.InvariantCulture;
-    //  tbl.Columns.Add("ReservedWord", typeof(String));
-
-    //  tbl.BeginLoadData();
-
-    //  string[] ar = reservedWords.Split(' ');
-
-    //  foreach (string s in ar)
-    //  {
-    //    row = tbl.NewRow();
-    //    row[0] = s;
-    //    tbl.Rows.Add(row);
-    //  }
-
-    //  tbl.AcceptChanges();
-    //  tbl.EndLoadData();
-
-    //  return tbl;
-    //}
-
     private DataTable Schema_DataTypes()
     {
       DataTable tbl = new DataTable("DataTypes");
@@ -1283,197 +1285,10 @@ namespace System.Data.SQLite
       tbl.Columns.Add("IsConcurrencyType", typeof(bool));
 
       tbl.BeginLoadData();
-      string dataTypesXml = @"<?xml version=""1.0"" standalone=""yes""?>
-<DocumentElement>
-  <DataTypes>
-    <TypeName>System.Int16</TypeName>
-    <ProviderDbType>10</ProviderDbType>
-    <ColumnSize>5</ColumnSize>
-    <DataType>System.Int16</DataType>
-    <IsAutoIncrementable>false</IsAutoIncrementable>
-    <IsCaseSensitive>false</IsCaseSensitive>
-    <IsFixedLength>true</IsFixedLength>
-    <IsFixedPrecisionScale>true</IsFixedPrecisionScale>
-    <IsLong>false</IsLong>
-    <IsNullable>true</IsNullable>
-    <IsSearchable>true</IsSearchable>
-    <IsSearchableWithLike>false</IsSearchableWithLike>
-    <IsUnsigned>false</IsUnsigned>
-  </DataTypes>
-  <DataTypes>
-    <TypeName>System.Int32</TypeName>
-    <ProviderDbType>8</ProviderDbType>
-    <ColumnSize>10</ColumnSize>
-    <DataType>System.Int32</DataType>
-    <IsAutoIncrementable>false</IsAutoIncrementable>
-    <IsCaseSensitive>false</IsCaseSensitive>
-    <IsFixedLength>true</IsFixedLength>
-    <IsFixedPrecisionScale>true</IsFixedPrecisionScale>
-    <IsLong>false</IsLong>
-    <IsNullable>true</IsNullable>
-    <IsSearchable>true</IsSearchable>
-    <IsSearchableWithLike>false</IsSearchableWithLike>
-    <IsUnsigned>false</IsUnsigned>
-  </DataTypes>
-  <DataTypes>
-    <TypeName>System.Single</TypeName>
-    <ProviderDbType>15</ProviderDbType>
-    <ColumnSize>7</ColumnSize>
-    <DataType>System.Single</DataType>
-    <IsAutoIncrementable>false</IsAutoIncrementable>
-    <IsCaseSensitive>false</IsCaseSensitive>
-    <IsFixedLength>true</IsFixedLength>
-    <IsFixedPrecisionScale>false</IsFixedPrecisionScale>
-    <IsLong>false</IsLong>
-    <IsNullable>true</IsNullable>
-    <IsSearchable>true</IsSearchable>
-    <IsSearchableWithLike>false</IsSearchableWithLike>
-    <IsUnsigned>false</IsUnsigned>
-  </DataTypes>
-  <DataTypes>
-    <TypeName>System.Double</TypeName>
-    <ProviderDbType>8</ProviderDbType>
-    <ColumnSize>6</ColumnSize>
-    <DataType>System.Double</DataType>
-    <IsAutoIncrementable>false</IsAutoIncrementable>
-    <IsCaseSensitive>false</IsCaseSensitive>
-    <IsFixedLength>true</IsFixedLength>
-    <IsFixedPrecisionScale>false</IsFixedPrecisionScale>
-    <IsLong>false</IsLong>
-    <IsNullable>true</IsNullable>
-    <IsSearchable>true</IsSearchable>
-    <IsSearchableWithLike>false</IsSearchableWithLike>
-    <IsUnsigned>false</IsUnsigned>
-  </DataTypes>
-  <DataTypes>
-    <TypeName>System.Decimal</TypeName>
-    <ProviderDbType>7</ProviderDbType>
-    <ColumnSize>19</ColumnSize>
-    <DataType>System.Decimal</DataType>
-    <IsAutoIncrementable>false</IsAutoIncrementable>
-    <IsCaseSensitive>false</IsCaseSensitive>
-    <IsFixedLength>true</IsFixedLength>
-    <IsFixedPrecisionScale>true</IsFixedPrecisionScale>
-    <IsLong>false</IsLong>
-    <IsNullable>true</IsNullable>
-    <IsSearchable>true</IsSearchable>
-    <IsSearchableWithLike>false</IsSearchableWithLike>
-    <IsUnsigned>false</IsUnsigned>
-  </DataTypes>
-  <DataTypes>
-    <TypeName>System.Boolean</TypeName>
-    <ProviderDbType>3</ProviderDbType>
-    <ColumnSize>1</ColumnSize>
-    <DataType>System.Boolean</DataType>
-    <IsAutoIncrementable>false</IsAutoIncrementable>
-    <IsCaseSensitive>false</IsCaseSensitive>
-    <IsFixedLength>true</IsFixedLength>
-    <IsFixedPrecisionScale>false</IsFixedPrecisionScale>
-    <IsLong>false</IsLong>
-    <IsNullable>true</IsNullable>
-    <IsSearchable>true</IsSearchable>
-    <IsSearchableWithLike>false</IsSearchableWithLike>
-  </DataTypes>
-  <DataTypes>
-    <TypeName>System.Byte</TypeName>
-    <ProviderDbType>2</ProviderDbType>
-    <ColumnSize>3</ColumnSize>
-    <DataType>System.Byte</DataType>
-    <IsAutoIncrementable>false</IsAutoIncrementable>
-    <IsCaseSensitive>false</IsCaseSensitive>
-    <IsFixedLength>true</IsFixedLength>
-    <IsFixedPrecisionScale>true</IsFixedPrecisionScale>
-    <IsLong>false</IsLong>
-    <IsNullable>true</IsNullable>
-    <IsSearchable>true</IsSearchable>
-    <IsSearchableWithLike>false</IsSearchableWithLike>
-    <IsUnsigned>true</IsUnsigned>
-  </DataTypes>
-  <DataTypes>
-    <TypeName>System.Int64</TypeName>
-    <ProviderDbType>12</ProviderDbType>
-    <ColumnSize>19</ColumnSize>
-    <DataType>System.Int64</DataType>
-    <IsAutoIncrementable>true</IsAutoIncrementable>
-    <IsCaseSensitive>false</IsCaseSensitive>
-    <IsFixedLength>true</IsFixedLength>
-    <IsFixedPrecisionScale>true</IsFixedPrecisionScale>
-    <IsLong>false</IsLong>
-    <IsNullable>true</IsNullable>
-    <IsSearchable>true</IsSearchable>
-    <IsSearchableWithLike>false</IsSearchableWithLike>
-    <IsUnsigned>false</IsUnsigned>
-  </DataTypes>
-  <DataTypes>
-    <TypeName>System.Byte[]</TypeName>
-    <ProviderDbType>1</ProviderDbType>
-    <ColumnSize>2147483647</ColumnSize>
-    <DataType>System.Byte[]</DataType>
-    <IsAutoIncrementable>false</IsAutoIncrementable>
-    <IsCaseSensitive>false</IsCaseSensitive>
-    <IsFixedLength>false</IsFixedLength>
-    <IsFixedPrecisionScale>false</IsFixedPrecisionScale>
-    <IsLong>true</IsLong>
-    <IsNullable>true</IsNullable>
-    <IsSearchable>false</IsSearchable>
-    <IsSearchableWithLike>false</IsSearchableWithLike>
-    <LiteralPrefix>X'</LiteralPrefix>
-    <LiteralSuffix>'</LiteralSuffix>
-  </DataTypes>
-  <DataTypes>
-    <TypeName>System.String</TypeName>
-    <ProviderDbType>16</ProviderDbType>
-    <ColumnSize>2147483647</ColumnSize>
-    <CreateParameters>max length</CreateParameters>
-    <DataType>System.String</DataType>
-    <IsAutoIncrementable>false</IsAutoIncrementable>
-    <IsCaseSensitive>false</IsCaseSensitive>
-    <IsFixedLength>false</IsFixedLength>
-    <IsFixedPrecisionScale>false</IsFixedPrecisionScale>
-    <IsLong>false</IsLong>
-    <IsNullable>true</IsNullable>
-    <IsSearchable>true</IsSearchable>
-    <IsSearchableWithLike>true</IsSearchableWithLike>
-    <LiteralPrefix>'</LiteralPrefix>
-    <LiteralSuffix>'</LiteralSuffix>
-  </DataTypes>
-  <DataTypes>
-    <TypeName>System.DateTime</TypeName>
-    <ProviderDbType>6</ProviderDbType>
-    <ColumnSize>23</ColumnSize>
-    <DataType>System.DateTime</DataType>
-    <IsAutoIncrementable>false</IsAutoIncrementable>
-    <IsCaseSensitive>false</IsCaseSensitive>
-    <IsFixedLength>true</IsFixedLength>
-    <IsFixedPrecisionScale>false</IsFixedPrecisionScale>
-    <IsLong>false</IsLong>
-    <IsNullable>true</IsNullable>
-    <IsSearchable>true</IsSearchable>
-    <IsSearchableWithLike>true</IsSearchableWithLike>
-    <LiteralPrefix>'</LiteralPrefix>
-    <LiteralSuffix>'</LiteralSuffix>
-  </DataTypes>
-  <DataTypes>
-    <TypeName>System.Guid</TypeName>
-    <ProviderDbType>4</ProviderDbType>
-    <ColumnSize>16</ColumnSize>
-    <DataType>System.Guid</DataType>
-    <IsAutoIncrementable>false</IsAutoIncrementable>
-    <IsCaseSensitive>false</IsCaseSensitive>
-    <IsFixedLength>true</IsFixedLength>
-    <IsFixedPrecisionScale>false</IsFixedPrecisionScale>
-    <IsLong>false</IsLong>
-    <IsNullable>true</IsNullable>
-    <IsSearchable>true</IsSearchable>
-    <IsSearchableWithLike>false</IsSearchableWithLike>
-    <LiteralPrefix>'</LiteralPrefix>
-    <LiteralSuffix>'</LiteralSuffix>
-  </DataTypes>
-</DocumentElement>";
 
-      IO.StringReader stringReader = new System.IO.StringReader(dataTypesXml);
-      tbl.ReadXml(stringReader);
-      stringReader.Close();
+      IO.StringReader reader = new IO.StringReader(SR.DataTypes);
+      tbl.ReadXml(reader);
+      reader.Close();
 
       tbl.AcceptChanges();
       tbl.EndLoadData();

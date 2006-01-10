@@ -235,5 +235,11 @@ namespace System.Data.SQLite
 
     [DllImport(SQLITE_DLL, CharSet = CharSet.Unicode, SetLastError = true)]
     internal static extern int sqlite3_decompressfile(string fileName);
+
+    [DllImport(SQLITE_DLL)]
+    internal static extern int sqlite3_key_interop(int db, byte[] key, int keylen);
+
+    [DllImport(SQLITE_DLL)]
+    internal static extern int sqlite3_rekey_interop(int db, byte[] key, int keylen);
   }
 }

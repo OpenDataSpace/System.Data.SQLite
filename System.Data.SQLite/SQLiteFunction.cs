@@ -446,7 +446,7 @@ namespace System.Data.SQLite
     /// <param name="typ">The type of the function to register</param>
     public static void RegisterFunction(Type typ)
     {
-      object[] arAtt = typ.GetCustomAttributes(false);
+      object[] arAtt = typ.GetCustomAttributes(typeof(SQLiteFunctionAttribute), false);
       int u = arAtt.Length;
       SQLiteFunctionAttribute at;
 

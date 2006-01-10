@@ -185,6 +185,9 @@ namespace System.Data.SQLite
     internal abstract void ReturnNull(int context);
     internal abstract void ReturnText(int context, string value);
 
+    internal abstract void SetPassword(byte[] passwordBytes);
+    internal abstract void ChangePassword(byte[] newPasswordBytes);
+
     protected virtual void Dispose(bool bDisposing)
     {
     }
