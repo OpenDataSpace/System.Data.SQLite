@@ -114,17 +114,20 @@ void sqlite3Codec(void *pArg, void *data, Pgno nPageNum, int nMode)
   LPCRYPTBLOCK pBlock = (LPCRYPTBLOCK)pArg;
   DWORD dwPageSize;
   LPVOID pvTemp;
-  PgHdr *pageHeader;
 
   if (!pBlock) return;
 
   // Make sure the page size for the pager is still the same as the page size
   // for the cryptblock.  If the user changed it, we need to adjust!
-  pageHeader = DATA_TO_PGHDR(data);
-  if (pageHeader->pPager->pageSize != pBlock->dwPageSize)
+  if (nMode != 2)
   {
-    // Update the cryptblock to reflect the new page size
-    CreateCryptBlock(0, pageHeader->pPager, pBlock);
+    PgHdr *pageHeader;
+    pageHeader = DATA_TO_PGHDR(data);
+    if (pageHeader->pPager->pageSize != pBlock->dwPageSize)
+    {
+      // Update the cryptblock to reflect the new page size
+      CreateCryptBlock(0, pageHeader->pPager, pBlock);
+    }
   }
 
   /* Block ciphers often need to write extra padding beyond the 
