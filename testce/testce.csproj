@@ -19,6 +19,7 @@
     </FormFactorID>
     <StartupObject>
     </StartupObject>
+    <DeployDirPrefix>%25CSIDL_PROGRAM_FILES%25</DeployDirPrefix>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -85,7 +86,6 @@
     <ProjectReference Include="..\System.Data.SQLite\System.Data.SQLite.csproj">
       <Project>{AC139951-261A-4463-B6FA-AEBC25283A66}</Project>
       <Name>System.Data.SQLite</Name>
-      <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

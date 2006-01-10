@@ -36,8 +36,8 @@
 unsigned int sqlite3_pending_byte = 0x40000000;
 #endif
 
-#ifdef SQLITE_DEBUG
 int sqlite3_os_trace = 0;
+#ifdef SQLITE_DEBUG
 static int last_page = 0;
 #define SEEK(X)           last_page=(X)
 #define TRACE1(X)         if( sqlite3_os_trace ) sqlite3DebugPrintf(X)
@@ -88,6 +88,7 @@ static unsigned int elapse;
 ** is used for testing the I/O recovery logic.
 */
 #ifdef SQLITE_TEST
+int sqlite3_io_error_hit = 0;
 int sqlite3_io_error_pending = 0;
 int sqlite3_diskfull_pending = 0;
 int sqlite3_diskfull = 0;
@@ -95,7 +96,7 @@ int sqlite3_diskfull = 0;
    if( sqlite3_io_error_pending ) \
      if( sqlite3_io_error_pending-- == 1 ){ local_ioerr(); return A; }
 static void local_ioerr(){
-  sqlite3_io_error_pending = 0;  /* Really just a place to set a breakpoint */
+  sqlite3_io_error_hit = 1;  /* Really just a place to set a breakpoint */
 }
 #define SimulateDiskfullError \
    if( sqlite3_diskfull_pending ){ \
@@ -121,3 +122,39 @@ int sqlite3_open_file_count = 0;
 #else
 #define OpenCounter(X)
 #endif
+
+/*
+** sqlite3GenericMalloc
+** sqlite3GenericRealloc
+** sqlite3GenericOsFree
+** sqlite3GenericAllocationSize
+**
+** Implementation of the os level dynamic memory allocation interface in terms
+** of the standard malloc(), realloc() and free() found in many operating
+** systems. No rocket science here.
+*/
+void *sqlite3GenericMalloc(int n){
+  char *p = (char *)malloc(n+8);
+  assert(n>0);
+  assert(sizeof(int)<=8);
+  if( p ){
+    *(int *)p = n;
+  }
+  return (void *)(p + 8);
+}
+void *sqlite3GenericRealloc(void *p, int n){
+  char *p2 = ((char *)p - 8);
+  assert(n>0);
+  p2 = realloc(p2, n+8);
+  if( p2 ){
+    *(int *)p2 = n;
+  }
+  return (void *)((char *)p2 + 8);
+}
+void sqlite3GenericFree(void *p){
+  assert(p);
+  free((void *)((char *)p - 8));
+}
+int sqlite3GenericAllocationSize(void *p){
+  return p ? *(int *)((char *)p - 8) : 0;
+}

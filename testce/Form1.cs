@@ -13,7 +13,7 @@ namespace test
 		public Form1()
 		{
 			InitializeComponent();
-		}
+    }
 
 		public void WriteLine(string str)
 		{

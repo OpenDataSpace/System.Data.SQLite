@@ -88,6 +88,9 @@ namespace test
       try { VerifyBinaryData(cnn); Console.WriteLine("SUCCESS - VerifyBinaryData"); }
       catch (Exception) { Console.WriteLine("FAIL - VerifyBinaryData"); }
 
+      try { LockTest(cnn); Console.WriteLine("SUCCESS - LockTest"); }
+      catch (Exception) { Console.WriteLine("FAIL - LockTest"); }
+
       try { ParameterizedInsertMissingParams(cnn); Console.WriteLine("FAIL - ParameterizedInsertMissingParams\r\n"); }
       catch (Exception) { Console.WriteLine("SUCCESS - ParameterizedInsertMissingParams\r\n"); }
 
@@ -284,6 +287,52 @@ namespace test
           if (b[1000] != 3) throw new ArgumentException();
           if (b[2000] != 4) throw new ArgumentException();
           if (b[3000] != 5) throw new ArgumentException();
+        }
+      }
+    }
+
+    internal static void LockTest(DbConnection cnn)
+    {
+      using (DbCommand cmd = cnn.CreateCommand())
+      {
+        cmd.CommandText = "SELECT Field6 FROM TestCase WHERE Field6 IS NOT NULL";
+        byte[] b = new byte[4000];
+
+        using (DbDataReader rd = cmd.ExecuteReader())
+        {
+          if (rd.Read() == false) throw new ArgumentOutOfRangeException();
+
+          rd.GetBytes(0, 0, b, 0, 4000);
+
+          if (b[0] != 1) throw new ArgumentException();
+          if (b[100] != 2) throw new ArgumentException();
+          if (b[1000] != 3) throw new ArgumentException();
+          if (b[2000] != 4) throw new ArgumentException();
+          if (b[3000] != 5) throw new ArgumentException();
+
+          using (DbConnection clone = (DbConnection)((ICloneable)cnn).Clone())
+          {
+            using (DbCommand newcmd = clone.CreateCommand())
+            {
+              newcmd.CommandText = "CREATE TABLE Bar(ID INTEGER PRIMARY KEY)";
+              newcmd.CommandTimeout = 10;
+              int cmdStart = Environment.TickCount;
+              int cmdEnd;
+
+              try
+              {
+                newcmd.ExecuteNonQuery(); // should fail because there's a reader on the database
+                throw new ArgumentException(); // If we got here, the test failed
+              }
+              catch
+              {
+                cmdEnd = Environment.TickCount;
+                if (cmdEnd - cmdStart < 10000 || cmdEnd - cmdStart > 11000)
+                  throw new ArgumentException(); // Didn't wait the right amount of time
+
+              }
+            }
+          }
         }
       }
     }

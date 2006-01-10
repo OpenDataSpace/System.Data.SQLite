@@ -12,7 +12,7 @@
 ** This file contains code to implement the "sqlite" command line
 ** utility for accessing SQLite databases.
 **
-** $Id: shell.c,v 1.10 2005/12/19 17:57:48 rmsimpson Exp $
+** $Id: shell.c,v 1.11 2006/01/10 18:40:37 rmsimpson Exp $
 */
 #include <stdlib.h>
 #include <string.h>
@@ -81,7 +81,7 @@ static char continuePrompt[20]; /* Continuation prompt. default: "   ...> " */
 /*
 ** Determines if a string is a number of not.
 */
-static int isNumber(const unsigned char *z, int *realnum){
+static int isNumber(const char *z, int *realnum){
   if( *z=='-' || *z=='+' ) z++;
   if( !isdigit(*z) ){
     return 0;
@@ -690,8 +690,9 @@ static int dump_callback(void *pArg, int nArg, char **azArg, char **azCol){
     zSelect = appendText(zSelect, " || ' VALUES(' || ", 0);
     rc = sqlite3_step(pTableInfo);
     while( rc==SQLITE_ROW ){
+      const char *zText = (const char *)sqlite3_column_text(pTableInfo, 1);
       zSelect = appendText(zSelect, "quote(", 0);
-      zSelect = appendText(zSelect, sqlite3_column_text(pTableInfo, 1), '"');
+      zSelect = appendText(zSelect, zText, '"');
       rc = sqlite3_step(pTableInfo);
       if( rc==SQLITE_ROW ){
         zSelect = appendText(zSelect, ") || ', ' || ", 0);
@@ -829,7 +830,7 @@ static void resolve_backslashes(char *z){
       }else if( c=='r' ){
         c = '\r';
       }else if( c>='0' && c<='7' ){
-        c =- '0';
+        c -= '0';
         if( z[i+1]>='0' && z[i+1]<='7' ){
           i++;
           c = (c<<3) + z[i] - '0';

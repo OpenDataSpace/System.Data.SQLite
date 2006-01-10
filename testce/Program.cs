@@ -17,6 +17,14 @@ namespace test
       SQLiteFunction.RegisterFunction(typeof(MyCount));
       SQLiteFunction.RegisterFunction(typeof(MySequence));
 
+      try
+      {
+        System.IO.File.Delete("test.db3");
+      }
+      catch
+      {
+      }
+
       using (cnn = new SQLiteConnection())
       {
         TestCases tests = new TestCases();
@@ -27,8 +35,6 @@ namespace test
 
         System.Windows.Forms.Application.Run(tests.frm);
       }
-
-      System.IO.File.Delete("test.db3");
     }
   }
 }

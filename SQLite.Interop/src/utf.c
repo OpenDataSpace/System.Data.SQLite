@@ -12,7 +12,7 @@
 ** This file contains routines used to translate between UTF-8, 
 ** UTF-16, UTF-16BE, and UTF-16LE.
 **
-** $Id: utf.c,v 1.10 2005/12/19 17:57:48 rmsimpson Exp $
+** $Id: utf.c,v 1.11 2006/01/10 18:40:37 rmsimpson Exp $
 **
 ** Notes on UTF-8:
 **
@@ -272,7 +272,7 @@ int sqlite3VdbeMemTranslate(Mem *pMem, u8 desiredEnc){
       assert( rc==SQLITE_NOMEM );
       return SQLITE_NOMEM;
     }
-    zIn = pMem->z;
+    zIn = (u8*)pMem->z;
     zTerm = &zIn[pMem->n];
     while( zIn<zTerm ){
       temp = *zIn;
@@ -308,7 +308,7 @@ int sqlite3VdbeMemTranslate(Mem *pMem, u8 desiredEnc){
   ** obtained from malloc(), or Mem.zShort, if it large enough and not in
   ** use, or the zShort array on the stack (see above).
   */
-  zIn = pMem->z;
+  zIn = (u8*)pMem->z;
   zTerm = &zIn[pMem->n];
   if( len>NBFS ){
     zOut = sqliteMallocRaw(len);
@@ -360,12 +360,12 @@ int sqlite3VdbeMemTranslate(Mem *pMem, u8 desiredEnc){
   pMem->enc = desiredEnc;
   if( zOut==zShort ){
     memcpy(pMem->zShort, zOut, len);
-    zOut = pMem->zShort;
+    zOut = (u8*)pMem->zShort;
     pMem->flags |= (MEM_Term|MEM_Short);
   }else{
     pMem->flags |= (MEM_Term|MEM_Dyn);
   }
-  pMem->z = zOut;
+  pMem->z = (char*)zOut;
 
 translate_out:
 #if defined(TRANSLATE_TRACE) && defined(SQLITE_DEBUG)
@@ -450,6 +450,23 @@ int sqlite3utf8CharLen(const char *z, int nByte){
 }
 
 #ifndef SQLITE_OMIT_UTF16
+/*
+** Convert a UTF-16 string in the native encoding into a UTF-8 string.
+** Memory to hold the UTF-8 string is obtained from malloc and must be
+** freed by the calling function.
+**
+** NULL is returned if there is an allocation error.
+*/
+char *sqlite3utf16to8(const void *z, int nByte){
+  Mem m;
+  memset(&m, 0, sizeof(m));
+  sqlite3VdbeMemSetStr(&m, z, nByte, SQLITE_UTF16NATIVE, SQLITE_STATIC);
+  sqlite3VdbeChangeEncoding(&m, SQLITE_UTF8);
+  assert( m.flags & MEM_Term );
+  assert( m.flags & MEM_Str );
+  return (m.flags & MEM_Dyn)!=0 ? m.z : sqlite3StrDup(m.z);
+}
+
 /*
 ** pZ is a UTF-16 encoded unicode string. If nChar is less than zero,
 ** return the number of bytes up to (but not including), the first pair

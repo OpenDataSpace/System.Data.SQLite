@@ -11,7 +11,7 @@
 *************************************************************************
 ** This file contains code used to implement the PRAGMA command.
 **
-** $Id: pragma.c,v 1.10 2005/12/19 17:57:47 rmsimpson Exp $
+** $Id: pragma.c,v 1.11 2006/01/10 18:40:37 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include "os.h"
@@ -36,7 +36,7 @@
 ** to support legacy SQL code.  The safety level used to be boolean
 ** and older scripts may have used numbers 0 for OFF and 1 for ON.
 */
-static int getSafetyLevel(const u8 *z){
+static int getSafetyLevel(const char *z){
                              /* 123456789 123456789 */
   static const char zText[] = "onoffalseyestruefull";
   static const u8 iOffset[] = {0, 1, 2, 4, 9, 12, 16};
@@ -58,7 +58,7 @@ static int getSafetyLevel(const u8 *z){
 /*
 ** Interpret the given string as a boolean value.
 */
-static int getBoolean(const u8 *z){
+static int getBoolean(const char *z){
   return getSafetyLevel(z)&1;
 }
 
@@ -151,9 +151,16 @@ static int flagPragma(Parse *pParse, const char *zLeft, const char *zRight){
     { "short_column_names",       SQLITE_ShortColNames },
     { "count_changes",            SQLITE_CountRows     },
     { "empty_result_callbacks",   SQLITE_NullCallback  },
+#ifndef SQLITE_OMIT_CHECK
+    { "ignore_check_constraints", SQLITE_IgnoreChecks  },
+#endif
     /* The following is VERY experimental */
     { "writable_schema",          SQLITE_WriteSchema   },
     { "omit_readlock",            SQLITE_NoReadlock    },
+
+    /* TODO: Maybe it shouldn't be possible to change the ReadUncommitted
+    ** flag if there are any active statements. */
+    { "read_uncommitted",         SQLITE_ReadUncommitted },
   };
   int i;
   const struct sPragmaType *p;
@@ -280,8 +287,8 @@ void sqlite3Pragma(
       sqlite3VdbeAddOp(v, OP_Ge, 0, addr+3);
       sqlite3VdbeAddOp(v, OP_Negative, 0, 0);
       sqlite3VdbeAddOp(v, OP_SetCookie, iDb, 2);
-      pDb->cache_size = size;
-      sqlite3BtreeSetCacheSize(pDb->pBt, pDb->cache_size);
+      pDb->pSchema->cache_size = size;
+      sqlite3BtreeSetCacheSize(pDb->pBt, pDb->pSchema->cache_size);
     }
   }else
 
@@ -342,12 +349,12 @@ void sqlite3Pragma(
   if( sqlite3StrICmp(zLeft,"cache_size")==0 ){
     if( sqlite3ReadSchema(pParse) ) goto pragma_out;
     if( !zRight ){
-      returnSingleInt(pParse, "cache_size", pDb->cache_size);
+      returnSingleInt(pParse, "cache_size", pDb->pSchema->cache_size);
     }else{
       int size = atoi(zRight);
       if( size<0 ) size = -size;
-      pDb->cache_size = size;
-      sqlite3BtreeSetCacheSize(pDb->pBt, pDb->cache_size);
+      pDb->pSchema->cache_size = size;
+      sqlite3BtreeSetCacheSize(pDb->pBt, pDb->pSchema->cache_size);
     }
   }else
 
@@ -647,6 +654,7 @@ void sqlite3Pragma(
     /* Do an integrity check on each database file */
     for(i=0; i<db->nDb; i++){
       HashElem *x;
+      Hash *pTbls;
       int cnt = 0;
 
       if( OMIT_TEMPDB && i==1 ) continue;
@@ -655,7 +663,8 @@ void sqlite3Pragma(
 
       /* Do an integrity check of the B-Tree
       */
-      for(x=sqliteHashFirst(&db->aDb[i].tblHash); x; x=sqliteHashNext(x)){
+      pTbls = &db->aDb[i].pSchema->tblHash;
+      for(x=sqliteHashFirst(pTbls); x; x=sqliteHashNext(x)){
         Table *pTab = sqliteHashData(x);
         Index *pIdx;
         sqlite3VdbeAddOp(v, OP_Integer, pTab->tnum, 0);
@@ -670,18 +679,19 @@ void sqlite3Pragma(
       sqlite3VdbeAddOp(v, OP_IntegrityCk, cnt, i);
       sqlite3VdbeAddOp(v, OP_Dup, 0, 1);
       addr = sqlite3VdbeOp3(v, OP_String8, 0, 0, "ok", P3_STATIC);
-      sqlite3VdbeAddOp(v, OP_Eq, 0, addr+6);
+      sqlite3VdbeAddOp(v, OP_Eq, 0, addr+7);
       sqlite3VdbeOp3(v, OP_String8, 0, 0,
          sqlite3MPrintf("*** in database %s ***\n", db->aDb[i].zName),
          P3_DYNAMIC);
       sqlite3VdbeAddOp(v, OP_Pull, 1, 0);
       sqlite3VdbeAddOp(v, OP_Concat, 0, 1);
       sqlite3VdbeAddOp(v, OP_Callback, 1, 0);
+      sqlite3VdbeAddOp(v, OP_MemIncr, 1, 0);
 
       /* Make sure all the indices are constructed correctly.
       */
       sqlite3CodeVerifySchema(pParse, i);
-      for(x=sqliteHashFirst(&db->aDb[i].tblHash); x; x=sqliteHashNext(x)){
+      for(x=sqliteHashFirst(pTbls); x; x=sqliteHashNext(x)){
         Table *pTab = sqliteHashData(x);
         Index *pIdx;
         int loopTop;
@@ -690,11 +700,11 @@ void sqlite3Pragma(
         sqlite3OpenTableAndIndices(pParse, pTab, 1, OP_OpenRead);
         sqlite3VdbeAddOp(v, OP_MemInt, 0, 1);
         loopTop = sqlite3VdbeAddOp(v, OP_Rewind, 1, 0);
-        sqlite3VdbeAddOp(v, OP_MemIncr, 1, 0);
+        sqlite3VdbeAddOp(v, OP_MemIncr, 1, 1);
         for(j=0, pIdx=pTab->pIndex; pIdx; pIdx=pIdx->pNext, j++){
           int jmp2;
           static const VdbeOpList idxErr[] = {
-            { OP_MemIncr,     0,  0,  0},
+            { OP_MemIncr,     1,  0,  0},
             { OP_String8,     0,  0,  "rowid "},
             { OP_Rowid,       1,  0,  0},
             { OP_String8,     0,  0,  " missing from index "},
@@ -714,12 +724,12 @@ void sqlite3Pragma(
           static const VdbeOpList cntIdx[] = {
              { OP_MemInt,       0,  2,  0},
              { OP_Rewind,       0,  0,  0},  /* 1 */
-             { OP_MemIncr,      2,  0,  0},
+             { OP_MemIncr,      1,  2,  0},
              { OP_Next,         0,  0,  0},  /* 3 */
              { OP_MemLoad,      1,  0,  0},
              { OP_MemLoad,      2,  0,  0},
              { OP_Eq,           0,  0,  0},  /* 6 */
-             { OP_MemIncr,      0,  0,  0},
+             { OP_MemIncr,      1,  0,  0},
              { OP_String8,      0,  0,  "wrong # of entries in index "},
              { OP_String8,      0,  0,  0},  /* 9 */
              { OP_Concat,       0,  0,  0},
@@ -787,7 +797,7 @@ void sqlite3Pragma(
       sqlite3VdbeSetColName(v, 0, "encoding", P3_STATIC);
       sqlite3VdbeAddOp(v, OP_String8, 0, 0);
       for(pEnc=&encnames[0]; pEnc->zName; pEnc++){
-        if( pEnc->enc==pParse->db->enc ){
+        if( pEnc->enc==ENC(pParse->db) ){
           sqlite3VdbeChangeP3(v, -1, pEnc->zName, P3_STATIC);
           break;
         }
@@ -802,7 +812,7 @@ void sqlite3Pragma(
       if( !(pParse->db->flags&SQLITE_Initialized) ){
         for(pEnc=&encnames[0]; pEnc->zName; pEnc++){
           if( 0==sqlite3StrICmp(zRight, pEnc->zName) ){
-            pParse->db->enc = pEnc->enc;
+            ENC(pParse->db) = pEnc->enc;
             break;
           }
         }
@@ -915,6 +925,12 @@ void sqlite3Pragma(
   if( sqlite3StrICmp(zLeft, "create_sqlite_statement_table")==0 ){
     extern int sqlite3CreateStatementsTable(Parse*);
     sqlite3CreateStatementsTable(pParse);
+  }else
+#endif
+
+#if SQLITE_HAS_CODEC
+  if( sqlite3StrICmp(zLeft, "key")==0 ){
+    sqlite3_key(db, zRight, strlen(zRight));
   }else
 #endif
 

@@ -13,6 +13,8 @@ namespace test
       DbProviderFactory fact;
       DbConnection cnn;
 
+      System.IO.File.Delete("test.db3");
+
       using (cnn = new SQLiteConnection())
       {
         fact = DbProviderFactories.GetFactory("System.Data.SQLite");
@@ -20,8 +22,6 @@ namespace test
         cnn.Open();
         TestCases.Run(fact, cnn);
       }
-
-      System.IO.File.Delete("test.db3");
 
       Console.ReadKey();
     }
