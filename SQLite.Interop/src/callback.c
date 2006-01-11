@@ -13,7 +13,7 @@
 ** This file contains functions used to access the internal hash tables
 ** of user defined functions and collation sequences.
 **
-** $Id: callback.c,v 1.8 2006/01/10 21:09:55 rmsimpson Exp $
+** $Id: callback.c,v 1.9 2006/01/11 03:22:29 rmsimpson Exp $
 */
 
 #include "sqliteInt.h"

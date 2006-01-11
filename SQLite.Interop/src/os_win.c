@@ -244,7 +244,7 @@ static BOOL CreateLockStruct(const char *pszFilename, LOCKSTRUCT *pLocks)
   ZeroMemory(&pLocks->local, sizeof(LOCKDATA));
 
   /* Create a unique global name for the mutex and subsequently the shared memory */
-  _wcslwr(pszName);
+  CharLowerW(pszName);
   while (pszTok = wcschr(pszName, '\\'))
   {
     *pszTok = '_';
@@ -262,7 +262,7 @@ static BOOL CreateLockStruct(const char *pszFilename, LOCKSTRUCT *pLocks)
   MUTEX_ACQUIRE(pLocks->hMutex);
   
   /* Create/open the shared memory */
-  _wcsupr(pszName);
+  CharUpperW(pszName);
   pLocks->hShared = CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(LOCKDATA), pszName);  
 
   /* Set a flag that indicates we're the first to create the memory so it must be zero-initialized */
