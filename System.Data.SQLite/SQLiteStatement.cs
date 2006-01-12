@@ -54,7 +54,6 @@ namespace System.Data.SQLite
     /// <param name="previous">The previous command in a multi-statement command</param>
     internal SQLiteStatement(SQLiteBase sqlbase, int stmt, string strCommand, SQLiteStatement previous)
     {
-      _unnamedParameters = 0;
       _sql     = sqlbase;
       _sqlite_stmt = stmt;
       _sqlStatement  = strCommand;
