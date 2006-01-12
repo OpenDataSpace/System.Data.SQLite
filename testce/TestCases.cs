@@ -315,8 +315,8 @@ namespace test
           {
             using (DbCommand newcmd = clone.CreateCommand())
             {
-              newcmd.CommandText = "CREATE TABLE Bar(ID INTEGER PRIMARY KEY)";
-              newcmd.CommandTimeout = 10;
+              newcmd.CommandText = "DELETE FROM TestCase WHERE Field6 IS NULL";
+              newcmd.CommandTimeout = 2;
               int cmdStart = Environment.TickCount;
               int cmdEnd;
 
@@ -328,7 +328,7 @@ namespace test
               catch
               {
                 cmdEnd = Environment.TickCount;
-                if (cmdEnd - cmdStart < 10000 || cmdEnd - cmdStart > 11000)
+                if (cmdEnd - cmdStart < 2000 || cmdEnd - cmdStart > 3000)
                   throw new ArgumentException(); // Didn't wait the right amount of time
               }
             }
@@ -384,36 +384,38 @@ namespace test
             using (DbCommandBuilder bld = new SQLiteCommandBuilder())
             {
               bld.DataAdapter = adp;
-              adp.InsertCommand = bld.GetInsertCommand();
-
-              if (bWithIdentity)
+              using (adp.InsertCommand = (SQLiteCommand)((ICloneable)bld.GetInsertCommand()).Clone())
               {
-                adp.InsertCommand.CommandText += ";SELECT [ID] FROM TestCase WHERE RowID = last_insert_rowid()";
-                adp.InsertCommand.UpdatedRowSource = UpdateRowSource.FirstReturnedRecord;
-              }
-
-              using (DataTable tbl = new DataTable())
-              {
-                adp.Fill(tbl);
-                for (int n = 0; n < nmax; n++)
+                bld.DataAdapter = null;
+                if (bWithIdentity)
                 {
-                  DataRow row = tbl.NewRow();
-                  row[1] = n + nmax;
-                  tbl.Rows.Add(row);
+                  adp.InsertCommand.CommandText += ";SELECT last_insert_rowid() AS [ID]";
+                  adp.InsertCommand.UpdatedRowSource = UpdateRowSource.FirstReturnedRecord;
                 }
 
-                frm.Write(String.Format("          InsertMany{0} ({1} rows) Begins ... ", (bWithIdentity == true) ? "WithIdentityFetch":"                 ", nmax));
-                int dtStart = Environment.TickCount;
-                adp.Update(tbl);
-                int dtEnd = Environment.TickCount;
-                dtEnd -= dtStart;
-                frm.Write(String.Format("Ends in {0} ms ... ", (dtEnd)));
+                using (DataTable tbl = new DataTable())
+                {
+                  adp.Fill(tbl);
+                  for (int n = 0; n < nmax; n++)
+                  {
+                    DataRow row = tbl.NewRow();
+                    row[1] = n + nmax;
+                    tbl.Rows.Add(row);
+                  }
 
-                dtStart = Environment.TickCount;
-                dbTrans.Commit();
-                dtEnd = Environment.TickCount;
-                dtEnd -= dtStart;
-                frm.WriteLine(String.Format("Commits in {0} ms", (dtEnd)));
+                  frm.Write(String.Format("          InsertMany{0} ({1} rows) Begins ... ", (bWithIdentity == true) ? "WithIdentityFetch" : "                 ", nmax));
+                  int dtStart = Environment.TickCount;
+                  adp.Update(tbl);
+                  int dtEnd = Environment.TickCount;
+                  dtEnd -= dtStart;
+                  frm.Write(String.Format("Ends in {0} ms ... ", (dtEnd)));
+
+                  dtStart = Environment.TickCount;
+                  dbTrans.Commit();
+                  dtEnd = Environment.TickCount;
+                  dtEnd -= dtStart;
+                  frm.WriteLine(String.Format("Commits in {0} ms", (dtEnd)));
+                }
               }
             }
           }

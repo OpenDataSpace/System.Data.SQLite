@@ -314,8 +314,8 @@ namespace test
           {
             using (DbCommand newcmd = clone.CreateCommand())
             {
-              newcmd.CommandText = "CREATE TABLE Bar(ID INTEGER PRIMARY KEY)";
-              newcmd.CommandTimeout = 10;
+              newcmd.CommandText = "DELETE FROM TestCase WHERE Field6 IS NULL";
+              newcmd.CommandTimeout = 2;
               int cmdStart = Environment.TickCount;
               int cmdEnd;
 
@@ -327,7 +327,7 @@ namespace test
               catch
               {
                 cmdEnd = Environment.TickCount;
-                if (cmdEnd - cmdStart < 10000 || cmdEnd - cmdStart > 11000)
+                if (cmdEnd - cmdStart < 2000 || cmdEnd - cmdStart > 3000)
                   throw new ArgumentException(); // Didn't wait the right amount of time
 
               }
@@ -379,47 +379,44 @@ namespace test
           using (DbCommand cmd = cnn.CreateCommand())
           {
             cmd.Transaction = dbTrans;
-            cmd.CommandText = "SELECT * FROM TestCase";
+            cmd.CommandText = "SELECT * FROM TestCase WHERE 1 = 2";
             adp.SelectCommand = cmd;
-
-            // We're deliberately not loading the data adapter with an insert command
-            // unless we're doing the identity fetch.  This tests the CommandBuilder's ability
-            // to autogenerate that command when the insert occurs, which consequently tests
-            // the SQLiteDataAdapter's ability to raise events.
 
             using (DbCommandBuilder bld = fact.CreateCommandBuilder())
             {
               bld.DataAdapter = adp;
-
-              if (bWithIdentity)
+              using (adp.InsertCommand = (DbCommand)((ICloneable)bld.GetInsertCommand()).Clone())
               {
-                adp.InsertCommand = bld.GetInsertCommand();
-                adp.InsertCommand.CommandText += ";SELECT [ID] FROM TestCase WHERE RowID = last_insert_rowid()";
-                adp.InsertCommand.UpdatedRowSource = UpdateRowSource.FirstReturnedRecord;
-              }
-
-              using (DataTable tbl = new DataTable())
-              {
-                adp.Fill(tbl);
-                for (int n = 0; n < 10000; n++)
+                if (bWithIdentity)
                 {
-                  DataRow row = tbl.NewRow();
-                  row[1] = n + 10000;
-                  tbl.Rows.Add(row);
+                  adp.InsertCommand.CommandText += ";SELECT last_insert_rowid() AS [ID]";
+                  adp.InsertCommand.UpdatedRowSource = UpdateRowSource.FirstReturnedRecord;
                 }
+                bld.DataAdapter = null;
 
-                Console.WriteLine(String.Format("          Inserting using CommandBuilder and DataAdapter\r\n          ->{0} (10,000 rows) ...", (bWithIdentity == true) ? "(with identity fetch)" : ""));
-                int dtStart = Environment.TickCount;
-                adp.Update(tbl);
-                int dtEnd = Environment.TickCount;
-                dtEnd -= dtStart;
-                Console.Write(String.Format("          -> Insert Ends in {0} ms ... ", (dtEnd)));
+                using (DataTable tbl = new DataTable())
+                {
+                  adp.Fill(tbl);
+                  for (int n = 0; n < 10000; n++)
+                  {
+                    DataRow row = tbl.NewRow();
+                    row[1] = n + (50000 * ((bWithIdentity == true) ? 2 : 1));
+                    tbl.Rows.Add(row);
+                  }
 
-                dtStart = Environment.TickCount;
-                dbTrans.Commit();
-                dtEnd = Environment.TickCount;
-                dtEnd -= dtStart;
-                Console.WriteLine(String.Format("Commits in {0} ms", (dtEnd)));
+                  Console.WriteLine(String.Format("          Inserting using CommandBuilder and DataAdapter\r\n          ->{0} (10,000 rows) ...", (bWithIdentity == true) ? "(with identity fetch)" : ""));
+                  int dtStart = Environment.TickCount;
+                  adp.Update(tbl);
+                  int dtEnd = Environment.TickCount;
+                  dtEnd -= dtStart;
+                  Console.Write(String.Format("          -> Insert Ends in {0} ms ... ", (dtEnd)));
+
+                  dtStart = Environment.TickCount;
+                  dbTrans.Commit();
+                  dtEnd = Environment.TickCount;
+                  dtEnd -= dtStart;
+                  Console.WriteLine(String.Format("Commits in {0} ms", (dtEnd)));
+                }
               }
             }
           }
@@ -445,7 +442,7 @@ namespace test
           dtStart = Environment.TickCount;
           for (int n = 0; n < 100000; n++)
           {
-            Field1.Value = n + 100000;
+            Field1.Value = n + 200000;
             cmd.ExecuteNonQuery();
           }
 
