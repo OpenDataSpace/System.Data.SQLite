@@ -1,3 +1,7 @@
+#ifdef SQLITE_HAS_CODEC
+  void sqlite3pager_free_codecarg(void *pArg);
+#endif
+
 #include "src/pager.c"
 
 #ifndef SQLITE_OMIT_DISKIO
@@ -5,10 +9,6 @@
 
 #include <windows.h>
 #include <wincrypt.h>
-
-HCRYPTPROV g_hProvider = 0; // Global instance of the cryptographic provider
-
-#define SQLITECRYPTERROR_PROVIDER "Cryptographic provider not available"
 
 typedef struct _CRYPTBLOCK
 {
@@ -18,6 +18,10 @@ typedef struct _CRYPTBLOCK
   LPVOID    pvCrypt;      // A buffer for encrypting/decrypting (if necessary)
   DWORD     dwCryptSize;  // Equal to or greater than dwPageSize.  If larger, pvCrypt is valid and this is its size
 } CRYPTBLOCK, *LPCRYPTBLOCK;
+
+HCRYPTPROV g_hProvider = 0; // Global instance of the cryptographic provider
+
+#define SQLITECRYPTERROR_PROVIDER "Cryptographic provider not available"
 
 // Needed for re-keying
 static void * sqlite3pager_get_codecarg(Pager *pPager)
@@ -249,6 +253,23 @@ int sqlite3CodecAttach(sqlite3 *db, int nDb, const void *pKey, int nKeyLen)
     rc = SQLITE_OK;
   }
   return rc;
+}
+
+void sqlite3pager_free_codecarg(void *pArg)
+{
+  LPCRYPTBLOCK pBlock = (LPCRYPTBLOCK)pArg;
+
+  if (pBlock)
+  {
+    if (pBlock->hReadKey)
+      CryptDestroyKey(pBlock->hReadKey);
+    if (pBlock->hWriteKey)
+      CryptDestroyKey(pBlock->hWriteKey);
+
+    if (pBlock->pvCrypt)
+      free(pBlock->pvCrypt);
+  }
+  free(pBlock);
 }
 
 // Once a password has been supplied and a key created, we don't keep the 
