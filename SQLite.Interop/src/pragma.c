@@ -11,7 +11,7 @@
 *************************************************************************
 ** This file contains code used to implement the PRAGMA command.
 **
-** $Id: pragma.c,v 1.13 2006/01/11 03:22:29 rmsimpson Exp $
+** $Id: pragma.c,v 1.14 2006/01/12 20:54:07 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include "os.h"
@@ -151,6 +151,7 @@ static int flagPragma(Parse *pParse, const char *zLeft, const char *zRight){
     { "short_column_names",       SQLITE_ShortColNames },
     { "count_changes",            SQLITE_CountRows     },
     { "empty_result_callbacks",   SQLITE_NullCallback  },
+    { "legacy_file_format",       SQLITE_LegacyFileFmt },
 #ifndef SQLITE_OMIT_CHECK
     { "ignore_check_constraints", SQLITE_IgnoreChecks  },
 #endif
@@ -808,7 +809,10 @@ void sqlite3Pragma(
       ** will be overwritten when the schema is next loaded. If it does not
       ** already exists, it will be created to use the new encoding value.
       */
-      if( !(pParse->db->flags&SQLITE_Initialized) ){
+      if( 
+        !(DbHasProperty(db, 0, DB_SchemaLoaded)) || 
+        DbHasProperty(db, 0, DB_Empty) 
+      ){
         for(pEnc=&encnames[0]; pEnc->zName; pEnc++){
           if( 0==sqlite3StrICmp(zRight, pEnc->zName) ){
             ENC(pParse->db) = pEnc->enc;

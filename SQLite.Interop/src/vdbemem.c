@@ -751,12 +751,14 @@ const void *sqlite3ValueText(sqlite3_value* pVal, u8 enc){
   if( pVal->flags&MEM_Null ){
     return 0;
   }
+  assert( (MEM_Blob>>3) == MEM_Str );
+  pVal->flags |= (pVal->flags & MEM_Blob)>>3;
   if( pVal->flags&MEM_Str ){
     sqlite3VdbeChangeEncoding(pVal, enc);
   }else if( !(pVal->flags&MEM_Blob) ){
     sqlite3VdbeMemStringify(pVal, enc);
   }
-  assert(pVal->enc==enc || sqlite3ThreadData()->mallocFailed);
+  assert(pVal->enc==enc || sqlite3ThreadDataReadOnly()->mallocFailed);
   return (const void *)(pVal->enc==enc ? (pVal->z) : 0);
 }
 

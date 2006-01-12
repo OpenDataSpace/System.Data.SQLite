@@ -11,7 +11,7 @@
 *************************************************************************
 ** A TCL Interface to SQLite
 **
-** $Id: tclsqlite.c,v 1.13 2006/01/11 03:22:30 rmsimpson Exp $
+** $Id: tclsqlite.c,v 1.14 2006/01/12 20:54:08 rmsimpson Exp $
 */
 #ifndef NO_TCL     /* Omit this whole file if TCL is unavailable */
 

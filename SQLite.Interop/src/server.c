@@ -62,8 +62,7 @@
 **
 ** Note:  The extra features of version 3.3.0 described by points (2)
 ** through (4) above are only available if you compile without the
-** option -DSQLITE_OMIT_SHARED_CACHE.  For reasons of backwards
-** compatibility, SQLite is compile with this option by default.
+** option -DSQLITE_OMIT_SHARED_CACHE. 
 **
 ** Here is how the client/server approach works:  The database server
 ** thread is started on this procedure:
@@ -256,7 +255,7 @@ static void sendToServer(SqlMessage *pMsg){
 **        sqlite3_close
 **
 ** Clients should use the following client-side routines instead of 
-** the core routines.
+** the core routines above.
 **
 **        sqlite3_client_open
 **        sqlite3_client_prepare
@@ -331,7 +330,9 @@ int sqlite3_client_close(sqlite3 *pDb){
 ** true.
 */
 void *sqlite3_server(void *NotUsed){
+  sqlite3_enable_shared_cache(1);
   if( pthread_mutex_trylock(&g.serverMutex) ){
+    sqlite3_enable_shared_cache(0);
     return 0;  /* Another server is already running */
   }
   while( !g.serverHalt ){
@@ -393,6 +394,7 @@ void *sqlite3_server(void *NotUsed){
     pthread_cond_signal(&pMsg->clientWakeup);
   }
   pthread_mutex_unlock(&g.serverMutex);
+  sqlite3_thread_cleanup();
   return 0;
 }
 

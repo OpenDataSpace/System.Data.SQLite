@@ -43,7 +43,7 @@
 ** in this file for details.  If in doubt, do not deviate from existing
 ** commenting and indentation practices when changing or adding code.
 **
-** $Id: vdbe.c,v 1.13 2006/01/11 03:22:30 rmsimpson Exp $
+** $Id: vdbe.c,v 1.14 2006/01/12 20:54:08 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include "os.h"
@@ -379,6 +379,7 @@ int sqlite3VdbeExec(
   Op *pOp;                   /* Current operation */
   int rc = SQLITE_OK;        /* Value to return */
   sqlite3 *db = p->db;       /* The database */
+  u8 encoding = ENC(db);     /* The database encoding */
   Mem *pTos;                 /* Top entry in the operand stack */
 #ifdef VDBE_PROFILE
   unsigned long long start;  /* CPU clock count at start of opcode */
@@ -390,8 +391,10 @@ int sqlite3VdbeExec(
 #ifndef NDEBUG
   Mem *pStackLimit;
 #endif
+  ThreadData *pTsd = sqlite3ThreadData();
 
   if( p->magic!=VDBE_MAGIC_RUN ) return SQLITE_MISUSE;
+  pTsd->nRef++;
   assert( db->magic==SQLITE_MAGIC_BUSY );
   pTos = p->pTos;
   if( p->rc==SQLITE_NOMEM ){
@@ -412,7 +415,7 @@ int sqlite3VdbeExec(
   for(pc=p->pc; rc==SQLITE_OK; pc++){
     assert( pc>=0 && pc<p->nOp );
     assert( pTos<=&p->aStack[pc] );
-    if( sqlite3ThreadData()->mallocFailed ) goto no_mem;
+    if( pTsd->mallocFailed ) goto no_mem;
 #ifdef VDBE_PROFILE
     origPc = pc;
     start = hwtime();
@@ -592,6 +595,7 @@ case OP_Halt: {            /* no-push */
   }
   rc = sqlite3VdbeHalt(p);
   assert( rc==SQLITE_BUSY || rc==SQLITE_OK );
+  pTsd->nRef--;
   if( rc==SQLITE_BUSY ){
     p->rc = SQLITE_BUSY;
     return SQLITE_BUSY;
@@ -639,7 +643,7 @@ case OP_Real: {            /* same as TK_FLOAT, */
   pTos->enc = SQLITE_UTF8;
   pTos->r = sqlite3VdbeRealValue(pTos);
   pTos->flags |= MEM_Real;
-  sqlite3VdbeChangeEncoding(pTos, ENC(db));
+  sqlite3VdbeChangeEncoding(pTos, encoding);
   break;
 }
 
@@ -655,10 +659,10 @@ case OP_String8: {         /* same as TK_STRING */
   pOp->p1 = strlen(pOp->p3);
 
 #ifndef SQLITE_OMIT_UTF16
-  if( ENC(db)!=SQLITE_UTF8 ){
+  if( encoding!=SQLITE_UTF8 ){
     pTos++;
     sqlite3VdbeMemSetStr(pTos, pOp->p3, -1, SQLITE_UTF8, SQLITE_STATIC);
-    if( SQLITE_OK!=sqlite3VdbeChangeEncoding(pTos, ENC(db)) ) goto no_mem;
+    if( SQLITE_OK!=sqlite3VdbeChangeEncoding(pTos, encoding) ) goto no_mem;
     if( SQLITE_OK!=sqlite3VdbeMemDynamicify(pTos) ) goto no_mem;
     pTos->flags &= ~(MEM_Dyn);
     pTos->flags |= MEM_Static;
@@ -684,7 +688,7 @@ case OP_String: {
   pTos->flags = MEM_Str|MEM_Static|MEM_Term;
   pTos->z = pOp->p3;
   pTos->n = pOp->p1;
-  pTos->enc = ENC(db);
+  pTos->enc = encoding;
   break;
 }
 
@@ -888,7 +892,7 @@ case OP_Callback: {            /* no-push */
   */
   for(; pMem<=pTos; pMem++ ){
     sqlite3VdbeMemNulTerminate(pMem);
-    storeTypeInfo(pMem, ENC(db));
+    storeTypeInfo(pMem, encoding);
   }
 
   /* Set up the statement structure so that it will pop the current
@@ -899,6 +903,7 @@ case OP_Callback: {            /* no-push */
   p->popStack = pOp->p1;
   p->pc = pc + 1;
   p->pTos = pTos;
+  pTsd->nRef--;
   return SQLITE_ROW;
 }
 
@@ -929,7 +934,7 @@ case OP_Concat: {           /* same as TK_CONCAT */
       nByte = -1;
       break;
     }
-    Stringify(pTerm, ENC(db));
+    Stringify(pTerm, encoding);
     nByte += pTerm->n;
   }
 
@@ -968,7 +973,7 @@ case OP_Concat: {           /* same as TK_CONCAT */
     pTos->n = j;
     pTos->flags = MEM_Str|MEM_Dyn|MEM_Term;
     pTos->xDel = 0;
-    pTos->enc = ENC(db);
+    pTos->enc = encoding;
     pTos->z = zNew;
   }
   break;
@@ -1142,7 +1147,7 @@ case OP_Function: {
   pArg = &pTos[1-n];
   for(i=0; i<n; i++, pArg++){
     apVal[i] = pArg;
-    storeTypeInfo(pArg, ENC(db));
+    storeTypeInfo(pArg, encoding);
   }
 
   assert( pOp->p3type==P3_FUNCDEF || pOp->p3type==P3_VDBEFUNC );
@@ -1167,7 +1172,7 @@ case OP_Function: {
   if( sqlite3SafetyOff(db) ) goto abort_due_to_misuse;
   (*ctx.pFunc->xFunc)(&ctx, n, apVal);
   if( sqlite3SafetyOn(db) ) goto abort_due_to_misuse;
-  if( sqlite3ThreadData()->mallocFailed ) goto no_mem;
+  if( pTsd->mallocFailed ) goto no_mem;
   popStack(&pTos, n);
 
   /* If any auxilary data functions have been called by this user function,
@@ -1180,7 +1185,7 @@ case OP_Function: {
   }
 
   /* Copy the result of the function to the top of the stack */
-  sqlite3VdbeChangeEncoding(&ctx.s, ENC(db));
+  sqlite3VdbeChangeEncoding(&ctx.s, encoding);
   pTos++;
   pTos->flags = 0;
   sqlite3VdbeMemMove(pTos, &ctx.s);
@@ -1191,7 +1196,7 @@ case OP_Function: {
       sqlite3SetString(&p->zErrMsg, "user function error", (char*)0);
     }else{
       sqlite3SetString(&p->zErrMsg, sqlite3_value_text(pTos), (char*)0);
-      sqlite3VdbeChangeEncoding(pTos, ENC(db));
+      sqlite3VdbeChangeEncoding(pTos, encoding);
     }
     rc = SQLITE_ERROR;
   }
@@ -1284,7 +1289,7 @@ case OP_AddImm: {            /* no-push */
 case OP_ForceInt: {            /* no-push */
   i64 v;
   assert( pTos>=p->aStack );
-  applyAffinity(pTos, SQLITE_AFF_NUMERIC, ENC(db));
+  applyAffinity(pTos, SQLITE_AFF_NUMERIC, encoding);
   if( (pTos->flags & (MEM_Int|MEM_Real))==0 ){
     Release(pTos);
     pTos--;
@@ -1319,7 +1324,7 @@ case OP_ForceInt: {            /* no-push */
 */
 case OP_MustBeInt: {            /* no-push */
   assert( pTos>=p->aStack );
-  applyAffinity(pTos, SQLITE_AFF_NUMERIC, ENC(db));
+  applyAffinity(pTos, SQLITE_AFF_NUMERIC, encoding);
   if( (pTos->flags & MEM_Int)==0 ){
     if( pOp->p2==0 ){
       rc = SQLITE_MISMATCH;
@@ -1367,7 +1372,7 @@ case OP_ToText: {                  /* same as TK_TO_TEXT, no-push */
   if( pTos->flags & MEM_Null ) break;
   assert( MEM_Str==(MEM_Blob>>3) );
   pTos->flags |= (pTos->flags&MEM_Blob)>>3;
-  applyAffinity(pTos, SQLITE_AFF_TEXT, ENC(db));
+  applyAffinity(pTos, SQLITE_AFF_TEXT, encoding);
   assert( pTos->flags & MEM_Str );
   pTos->flags &= ~(MEM_Int|MEM_Real|MEM_Blob);
   break;
@@ -1386,7 +1391,7 @@ case OP_ToBlob: {                  /* same as TK_TO_BLOB, no-push */
   assert( pTos>=p->aStack );
   if( pTos->flags & MEM_Null ) break;
   if( (pTos->flags & MEM_Blob)==0 ){
-    applyAffinity(pTos, SQLITE_AFF_TEXT, ENC(db));
+    applyAffinity(pTos, SQLITE_AFF_TEXT, encoding);
     assert( pTos->flags & MEM_Str );
     pTos->flags |= MEM_Blob;
   }
@@ -1567,8 +1572,8 @@ case OP_Ge: {             /* same as TK_GE, no-push */
 
   affinity = pOp->p1 & 0xFF;
   if( affinity ){
-    applyAffinity(pNos, affinity, ENC(db));
-    applyAffinity(pTos, affinity, ENC(db));
+    applyAffinity(pNos, affinity, encoding);
+    applyAffinity(pTos, affinity, encoding);
   }
 
   assert( pOp->p3type==P3_COLLSEQ || pOp->p3==0 );
@@ -2068,7 +2073,7 @@ case OP_Column: {
       zData = sMem.z;
     }
     sqlite3VdbeSerialGet((u8*)zData, aType[p2], pTos);
-    pTos->enc = ENC(db);
+    pTos->enc = encoding;
   }else{
     if( pOp->p3type==P3_MEM ){
       sqlite3VdbeMemShallowCopy(pTos, (Mem *)(pOp->p3), MEM_Static);
@@ -2192,7 +2197,7 @@ case OP_MakeRecord: {
   */
   for(pRec=pData0; pRec<=pTos; pRec++){
     if( zAffinity ){
-      applyAffinity(pRec, zAffinity[pRec-pData0], ENC(db));
+      applyAffinity(pRec, zAffinity[pRec-pData0], encoding);
     }
     if( pRec->flags&MEM_Null ){
       containsNull = 1;
@@ -2326,6 +2331,7 @@ case OP_AutoCommit: {       /* no-push */
         " transaction - SQL statements in progress", (char*)0);
     rc = SQLITE_ERROR;
   }else if( i!=db->autoCommit ){
+    pTsd->nRef--;
     if( pOp->p2 ){
       assert( i==1 );
       sqlite3RollbackAll(db);
@@ -2385,6 +2391,7 @@ case OP_Transaction: {       /* no-push */
       p->pc = pc;
       p->rc = SQLITE_BUSY;
       p->pTos = pTos;
+      pTsd->nRef--;
       return SQLITE_BUSY;
     }
     if( rc!=SQLITE_OK && rc!=SQLITE_READONLY /* && rc!=SQLITE_BUSY */ ){
@@ -2592,6 +2599,7 @@ case OP_OpenWrite: {       /* no-push */
       p->pc = pc;
       p->rc = SQLITE_BUSY;
       p->pTos = &pTos[1 + (pOp->p2<=0)]; /* Operands must remain on stack */
+      pTsd->nRef--;
       return SQLITE_BUSY;
     }
     case SQLITE_OK: {
@@ -2800,7 +2808,7 @@ case OP_MoveGt: {       /* no-push */
       pC->rowidIsValid = res==0;
     }else{
       assert( pTos->flags & MEM_Blob );
-      /* Stringify(pTos, ENC(db)); */
+      /* Stringify(pTos, encoding); */
       rc = sqlite3BtreeMoveto(pC->pCursor, pTos->z, pTos->n, &res);
       if( rc!=SQLITE_OK ){
         goto abort_due_to_error;
@@ -2905,7 +2913,7 @@ case OP_Found: {        /* no-push */
   if( (pC = p->apCsr[i])->pCursor!=0 ){
     int res, rx;
     assert( pC->isTable==0 );
-    Stringify(pTos, ENC(db));
+    Stringify(pTos, encoding);
     rx = sqlite3BtreeMoveto(pC->pCursor, pTos->z, pTos->n, &res);
     alreadyExists = rx==SQLITE_OK && res==0;
     pC->deferredMoveto = 0;
@@ -2972,7 +2980,7 @@ case OP_IsUnique: {        /* no-push */
 
     /* Make sure K is a string and make zKey point to K
     */
-    Stringify(pNos, ENC(db));
+    Stringify(pNos, encoding);
     zKey = pNos->z;
     nKey = pNos->n;
 
@@ -3803,7 +3811,7 @@ case OP_IdxGE: {        /* no-push */
     int res, rc;
  
     assert( pTos->flags & MEM_Blob );  /* Created using OP_Make*Key */
-    Stringify(pTos, ENC(db));
+    Stringify(pTos, encoding);
     assert( pC->deferredMoveto==0 );
     *pC->pIncrKey = pOp->p3!=0;
     assert( pOp->p3==0 || pOp->opcode!=OP_IdxGT );
@@ -4020,13 +4028,13 @@ case OP_ParseSchema: {        /* no-push */
   sqlite3SafetyOff(db);
   assert( db->init.busy==0 );
   db->init.busy = 1;
-  assert(0==sqlite3ThreadData()->mallocFailed);
+  assert(0==pTsd->mallocFailed);
   rc = sqlite3_exec(db, zSql, sqlite3InitCallback, &initData, 0);
   sqliteFree(zSql);
   db->init.busy = 0;
   sqlite3SafetyOn(db);
   if( rc==SQLITE_NOMEM ){
-    sqlite3ThreadData()->mallocFailed = 1;
+    pTsd->mallocFailed = 1;
     goto no_mem;
   }
   break;  
@@ -4132,7 +4140,7 @@ case OP_IntegrityCk: {
     pTos->xDel = 0;
   }
   pTos->enc = SQLITE_UTF8;
-  sqlite3VdbeChangeEncoding(pTos, ENC(db));
+  sqlite3VdbeChangeEncoding(pTos, encoding);
   sqliteFree(aRoot);
   break;
 }
@@ -4408,7 +4416,7 @@ case OP_AggStep: {        /* no-push */
   assert( apVal || n==0 );
   for(i=0; i<n; i++, pRec++){
     apVal[i] = pRec;
-    storeTypeInfo(pRec, ENC(db));
+    storeTypeInfo(pRec, encoding);
   }
   ctx.pFunc = (FuncDef*)pOp->p3;
   assert( pOp->p1>=0 && pOp->p1<p->nMem );
@@ -4553,7 +4561,7 @@ default: {
 #ifndef NDEBUG
     /* Sanity checking on the top element of the stack */
     if( pTos>=p->aStack ){
-      sqlite3VdbeMemSanity(pTos, ENC(db));
+      sqlite3VdbeMemSanity(pTos, encoding);
     }
     assert( pc>=-1 && pc<p->nOp );
 #ifdef SQLITE_DEBUG
@@ -4595,6 +4603,7 @@ vdbe_halt:
   }
   sqlite3VdbeHalt(p);
   p->pTos = pTos;
+  pTsd->nRef--;
   return rc;
 
   /* Jump to here if a malloc() fails.  It's hard to get a malloc()
@@ -4616,7 +4625,7 @@ abort_due_to_misuse:
   */
 abort_due_to_error:
   if( p->zErrMsg==0 ){
-    if( sqlite3ThreadData()->mallocFailed ) rc = SQLITE_NOMEM;
+    if( pTsd->mallocFailed ) rc = SQLITE_NOMEM;
     sqlite3SetString(&p->zErrMsg, sqlite3ErrStr(rc), (char*)0);
   }
   goto vdbe_halt;

@@ -12,7 +12,7 @@
 ** This header file defines the interface that the SQLite library
 ** presents to client programs.
 **
-** @(#) $Id: sqlite3.h,v 1.14 2006/01/11 03:22:30 rmsimpson Exp $
+** @(#) $Id: sqlite3.h,v 1.15 2006/01/12 20:54:07 rmsimpson Exp $
 */
 #ifndef _SQLITE3_H_
 #define _SQLITE3_H_
@@ -192,6 +192,7 @@ int sqlite3_exec(
 #define SQLITE_NOTADB      26   /* File opened that is not a database file */
 #define SQLITE_ROW         100  /* sqlite3_step() has another row ready */
 #define SQLITE_DONE        101  /* sqlite3_step() has finished executing */
+/* end-of-return-codes */
 
 /*
 ** Each entry in an SQLite table has a unique integer key.  (The key is
@@ -1330,20 +1331,12 @@ void *sqlite3_rollback_hook(sqlite3*, void(*)(void *), void*);
 int sqlite3_enable_shared_cache(int);
 
 /*
-** This function is only available if the library is compiled without
-** the SQLITE_OMIT_MEMORY_MANAGEMENT macro defined. It is used to enable or
-** disable (if the argument is true or false, respectively) the 
-** "memory management" features (accessed via the sqlite3_soft_heap_limit()
-** and sqlite3_release_memory() APIs).
-*/
-int sqlite3_enable_memory_management(int);
-
-/*
 ** Attempt to free N bytes of heap memory by deallocating non-essential
 ** memory allocations held by the database library (example: memory 
 ** used to cache database pages to improve performance).
 **
-** This function is a no-op unless memory-management has been enabled.
+** This function is not a part of standard builds.  It is only created
+** if SQLite is compiled with the SQLITE_ENABLE_MEMORY_MANAGEMENT macro.
 */
 int sqlite3_release_memory(int);
 
@@ -1357,11 +1350,24 @@ int sqlite3_release_memory(int);
 ** sufficient memory to prevent the limit from being exceeded, the memory is
 ** allocated anyway and the current operation proceeds.
 **
-** This function is only available if the library was compiled without the 
-** SQLITE_OMIT_MEMORY_MANAGEMENT option set. It is a no-op unless 
+** This function is only available if the library was compiled with the 
+** SQLITE_ENABLE_MEMORY_MANAGEMENT option set.
 ** memory-management has been enabled.
 */
 void sqlite3_soft_heap_limit(int);
+
+/*
+** This routine makes sure that all thread-local storage has been
+** deallocated for the current thread.
+**
+** This routine is not technically necessary.  All thread-local storage
+** will be automatically deallocated once memory-management and
+** shared-cache are disabled and the soft heap limit has been set
+** to zero.  This routine is provided as a convenience for users who
+** want to make absolutely sure they have not forgotten something
+** prior to killing off a thread.
+*/
+void sqlite3_thread_cleanup(void);
 
 /*
 ** Undo the hack that converts floating point types to integer for

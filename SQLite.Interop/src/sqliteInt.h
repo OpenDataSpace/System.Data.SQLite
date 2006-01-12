@@ -11,7 +11,7 @@
 *************************************************************************
 ** Internal interface definitions for SQLite.
 **
-** @(#) $Id: sqliteInt.h,v 1.13 2006/01/11 03:22:30 rmsimpson Exp $
+** @(#) $Id: sqliteInt.h,v 1.14 2006/01/12 20:54:07 rmsimpson Exp $
 */
 #ifndef _SQLITEINT_H_
 #define _SQLITEINT_H_
@@ -286,14 +286,18 @@ extern int sqlite3_iMallocReset; /* Set iMallocFail to this when it reaches 0 */
 #define sqliteAllocSize(x)     sqlite3AllocSize(x)
 
 /*
-** An instance of this structure is allocated for each thread that uses SQLite.
+** An instance of this structure might be allocated to store information
+** specific to a single thread.
+**
+** To avoid a memory leak on windows, the content of this structure is
+** checked at the conclusion of each API call.  If it is all zero, it
+** is deallocated.
 */
 struct ThreadData {
-  u8 isInit;               /* True if structure has been initialised */
-  u8 mallocFailed;         /* True after a malloc() has failed */
+  int mallocFailed;        /* True after a malloc() has failed */
+  int nRef;                /* Number of users */
 
-#ifndef SQLITE_OMIT_MEMORY_MANAGEMENT
-  u8 useMemoryManagement;  /* True if memory-management is enabled */
+#ifdef SQLITE_ENABLE_MEMORY_MANAGEMENT
   int nSoftHeapLimit;      /* Suggested max mem allocation.  No limit if <0 */
   int nAlloc;              /* Number of bytes currently allocated */
   Pager *pPager;           /* Linked list of all pagers in this thread */
@@ -306,7 +310,7 @@ struct ThreadData {
 
 #ifdef SQLITE_MEMDEBUG
   int nMaxAlloc;           /* High water mark of ThreadData.nAlloc */
-  int mallocAllowed;       /* assert() in sqlite3Malloc() if not set */
+  int mallocDisallowed;    /* assert() in sqlite3Malloc() if set */
   int isFail;              /* True if all malloc() calls should fail */
   const char *zFile;       /* Filename to associate debugging info with */
   int iLine;               /* Line number to associate debugging info with */
@@ -397,9 +401,9 @@ struct Schema {
   Hash aFKey;          /* Foreign keys indexed by to-table */
   Table *pSeqTab;      /* The sqlite_sequence table used by AUTOINCREMENT */
   u8 file_format;      /* Schema format version for this file */
+  u8 enc;              /* Text encoding used by this database */
   u16 flags;           /* Flags associated with this schema */
   int cache_size;      /* Number of pages to use in the cache */
-  u8 enc;              /* Text encoding used by this database */
 };
 
 /*
@@ -423,6 +427,7 @@ struct Schema {
 */
 #define DB_SchemaLoaded    0x0001  /* The schema has been loaded */
 #define DB_UnresetViews    0x0002  /* Some views have defined column names */
+#define DB_Empty           0x0004  /* The file is empty (length 0 bytes) */
 
 #define SQLITE_UTF16NATIVE (SQLITE_BIGENDIAN?SQLITE_UTF16BE:SQLITE_UTF16LE)
 
@@ -522,7 +527,6 @@ struct sqlite3 {
 ** transaction is active on that particular database file.
 */
 #define SQLITE_VdbeTrace      0x00000001  /* True to trace VDBE execution */
-#define SQLITE_Initialized    0x00000002  /* True after initialization */
 #define SQLITE_Interrupt      0x00000004  /* Cancel current operation */
 #define SQLITE_InTrans        0x00000008  /* True if in a transaction */
 #define SQLITE_InternChanges  0x00000010  /* Uncommitted Hash table changes */
@@ -540,6 +544,7 @@ struct sqlite3 {
                                           ** accessing read-only databases */
 #define SQLITE_IgnoreChecks   0x00002000  /* Do not enforce check constraints */
 #define SQLITE_ReadUncommitted 0x00004000  /* For shared-cache mode */
+#define SQLITE_LegacyFileFmt  0x00008000  /* Create new databases in format 1 */
 
 /*
 ** Possible values for the sqlite.magic field.
@@ -1252,6 +1257,7 @@ struct Parse {
   int ckOffset;        /* Stack offset to data used by CHECK constraints */
   u32 writeMask;       /* Start a write transaction on these databases */
   u32 cookieMask;      /* Bitmask of schema verified databases */
+  ThreadData *pTsd;    /* Thread specific data for this thread */
   int cookieGoto;      /* Address of OP_Goto to cookie verifier subroutine */
   int cookieValue[MAX_ATTACHED+2];  /* Values of cookies to verify */
 #ifndef SQLITE_OMIT_SHARED_CACHE
@@ -1730,7 +1736,9 @@ void sqlite3AnalysisLoad(sqlite3*,int iDB);
 void sqlite3DefaultRowEst(Index*);
 void sqlite3RegisterLikeFunctions(sqlite3*, int);
 int sqlite3IsLikeFunction(sqlite3*,Expr*,int*,char*);
-ThreadData *sqlite3ThreadData();
+ThreadData *sqlite3ThreadData(void);
+const ThreadData *sqlite3ThreadDataReadOnly(void);
+void sqlite3ReleaseThreadData(void);
 void sqlite3AttachFunctions(sqlite3 *);
 void sqlite3MinimumFileFormat(Parse*, int, int);
 void sqlite3SchemaFree(void *);

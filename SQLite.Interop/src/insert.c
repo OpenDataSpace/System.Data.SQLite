@@ -12,7 +12,7 @@
 ** This file contains C code routines that are called by the parser
 ** to handle INSERT statements in SQLite.
 **
-** $Id: insert.c,v 1.13 2006/01/11 03:22:29 rmsimpson Exp $
+** $Id: insert.c,v 1.14 2006/01/12 20:54:07 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 
@@ -225,7 +225,9 @@ void sqlite3Insert(
   int counterRowid;     /* Memory cell holding rowid of autoinc counter */
 #endif
 
-  if( pParse->nErr || sqlite3ThreadData()->mallocFailed ) goto insert_cleanup;
+  if( pParse->nErr || sqlite3ThreadDataReadOnly()->mallocFailed ){
+    goto insert_cleanup;
+  }
   db = pParse->db;
 
   /* Locate the table into which we will be inserting new information.
@@ -331,7 +333,9 @@ void sqlite3Insert(
 
     /* Resolve the expressions in the SELECT statement and execute it. */
     rc = sqlite3Select(pParse, pSelect, SRT_Subroutine, iInsertBlock,0,0,0,0);
-    if( rc || pParse->nErr || sqlite3ThreadData()->mallocFailed ) goto insert_cleanup;
+    if( rc || pParse->nErr || sqlite3ThreadDataReadOnly()->mallocFailed ){
+      goto insert_cleanup;
+    }
 
     iCleanup = sqlite3VdbeMakeLabel(v);
     sqlite3VdbeAddOp(v, OP_Goto, 0, iCleanup);

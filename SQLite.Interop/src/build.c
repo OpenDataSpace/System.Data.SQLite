@@ -22,7 +22,7 @@
 **     COMMIT
 **     ROLLBACK
 **
-** $Id: build.c,v 1.13 2006/01/11 03:22:29 rmsimpson Exp $
+** $Id: build.c,v 1.14 2006/01/12 20:54:07 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include <ctype.h>
@@ -66,9 +66,8 @@ void sqlite3TableLock(
   int i;
   int nBytes;
   TableLock *p;
-  ThreadData *pTsd = sqlite3ThreadData();
 
-  if( 0==pTsd->useSharedData || iDb<0 ){
+  if( 0==sqlite3ThreadDataReadOnly()->useSharedData || iDb<0 ){
     return;
   }
 
@@ -98,7 +97,7 @@ void sqlite3TableLock(
 static void codeTableLocks(Parse *pParse){
   int i;
   Vdbe *pVdbe; 
-  assert( sqlite3ThreadData()->useSharedData || pParse->nTableLock==0 );
+  assert( sqlite3ThreadDataReadOnly()->useSharedData || pParse->nTableLock==0 );
 
   if( 0==(pVdbe = sqlite3GetVdbe(pParse)) ){
     return;
@@ -131,7 +130,7 @@ void sqlite3FinishCoding(Parse *pParse){
   sqlite3 *db;
   Vdbe *v;
 
-  if( sqlite3ThreadData()->mallocFailed ) return;
+  if( sqlite3ThreadDataReadOnly()->mallocFailed ) return;
   if( pParse->nested ) return;
   if( !pParse->pVdbe ){
     if( pParse->rc==SQLITE_OK && pParse->nErr ){
@@ -255,7 +254,6 @@ Table *sqlite3FindTable(sqlite3 *db, const char *zName, const char *zDatabase){
   Table *p = 0;
   int i;
   assert( zName!=0 );
-  assert( (db->flags & SQLITE_Initialized) || db->init.busy );
   for(i=OMIT_TEMPDB; i<db->nDb; i++){
     int j = (i<2) ? i^1 : i;   /* Search TEMP before MAIN */
     if( zDatabase!=0 && sqlite3StrICmp(zDatabase, db->aDb[j].zName) ) continue;
@@ -311,7 +309,6 @@ Table *sqlite3LocateTable(Parse *pParse, const char *zName, const char *zDbase){
 Index *sqlite3FindIndex(sqlite3 *db, const char *zName, const char *zDb){
   Index *p = 0;
   int i;
-  assert( (db->flags & SQLITE_Initialized) || db->init.busy );
   for(i=OMIT_TEMPDB; i<db->nDb; i++){
     int j = (i<2) ? i^1 : i;  /* Search TEMP before MAIN */
     Schema *pSchema = db->aDb[j].pSchema;
@@ -393,7 +390,6 @@ void sqlite3ResetInternalSchema(sqlite3 *db, int iDb){
   int i, j;
 
   assert( iDb>=0 && iDb<db->nDb );
-  db->flags &= ~SQLITE_Initialized;
   for(i=iDb; i<db->nDb; i++){
     Db *pDb = &db->aDb[i];
     if( pDb->pSchema ){
@@ -837,6 +833,7 @@ void sqlite3StartTable(
   */
   if( !db->init.busy && (v = sqlite3GetVdbe(pParse))!=0 ){
     int lbl;
+    int fileFormat;
     sqlite3BeginWriteOperation(pParse, 0, iDb);
 
     /* If the file format and encoding in the database have not been set, 
@@ -845,7 +842,9 @@ void sqlite3StartTable(
     sqlite3VdbeAddOp(v, OP_ReadCookie, iDb, 1);   /* file_format */
     lbl = sqlite3VdbeMakeLabel(v);
     sqlite3VdbeAddOp(v, OP_If, 0, lbl);
-    sqlite3VdbeAddOp(v, OP_Integer, SQLITE_DEFAULT_FILE_FORMAT, 0);
+    fileFormat = (db->flags & SQLITE_LegacyFileFmt)!=0 ?
+                  1 : SQLITE_DEFAULT_FILE_FORMAT;
+    sqlite3VdbeAddOp(v, OP_Integer, fileFormat, 0);
     sqlite3VdbeAddOp(v, OP_SetCookie, iDb, 1);
     sqlite3VdbeAddOp(v, OP_Integer, ENC(db), 0);
     sqlite3VdbeAddOp(v, OP_SetCookie, iDb, 4);
@@ -1366,7 +1365,7 @@ void sqlite3EndTable(
   int iDb;
 
   if( (pEnd==0 && pSelect==0) || 
-      pParse->nErr || sqlite3ThreadData()->mallocFailed ) {
+      pParse->nErr || sqlite3ThreadDataReadOnly()->mallocFailed ) {
     return;
   }
   p = pParse->pNewTable;
@@ -1603,7 +1602,7 @@ void sqlite3CreateView(
   */
   p->pSelect = sqlite3SelectDup(pSelect);
   sqlite3SelectDelete(pSelect);
-  if( sqlite3ThreadData()->mallocFailed ){
+  if( sqlite3ThreadDataReadOnly()->mallocFailed ){
     return;
   }
   if( !pParse->db->init.busy ){
@@ -1845,7 +1844,9 @@ void sqlite3DropTable(Parse *pParse, SrcList *pName, int isView, int noErr){
   sqlite3 *db = pParse->db;
   int iDb;
 
-  if( pParse->nErr || sqlite3ThreadData()->mallocFailed ) goto exit_drop_table;
+  if( pParse->nErr || sqlite3ThreadDataReadOnly()->mallocFailed ){
+    goto exit_drop_table;
+  }
   assert( pName->nSrc==1 );
   pTab = sqlite3LocateTable(pParse, pName->a[0].zName, pName->a[0].zDatabase);
 
@@ -2204,7 +2205,7 @@ void sqlite3CreateIndex(
   int nExtra = 0;
   char *zExtra;
 
-  if( pParse->nErr || sqlite3ThreadData()->mallocFailed ){
+  if( pParse->nErr || sqlite3ThreadDataReadOnly()->mallocFailed ){
     goto exit_create_index;
   }
 
@@ -2358,7 +2359,7 @@ void sqlite3CreateIndex(
       nName + 1 +                  /* Index.zName      */
       nExtra                       /* Collation sequence names */
   );
-  if( sqlite3ThreadData()->mallocFailed ) goto exit_create_index;
+  if( sqlite3ThreadDataReadOnly()->mallocFailed ) goto exit_create_index;
   pIndex->aiColumn = (int *)(&pIndex[1]);
   pIndex->aiRowEst = (int *)(&pIndex->aiColumn[nCol]);
   pIndex->azColl = (char **)(&pIndex->aiRowEst[nCol+1]);
@@ -2645,7 +2646,7 @@ void sqlite3DropIndex(Parse *pParse, SrcList *pName, int ifExists){
   sqlite3 *db = pParse->db;
   int iDb;
 
-  if( pParse->nErr || sqlite3ThreadData()->mallocFailed ){
+  if( pParse->nErr || sqlite3ThreadDataReadOnly()->mallocFailed ){
     goto exit_drop_index;
   }
   assert( pName->nSrc==1 );
@@ -2854,7 +2855,7 @@ SrcList *sqlite3SrcListAppend(SrcList *pList, Token *pTable, Token *pDatabase){
 void sqlite3SrcListAssignCursors(Parse *pParse, SrcList *pList){
   int i;
   struct SrcList_item *pItem;
-  assert(pList || sqlite3ThreadData()->mallocFailed);
+  assert(pList || sqlite3ThreadDataReadOnly()->mallocFailed);
   if( pList ){
     for(i=0, pItem=pList->a; i<pList->nSrc; i++, pItem++){
       if( pItem->iCursor>=0 ) break;
@@ -2903,7 +2904,7 @@ void sqlite3BeginTransaction(Parse *pParse, int type){
   int i;
 
   if( pParse==0 || (db=pParse->db)==0 || db->aDb[0].pBt==0 ) return;
-  if( pParse->nErr || sqlite3ThreadData()->mallocFailed ) return;
+  if( pParse->nErr || sqlite3ThreadDataReadOnly()->mallocFailed ) return;
   if( sqlite3AuthCheck(pParse, SQLITE_TRANSACTION, "BEGIN", 0, 0) ) return;
 
   v = sqlite3GetVdbe(pParse);
@@ -2924,7 +2925,7 @@ void sqlite3CommitTransaction(Parse *pParse){
   Vdbe *v;
 
   if( pParse==0 || (db=pParse->db)==0 || db->aDb[0].pBt==0 ) return;
-  if( pParse->nErr || sqlite3ThreadData()->mallocFailed ) return;
+  if( pParse->nErr || sqlite3ThreadDataReadOnly()->mallocFailed ) return;
   if( sqlite3AuthCheck(pParse, SQLITE_TRANSACTION, "COMMIT", 0, 0) ) return;
 
   v = sqlite3GetVdbe(pParse);
@@ -2941,7 +2942,7 @@ void sqlite3RollbackTransaction(Parse *pParse){
   Vdbe *v;
 
   if( pParse==0 || (db=pParse->db)==0 || db->aDb[0].pBt==0 ) return;
-  if( pParse->nErr || sqlite3ThreadData()->mallocFailed ) return;
+  if( pParse->nErr || sqlite3ThreadDataReadOnly()->mallocFailed ) return;
   if( sqlite3AuthCheck(pParse, SQLITE_TRANSACTION, "ROLLBACK", 0, 0) ) return;
 
   v = sqlite3GetVdbe(pParse);
@@ -3215,4 +3216,3 @@ KeyInfo *sqlite3IndexKeyinfo(Parse *pParse, Index *pIdx){
   }
   return pKey;
 }
-

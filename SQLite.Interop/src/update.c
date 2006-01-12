@@ -12,7 +12,7 @@
 ** This file contains C code routines that are called by the parser
 ** to handle UPDATE statements.
 **
-** $Id: update.c,v 1.13 2006/01/11 03:22:30 rmsimpson Exp $
+** $Id: update.c,v 1.14 2006/01/12 20:54:08 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 
@@ -100,7 +100,9 @@ void sqlite3Update(
   int oldIdx      = -1;  /* index of trigger "old" temp table       */
 
   sContext.pParse = 0;
-  if( pParse->nErr || sqlite3ThreadData()->mallocFailed ) goto update_cleanup;
+  if( pParse->nErr || sqlite3ThreadDataReadOnly()->mallocFailed ){
+    goto update_cleanup;
+  }
   db = pParse->db;
   assert( pTabList->nSrc==1 );
 

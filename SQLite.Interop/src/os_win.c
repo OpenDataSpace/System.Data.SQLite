@@ -44,14 +44,17 @@
 # define OS_WINCE 0
 #endif
 
+/*
+** WinCE lacks native support for file locking so we have to fake it
+** with some code of our own.
+*/
 #if OS_WINCE
-typedef struct _LOCKDATA
-{
-  long nReaders;
-  long nPending;
-  long nReserved;
-  long nExclusive;
-} LOCKDATA;
+typedef struct winceLock {
+  int nReaders;       /* Number of reader locks obtained */
+  BOOL bPending;      /* Indicates a pending lock has been obtained */
+  BOOL bReserved;     /* Indicates a reserved lock has been obtained */
+  BOOL bExclusive;    /* Indicates an exclusive lock has been obtained */
+} winceLock;
 #endif
 
 /*
@@ -65,15 +68,11 @@ struct winFile {
   unsigned char locktype; /* Type of lock currently held on this file */
   short sharedLockByte;   /* Randomly chosen byte used as a shared lock */
 #if OS_WINCE
-  WCHAR *zDeleteOnClose;   /* Name of file to delete when closing */
-
-#ifndef SQLITE_OMIT_WIN_LOCKS
-  HANDLE hMutex;
-  HANDLE hShared;
-  LOCKDATA local;
-  LOCKDATA *shared;
-#endif 
-
+  WCHAR *zDeleteOnClose;  /* Name of file to delete when closing */
+  HANDLE hMutex;          /* Mutex used to control access to shared lock */  
+  HANDLE hShared;         /* Shared memory segment used for locking */
+  winceLock local;        /* Locks obtained by this instance of winFile */
+  winceLock *shared;      /* Global shared lock memory for the file  */
 #endif
 };
 
@@ -124,54 +123,6 @@ int sqlite3_os_type = 0;
   }
 #endif /* OS_WINCE */
 
-#if OS_WINCE
-/*
-** WindowsCE does not have a localtime() function.  So create a
-** substitute.
-*/
-#include <time.h>
-struct tm *__cdecl localtime(const time_t *t)
-{
-  static struct tm y;
-  FILETIME uTm, lTm;
-  SYSTEMTIME pTm;
-  i64 t64;
-  t64 = *t;
-  t64 = (t64 + 11644473600)*10000000;
-  uTm.dwLowDateTime = t64 & 0xFFFFFFFF;
-  uTm.dwHighDateTime= t64 >> 32;
-  FileTimeToLocalFileTime(&uTm,&lTm);
-  FileTimeToSystemTime(&lTm,&pTm);
-  y.tm_year = pTm.wYear - 1900;
-  y.tm_mon = pTm.wMonth - 1;
-  y.tm_wday = pTm.wDayOfWeek;
-  y.tm_mday = pTm.wDay;
-  y.tm_hour = pTm.wHour;
-  y.tm_min = pTm.wMinute;
-  y.tm_sec = pTm.wSecond;
-  return &y;
-}
-
-/* This will never be called, but defined to make the code compile */
-#define GetTempPathA(a,b)
-
-#endif
-
-/*
-** Compile with -DSQLITE_OMIT_WIN_LOCKS to disable file locking on
-** windows.  If you do this and two or more connections attempt to
-** write the database at the same time, the database file will be
-** corrupted.  But some versions of WindowsCE do not support locking,
-** in which case compiling with this option is required just to get
-** it to work at all.
-*/
-#ifdef SQLITE_OMIT_WIN_LOCKS
-# define LockFile(a,b,c,d,e) (1)
-# define LockFileEx(a,b,c,d,e,f) (1)
-# define UnlockFile(a,b,c,d,e) (1)
-# define UnlockFileEx(a,b,c,d,e) (1)
-#endif
-
 /*
 ** Convert a UTF-8 string to UTF-32.  Space to hold the returned string
 ** is obtained from sqliteMalloc.
@@ -218,259 +169,311 @@ static char *unicodeToUtf8(const WCHAR *zWideFilename){
   return zFilename;
 }
 
-#if OS_WINCE && !SQLITE_OMIT_WIN_LOCKS
-#define LockFile(a, b, c, d, e) pseudoLockFile(&a, b, c, d, e)
-#define UnlockFile(a, b, c, d, e) pseudoUnlockFile(&a, b, c, d, e)
-#define LockFileEx(a, b, c, d, e, f) pseudoLockFileEx(&a, b, c, d, e, f)
-
-#define LOCKSTRUCT winFile
-
-#ifndef PtrToInt
-#define PtrToInt( p )  ((INT)(INT_PTR) (p) )
-#endif
-
-#define HANDLE_TO_LOCKSTRUCT(a) (LOCKSTRUCT *)&((LPBYTE)a)[-PtrToInt((&((LOCKSTRUCT *)0)->h))]
-
-#define MUTEX_ACQUIRE(h) { DWORD dwErr; do { dwErr = WaitForSingleObject(h, INFINITE); } while (dwErr != WAIT_OBJECT_0 && dwErr != WAIT_ABANDONED); }
-#define MUTEX_RELEASE(h) ReleaseMutex(h)
-
-static BOOL CreateLockStruct(const char *pszFilename, LOCKSTRUCT *pLocks)
+#if OS_WINCE
+/*************************************************************************
+** This section contains code for WinCE only.
+*/
+/*
+** WindowsCE does not have a localtime() function.  So create a
+** substitute.
+*/
+#include <time.h>
+struct tm *__cdecl localtime(const time_t *t)
 {
-  WCHAR *pszTok;
-  WCHAR *pszName = utf8ToUnicode(pszFilename);
+  static struct tm y;
+  FILETIME uTm, lTm;
+  SYSTEMTIME pTm;
+  i64 t64;
+  t64 = *t;
+  t64 = (t64 + 11644473600)*10000000;
+  uTm.dwLowDateTime = t64 & 0xFFFFFFFF;
+  uTm.dwHighDateTime= t64 >> 32;
+  FileTimeToLocalFileTime(&uTm,&lTm);
+  FileTimeToSystemTime(&lTm,&pTm);
+  y.tm_year = pTm.wYear - 1900;
+  y.tm_mon = pTm.wMonth - 1;
+  y.tm_wday = pTm.wDayOfWeek;
+  y.tm_mday = pTm.wDay;
+  y.tm_hour = pTm.wHour;
+  y.tm_min = pTm.wMinute;
+  y.tm_sec = pTm.wSecond;
+  return &y;
+}
+
+/* This will never be called, but defined to make the code compile */
+#define GetTempPathA(a,b)
+
+#define LockFile(a,b,c,d,e)       winceLockFile(&a, b, c, d, e)
+#define UnlockFile(a,b,c,d,e)     winceUnlockFile(&a, b, c, d, e)
+#define LockFileEx(a,b,c,d,e,f)   winceLockFileEx(&a, b, c, d, e, f)
+
+#define HANDLE_TO_WINFILE(a) (winFile*)&((char*)a)[-offsetof(winFile,h)]
+
+/*
+** Acquire a lock on the handle h
+*/
+static void winceMutexAcquire(HANDLE h){
+   DWORD dwErr;
+   do {
+     dwErr = WaitForSingleObject(h, INFINITE);
+   } while (dwErr != WAIT_OBJECT_0 && dwErr != WAIT_ABANDONED);
+}
+/*
+** Release a lock acquired by winceMutexAcquire()
+*/
+#define winceMutexRelease(h) ReleaseMutex(h)
+
+/*
+** Create the mutex and shared memory used for locking in the file
+** descriptor pFile
+*/
+static BOOL winceCreateLock(const char *zFilename, winFile *pFile){
+  WCHAR *zTok;
+  WCHAR *zName = utf8ToUnicode(zFilename);
   BOOL bInit = TRUE;
 
   /* Initialize the local lockdata */
-  ZeroMemory(&pLocks->local, sizeof(LOCKDATA));
+  ZeroMemory(&pFile->local, sizeof(pFile->local));
 
-  /* Create a unique global name for the mutex and subsequently the shared memory */
-  CharLowerW(pszName);
-  while (pszTok = wcschr(pszName, '\\'))
-  {
-    *pszTok = '_';
+  /* Replace the backslashes from the filename and lowercase it
+  ** to derive a mutex name. */
+  zTok = CharLowerW(zName);
+  for (;*zTok;zTok++){
+    if (*zTok == '\\') *zTok = '_';
   }
 
   /* Create/open the named mutex */
-  pLocks->hMutex = CreateMutexW(NULL, FALSE, pszName);
-  if (!pLocks->hMutex)
-  {
-    sqliteFree(pszName);
+  pFile->hMutex = CreateMutexW(NULL, FALSE, zName);
+  if (!pFile->hMutex){
+    sqliteFree(zName);
     return FALSE;
   }
 
   /* Acquire the mutex before continuing */
-  MUTEX_ACQUIRE(pLocks->hMutex);
+  winceMutexAcquire(pFile->hMutex);
   
-  /* Create/open the shared memory */
-  CharUpperW(pszName);
-  pLocks->hShared = CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(LOCKDATA), pszName);  
+  /* Since the names of named mutexes, semaphores, file mappings etc are 
+  ** case-sensitive, take advantage of that by uppercasing the mutex name
+  ** and using that as the shared filemapping name.
+  */
+  CharUpperW(zName);
+  pFile->hShared = CreateFileMappingW(INVALID_HANDLE_VALUE, NULL,
+                                       PAGE_READWRITE, 0, sizeof(winceLock),
+                                       zName);  
 
-  /* Set a flag that indicates we're the first to create the memory so it must be zero-initialized */
-  if (GetLastError() == ERROR_ALREADY_EXISTS)
-  {
+  /* Set a flag that indicates we're the first to create the memory so it 
+  ** must be zero-initialized */
+  if (GetLastError() == ERROR_ALREADY_EXISTS){
     bInit = FALSE;
   }
 
-  sqliteFree(pszName);
+  sqliteFree(zName);
 
   /* If we succeeded in making the shared memory handle, map it. */
-  if (pLocks->hShared)
-  {
-    pLocks->shared = (LOCKDATA *)MapViewOfFile(pLocks->hShared, FILE_MAP_READ|FILE_MAP_WRITE, 0, 0, sizeof(LOCKDATA));
+  if (pFile->hShared){
+    pFile->shared = (winceLock*)MapViewOfFile(pFile->hShared, 
+             FILE_MAP_READ|FILE_MAP_WRITE, 0, 0, sizeof(winceLock));
     /* If mapping failed, close the shared memory handle and erase it */
-    if (!pLocks->shared)
-    {
-      CloseHandle(pLocks->hShared);
-      pLocks->hShared = NULL;
+    if (!pFile->shared){
+      CloseHandle(pFile->hShared);
+      pFile->hShared = NULL;
     }
   }
 
   /* If shared memory could not be created, then close the mutex and fail */
-  if (pLocks->hShared == NULL)
-  {
-    MUTEX_RELEASE(pLocks->hMutex);
-    CloseHandle(pLocks->hMutex);
-    pLocks->hMutex = NULL;
+  if (pFile->hShared == NULL){
+    winceMutexRelease(pFile->hMutex);
+    CloseHandle(pFile->hMutex);
+    pFile->hMutex = NULL;
     return FALSE;
   }
   
   /* Initialize the shared memory if we're supposed to */
-  if (bInit)
-  {
-    ZeroMemory(pLocks->shared, sizeof(LOCKDATA));
+  if (bInit) {
+    ZeroMemory(pFile->shared, sizeof(winceLock));
   }
 
-  MUTEX_RELEASE(pLocks->hMutex);
-
+  winceMutexRelease(pFile->hMutex);
   return TRUE;
 }
 
-static void DestroyLockStruct(LOCKSTRUCT *pLocks)
-{
-  if (pLocks->hMutex)
-  {
+/*
+** Destroy the part of winFile that deals with wince locks
+*/
+static void winceDestroyLock(winFile *pFile){
+  if (pFile->hMutex){
     /* Acquire the mutex */
-    MUTEX_ACQUIRE(pLocks->hMutex);
+    winceMutexAcquire(pFile->hMutex);
 
     /* The following blocks should probably assert in debug mode, but they
        are to cleanup in case any locks remained open */
-    if (pLocks->local.nReaders)
-    {
-      pLocks->shared->nReaders --;
+    if (pFile->local.nReaders){
+      pFile->shared->nReaders --;
     }
-
-    if (pLocks->local.nReserved)
-    {
-      pLocks->shared->nReserved = 0;
+    if (pFile->local.bReserved){
+      pFile->shared->bReserved = FALSE;
     }
-
-    if (pLocks->local.nPending)
-    {
-      pLocks->shared->nPending = 0;
+    if (pFile->local.bPending){
+      pFile->shared->bPending = FALSE;
     }
-
-    if (pLocks->local.nExclusive)
-    {
-      pLocks->shared->nExclusive = 0;
+    if (pFile->local.bExclusive){
+      pFile->shared->bExclusive = FALSE;
     }
 
     /* De-reference and close our copy of the shared memory handle */
-    UnmapViewOfFile(pLocks->shared);
-    CloseHandle(pLocks->hShared);
+    UnmapViewOfFile(pFile->shared);
+    CloseHandle(pFile->hShared);
 
     /* Done with the mutex */
-    MUTEX_RELEASE(pLocks->hMutex);    
-    CloseHandle(pLocks->hMutex);
-    pLocks->hMutex = NULL;
+    winceMutexRelease(pFile->hMutex);    
+    CloseHandle(pFile->hMutex);
+    pFile->hMutex = NULL;
   }
 }
 
-/* Custom pseudo file locking support specifically for SQLite */
-BOOL pseudoLockFile(HANDLE *phFile, DWORD dwFileOffsetLow, DWORD dwFileOffsetHigh, DWORD nNumberOfBytesToLockLow, DWORD nNumberOfBytesToLockHigh)
-{
-  LOCKSTRUCT *pls = HANDLE_TO_LOCKSTRUCT(phFile);
+/* 
+** An implementation of the LockFile() API of windows for wince
+*/
+static BOOL winceLockFile(
+  HANDLE *phFile,
+  DWORD dwFileOffsetLow,
+  DWORD dwFileOffsetHigh,
+  DWORD nNumberOfBytesToLockLow,
+  DWORD nNumberOfBytesToLockHigh
+){
+  winFile *pFile = HANDLE_TO_WINFILE(phFile);
   BOOL bReturn = FALSE;
 
-  if (!pls->hMutex) return TRUE;
-
-  MUTEX_ACQUIRE(pls->hMutex);
+  if (!pFile->hMutex) return TRUE;
+  winceMutexAcquire(pFile->hMutex);
 
   /* Wanting an exclusive lock? */
-  if (dwFileOffsetLow == SHARED_FIRST && nNumberOfBytesToLockLow == SHARED_SIZE)
-  {
-    if (pls->shared->nReaders == 0 && pls->shared->nExclusive == 0)
-    {
-        pls->shared->nExclusive = 1;
-        pls->local.nExclusive = 1;
-        bReturn = TRUE;
+  if (dwFileOffsetLow == SHARED_FIRST
+       && nNumberOfBytesToLockLow == SHARED_SIZE){
+    if (pFile->shared->nReaders == 0 && pFile->shared->bExclusive == 0){
+       pFile->shared->bExclusive = TRUE;
+       pFile->local.bExclusive = TRUE;
+       bReturn = TRUE;
     }
   }
+
   /* Want a read-only lock? */
-  else if ((dwFileOffsetLow >= SHARED_FIRST && dwFileOffsetLow < SHARED_FIRST + SHARED_SIZE) && nNumberOfBytesToLockLow == 1)
-  {
-    if (pls->shared->nExclusive == 0)
-    {
-      pls->local.nReaders ++;
-      if (pls->local.nReaders == 1)
-      {
-        pls->shared->nReaders ++;
+  else if ((dwFileOffsetLow >= SHARED_FIRST &&
+            dwFileOffsetLow < SHARED_FIRST + SHARED_SIZE) &&
+            nNumberOfBytesToLockLow == 1){
+    if (pFile->shared->bExclusive == 0){
+      pFile->local.nReaders ++;
+      if (pFile->local.nReaders == 1){
+        pFile->shared->nReaders ++;
       }
       bReturn = TRUE;
     }
   }
+
   /* Want a pending lock? */
-  else if (dwFileOffsetLow == PENDING_BYTE && nNumberOfBytesToLockLow == 1)
-  {
+  else if (dwFileOffsetLow == PENDING_BYTE && nNumberOfBytesToLockLow == 1){
     /* If no pending lock has been acquired, then acquire it */
-    if (pls->shared->nPending == 0)
-    {
-      pls->shared->nPending = 1;
-      pls->local.nPending = 1;
+    if (pFile->shared->bPending == 0) {
+      pFile->shared->bPending = TRUE;
+      pFile->local.bPending = TRUE;
       bReturn = TRUE;
     }
   }
   /* Want a reserved lock? */
-  else if (dwFileOffsetLow == RESERVED_BYTE && nNumberOfBytesToLockLow == 1)
-  {
-    if (pls->shared->nReserved == 0)
-    {
-      pls->shared->nReserved = 1;
-      pls->local.nReserved = 1;
+  else if (dwFileOffsetLow == RESERVED_BYTE && nNumberOfBytesToLockLow == 1){
+    if (pFile->shared->bReserved == 0) {
+      pFile->shared->bReserved = TRUE;
+      pFile->local.bReserved = TRUE;
       bReturn = TRUE;
     }
   }
 
-  MUTEX_RELEASE(pls->hMutex);
-
+  winceMutexRelease(pFile->hMutex);
   return bReturn;
 }
 
-BOOL pseudoUnlockFile(HANDLE *phFile, DWORD dwFileOffsetLow, DWORD dwFileOffsetHigh, DWORD nNumberOfBytesToUnlockLow, DWORD nNumberOfBytesToUnlockHigh)
-{
-  LOCKSTRUCT *pls = HANDLE_TO_LOCKSTRUCT(phFile);
+/*
+** An implementation of the UnlockFile API of windows for wince
+*/
+static BOOL winceUnlockFile(
+  HANDLE *phFile,
+  DWORD dwFileOffsetLow,
+  DWORD dwFileOffsetHigh,
+  DWORD nNumberOfBytesToUnlockLow,
+  DWORD nNumberOfBytesToUnlockHigh
+){
+  winFile *pFile = HANDLE_TO_WINFILE(phFile);
   BOOL bReturn = FALSE;
 
-  if (!pls->hMutex) return TRUE;
-
-  MUTEX_ACQUIRE(pls->hMutex);
+  if (!pFile->hMutex) return TRUE;
+  winceMutexAcquire(pFile->hMutex);
 
   /* Releasing a reader lock or an exclusive lock */
-  if (dwFileOffsetLow >= SHARED_FIRST && dwFileOffsetLow < SHARED_FIRST + SHARED_SIZE)
-  {
+  if (dwFileOffsetLow >= SHARED_FIRST &&
+       dwFileOffsetLow < SHARED_FIRST + SHARED_SIZE){
     /* Did we have an exclusive lock? */
-    if (pls->local.nExclusive)
-    {
-      pls->local.nExclusive = 0;
-      pls->shared->nExclusive = 0;
+    if (pFile->local.bExclusive){
+      pFile->local.bExclusive = FALSE;
+      pFile->shared->bExclusive = FALSE;
       bReturn = TRUE;
     }
+
     /* Did we just have a reader lock? */
-    else if (pls->local.nReaders)
-    {
-      pls->local.nReaders --;
-      if (pls->local.nReaders == 0)
+    else if (pFile->local.nReaders){
+      pFile->local.nReaders --;
+      if (pFile->local.nReaders == 0)
       {
-        pls->shared->nReaders --;
+        pFile->shared->nReaders --;
       }
       bReturn = TRUE;
     }
   }
+
   /* Releasing a pending lock */
-  else if (dwFileOffsetLow == PENDING_BYTE && nNumberOfBytesToUnlockLow == 1)
-  {
-    if (pls->local.nPending)
-    {
-      pls->local.nPending = 0;
-      pls->shared->nPending = 0;
+  else if (dwFileOffsetLow == PENDING_BYTE && nNumberOfBytesToUnlockLow == 1){
+    if (pFile->local.bPending){
+      pFile->local.bPending = FALSE;
+      pFile->shared->bPending = FALSE;
       bReturn = TRUE;
     }
   }
   /* Releasing a reserved lock */
-  else if (dwFileOffsetLow == RESERVED_BYTE && nNumberOfBytesToUnlockLow == 1)
-  {
-    if (pls->local.nReserved)
-    {
-      pls->local.nReserved = 0;
-      pls->shared->nReserved = 0;
+  else if (dwFileOffsetLow == RESERVED_BYTE && nNumberOfBytesToUnlockLow == 1){
+    if (pFile->local.bReserved) {
+      pFile->local.bReserved = FALSE;
+      pFile->shared->bReserved = FALSE;
       bReturn = TRUE;
     }
   }
 
-  MUTEX_RELEASE(pls->hMutex);
-
+  winceMutexRelease(pFile->hMutex);
   return bReturn;
 }
 
-BOOL pseudoLockFileEx(HANDLE *phFile, DWORD dwFlags, DWORD dwReserved, DWORD nNumberOfBytesToLockLow, DWORD nNumberOfBytesToLockHigh, LPOVERLAPPED lpOverlapped)
-{
-  /* If the caller wants a shared read lock, forward this call to pseudoLockFile */
-  if (lpOverlapped->Offset == SHARED_FIRST && dwFlags == 1 && nNumberOfBytesToLockLow == SHARED_SIZE)
-    return pseudoLockFile(phFile, SHARED_FIRST, 0, 1, 0);
-
+/*
+** An implementation of the LockFileEx() API of windows for wince
+*/
+static BOOL winceLockFileEx(
+  HANDLE *phFile,
+  DWORD dwFlags,
+  DWORD dwReserved,
+  DWORD nNumberOfBytesToLockLow,
+  DWORD nNumberOfBytesToLockHigh,
+  LPOVERLAPPED lpOverlapped
+){
+  /* If the caller wants a shared read lock, forward this call
+  ** to winceLockFile */
+  if (lpOverlapped->Offset == SHARED_FIRST &&
+      dwFlags == 1 &&
+      nNumberOfBytesToLockLow == SHARED_SIZE){
+    return winceLockFile(phFile, SHARED_FIRST, 0, 1, 0);
+  }
   return FALSE;
 }
-
-#endif /* OS_WINCE && !SQLITE_OMIT_WIN_LOCKS */
+/*
+** End of the special code for wince
+*****************************************************************************/
+#endif /* OS_WINCE */
 
 /*
 ** Delete the named file
@@ -561,8 +564,8 @@ int sqlite3WinOpenReadWrite(
     }else{
       *pReadonly = 0;
     }
-#if OS_WINCE && !SQLITE_OMIT_WIN_LOCKS
-    if (!CreateLockStruct(zFilename, &f)){
+#if OS_WINCE
+    if (!winceCreateLock(zFilename, &f)){
       CloseHandle(h);
       sqliteFree(zWide);
       return SQLITE_CANTOPEN;
@@ -668,9 +671,7 @@ int sqlite3WinOpenExclusive(const char *zFilename, OsFile **pId, int delFlag){
   f.sharedLockByte = 0;
 #if OS_WINCE
   f.zDeleteOnClose = delFlag ? utf8ToUnicode(zFilename) : 0;
-#ifndef SQLITE_OMIT_WIN_LOCKS
   f.hMutex = NULL;
-#endif
 #endif
   TRACE3("OPEN EX %d \"%s\"\n", h, zFilename);
   return allocateWinFile(&f, pId);
@@ -720,9 +721,7 @@ int sqlite3WinOpenReadOnly(const char *zFilename, OsFile **pId){
   f.sharedLockByte = 0;
 #if OS_WINCE
   f.zDeleteOnClose = 0;
-#ifndef SQLITE_OMIT_WIN_LOCKS
   f.hMutex = NULL;
-#endif
 #endif
   TRACE3("OPEN RO %d \"%s\"\n", h, zFilename);
   return allocateWinFile(&f, pId);
@@ -810,9 +809,7 @@ static int winClose(OsFile **pId){
     TRACE2("CLOSE %d\n", pFile->h);
     CloseHandle(pFile->h);
 #if OS_WINCE
-#ifndef SQLITE_OMIT_WIN_LOCKS
-    DestroyLockStruct(pFile);
-#endif
+    winceDestroyLock(pFile);
     if( pFile->zDeleteOnClose ){
       DeleteFileW(pFile->zDeleteOnClose);
       sqliteFree(pFile->zDeleteOnClose);
@@ -1439,18 +1436,41 @@ int sqlite3WinCurrentTime(double *prNow){
   return 0;
 }
 
-/* 
-** The first time this function is called from a specific thread, nByte 
-** bytes of data area are allocated and zeroed. A pointer to the new 
-** allocation is returned to the caller. 
-**
-** Each subsequent call to this function from the thread returns the same
-** pointer. The argument is ignored in this case.
+/*
+** Remember the number of thread-specific-data blocks allocated.
+** Use this to verify that we are not leaking thread-specific-data.
+** Ticket #1601
 */
-void *sqlite3WinThreadSpecificData(int nByte){
-  static void *pTsd = 0;
+#ifdef SQLITE_TEST
+int sqlite3_tsd_count = 0;
+# define TSD_COUNTER_INCR InterlockedIncrement(&sqlite3_tsd_count)
+# define TSD_COUNTER_DECR InterlockedDecrement(&sqlite3_tsd_count)
+#else
+# define TSD_COUNTER_INCR  /* no-op */
+# define TSD_COUNTER_DECR  /* no-op */
+#endif
+
+
+
+/*
+** If called with allocateFlag>1, then return a pointer to thread
+** specific data for the current thread.  Allocate and zero the
+** thread-specific data if it does not already exist necessary.
+**
+** If called with allocateFlag==0, then check the current thread
+** specific data.  Return it if it exists.  If it does not exist,
+** then return NULL.
+**
+** If called with allocateFlag<0, check to see if the thread specific
+** data is allocated and is all zero.  If it is then deallocate it.
+** Return a pointer to the thread specific data or NULL if it is
+** unallocated or gets deallocated.
+*/
+ThreadData *sqlite3WinThreadSpecificData(int allocateFlag){
   static int key;
   static int keyInit = 0;
+  static const ThreadData zeroData;
+  ThreadData *pTsd;
 
   if( !keyInit ){
     sqlite3OsEnterMutex();
@@ -1465,12 +1485,21 @@ void *sqlite3WinThreadSpecificData(int nByte){
     sqlite3OsLeaveMutex();
   }
   pTsd = TlsGetValue(key);
-  if( !pTsd ){
-    pTsd = sqlite3OsMalloc(nByte);
-    if( pTsd ){
-      memset(pTsd, 0, nByte);
-      TlsSetValue(key, pTsd);
+  if( allocateFlag>0 ){
+    if( !pTsd ){
+      pTsd = sqlite3OsMalloc( sizeof(zeroData) );
+      if( pTsd ){
+        *pTsd = zeroData;
+        TlsSetValue(key, pTsd);
+        TSD_COUNTER_INCR;
+      }
     }
+  }else if( pTsd!=0 && allocateFlag<0 
+              && memcmp(pTsd, &zeroData, sizeof(zeroData))==0 ){
+    sqlite3OsFree(pTsd);
+    TlsSetValue(key, 0);
+    TSD_COUNTER_DECR;
+    pTsd = 0;
   }
   return pTsd;
 }

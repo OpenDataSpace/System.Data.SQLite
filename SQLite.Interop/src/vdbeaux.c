@@ -102,7 +102,7 @@ int sqlite3VdbeAddOp(Vdbe *p, int op, int p1, int p2){
   p->nOp++;
   assert( p->magic==VDBE_MAGIC_INIT );
   resizeOpArray(p, i+1);
-  if( sqlite3ThreadData()->mallocFailed ){
+  if( p->aOp==0 || p->nOp<=i ){
     return 0;
   }
   pOp = &p->aOp[i];
@@ -301,7 +301,7 @@ int sqlite3VdbeAddOpList(Vdbe *p, int nOp, VdbeOpList const *aOp){
   int addr;
   assert( p->magic==VDBE_MAGIC_INIT );
   resizeOpArray(p, p->nOp + nOp);
-  if( sqlite3ThreadData()->mallocFailed ){
+  if( sqlite3ThreadDataReadOnly()->mallocFailed ){
     return 0;
   }
   addr = p->nOp;
@@ -415,7 +415,7 @@ static void freeP3(int p3type, void *p3){
 void sqlite3VdbeChangeP3(Vdbe *p, int addr, const char *zP3, int n){
   Op *pOp;
   assert( p->magic==VDBE_MAGIC_INIT );
-  if( p==0 || p->aOp==0 || sqlite3ThreadData()->mallocFailed ){
+  if( p==0 || p->aOp==0 || sqlite3ThreadDataReadOnly()->mallocFailed ){
     if (n != P3_KEYINFO) {
       freeP3(n, (void*)*(char**)&zP3);
     }
@@ -472,7 +472,8 @@ void sqlite3VdbeChangeP3(Vdbe *p, int addr, const char *zP3, int n){
 void sqlite3VdbeComment(Vdbe *p, const char *zFormat, ...){
   va_list ap;
   assert( p->nOp>0 );
-  assert( p->aOp==0 || p->aOp[p->nOp-1].p3==0 || sqlite3ThreadData()->mallocFailed );
+  assert( p->aOp==0 || p->aOp[p->nOp-1].p3==0 
+          || sqlite3ThreadDataReadOnly()->mallocFailed );
   va_start(ap, zFormat);
   sqlite3VdbeChangeP3(p, -1, sqlite3VMPrintf(zFormat, ap), P3_DYNAMIC);
   va_end(ap);
@@ -738,7 +739,7 @@ void sqlite3VdbeMakeReady(
       + nMem*sizeof(Mem)               /* aMem */
       + nCursor*sizeof(Cursor*)        /* apCsr */
     );
-    if( !sqlite3ThreadData()->mallocFailed ){
+    if( !sqlite3ThreadDataReadOnly()->mallocFailed ){
       p->aMem = &p->aStack[nStack];
       p->nMem = nMem;
       p->aVar = &p->aMem[nMem];
@@ -890,7 +891,7 @@ int sqlite3VdbeSetColName(Vdbe *p, int idx, const char *zName, int N){
   int rc;
   Mem *pColName;
   assert( idx<(2*p->nResColumn) );
-  if( sqlite3ThreadData()->mallocFailed ) return SQLITE_NOMEM;
+  if( sqlite3ThreadDataReadOnly()->mallocFailed ) return SQLITE_NOMEM;
   assert( p->aColName!=0 );
   pColName = &(p->aColName[idx]);
   if( N==P3_DYNAMIC || N==P3_STATIC ){
@@ -1153,7 +1154,7 @@ int sqlite3VdbeHalt(Vdbe *p){
   int i;
   int (*xFunc)(Btree *pBt) = 0;  /* Function to call on each btree backend */
 
-  if( sqlite3ThreadData()->mallocFailed ){
+  if( sqlite3ThreadDataReadOnly()->mallocFailed ){
     p->rc = SQLITE_NOMEM;
   }
 
@@ -1680,6 +1681,23 @@ int sqlite3VdbeSerialGet(
 }
 
 /*
+** The header of a record consists of a sequence variable-length integers.
+** These integers are almost always small and are encoded as a single byte.
+** The following macro takes advantage this fact to provide a fast decode
+** of the integers in a record header.  It is faster for the common case
+** where the integer is a single byte.  It is a little slower when the
+** integer is two or more bytes.  But overall it is faster.
+**
+** The following expressions are equivalent:
+**
+**     x = sqlite3GetVarint32( A, &B );
+**
+**     x = GetVarint( A, B );
+**
+*/
+#define GetVarint(A,B)  ((B = *(A))<=0x7f ? 1 : sqlite3GetVarint32(A, &B))
+
+/*
 ** This function compares the two table rows or index records specified by 
 ** {nKey1, pKey1} and {nKey2, pKey2}, returning a negative, zero
 ** or positive integer if {nKey1, pKey1} is less than, equal to or 
@@ -1706,9 +1724,9 @@ int sqlite3VdbeRecordCompare(
   mem1.enc = pKeyInfo->enc;
   mem2.enc = pKeyInfo->enc;
   
-  idx1 = sqlite3GetVarint32(pKey1, &szHdr1);
+  idx1 = GetVarint(aKey1, szHdr1);
   d1 = szHdr1;
-  idx2 = sqlite3GetVarint32(pKey2, &szHdr2);
+  idx2 = GetVarint(aKey2, szHdr2);
   d2 = szHdr2;
   nField = pKeyInfo->nField;
   while( idx1<szHdr1 && idx2<szHdr2 ){
@@ -1716,9 +1734,9 @@ int sqlite3VdbeRecordCompare(
     u32 serial_type2;
 
     /* Read the serial types for the next element in each key. */
-    idx1 += sqlite3GetVarint32(&aKey1[idx1], &serial_type1);
+    idx1 += GetVarint( aKey1+idx1, serial_type1 );
     if( d1>=nKey1 && sqlite3VdbeSerialTypeLen(serial_type1)>0 ) break;
-    idx2 += sqlite3GetVarint32(&aKey2[idx2], &serial_type2);
+    idx2 += GetVarint( aKey2+idx2, serial_type2 );
     if( d2>=nKey2 && sqlite3VdbeSerialTypeLen(serial_type2)>0 ) break;
 
     /* Assert that there is enough space left in each key for the blob of
