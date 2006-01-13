@@ -412,9 +412,9 @@ __declspec(dllexport) int __stdcall sqlite3_prepare_interop(sqlite3 *db, const c
   return n;
 }
 
-__declspec(dllexport) int __stdcall sqlite3_prepare16_interop(sqlite3 *db, const void *sql, int nbytes, sqlite3_stmt **ppstmt, const void **pztail, int *plen)
+__declspec(dllexport) int __stdcall sqlite3_prepare16_interop(sqlite3 *db, const void *sql, int nchars, sqlite3_stmt **ppstmt, const void **pztail, int *plen)
 {
-  int n = sqlite3_prepare16(db, sql, nbytes, ppstmt, pztail);
+  int n = sqlite3_prepare16(db, sql, nchars * sizeof(wchar_t), ppstmt, pztail);
   *plen = (*pztail != 0) ? wcslen((wchar_t *)*pztail) * sizeof(wchar_t) : 0;
   return n;
 }

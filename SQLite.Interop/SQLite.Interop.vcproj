@@ -57,7 +57,12 @@
 				FavorSizeOrSpeed="1"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;NO_TCL;THREADSAFE;SQLITE_HAS_CODEC"
 				StringPooling="true"
+				ExceptionHandling="0"
 				RuntimeLibrary="2"
+				BufferSecurityCheck="false"
+				EnableFunctionLevelLinking="true"
+				FloatingPointModel="2"
+				RuntimeTypeInfo="false"
 				DebugInformationFormat="3"
 			/>
 			<Tool
@@ -113,7 +118,7 @@
 			IntermediateDirectory="Pocket PC 2003 (ARMV4)\$(ConfigurationName)"
 			ConfigurationType="2"
 			CharacterSet="1"
-			WholeProgramOptimization="0"
+			WholeProgramOptimization="1"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -138,9 +143,13 @@
 				ExecutionBucket="7"
 				AdditionalOptions="/GS-"
 				Optimization="3"
+				WholeProgramOptimization="true"
 				PreprocessorDefinitions="_WIN32_WCE=$(CEVER);UNDER_CE=$(CEVER);WINCE;$(PLATFORMDEFINES);NDEBUG;_WINDOWS;_USRDLL;CPPSMART_EXPORTS;$(ARCHFAM);$(_ARCHFAM_);UNICODE;_UNICODE;SQLITE_HAS_CODEC"
 				StringPooling="true"
+				ExceptionHandling="0"
 				RuntimeLibrary="2"
+				BufferSecurityCheck="false"
+				EnableFunctionLevelLinking="true"
 				DebugInformationFormat="3"
 			/>
 			<Tool
@@ -226,7 +235,12 @@
 				FavorSizeOrSpeed="1"
 				PreprocessorDefinitions="NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;NO_TCL;THREADSAFE;WIN64;SQLITE_HAS_CODEC"
 				StringPooling="true"
+				ExceptionHandling="0"
 				RuntimeLibrary="2"
+				BufferSecurityCheck="false"
+				EnableFunctionLevelLinking="true"
+				FloatingPointModel="2"
+				RuntimeTypeInfo="false"
 				DebugInformationFormat="3"
 			/>
 			<Tool
@@ -310,7 +324,12 @@
 				FavorSizeOrSpeed="1"
 				PreprocessorDefinitions="NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;NO_TCL;THREADSAFE;WIN64;SQLITE_HAS_CODEC"
 				StringPooling="true"
+				ExceptionHandling="0"
 				RuntimeLibrary="2"
+				BufferSecurityCheck="false"
+				EnableFunctionLevelLinking="true"
+				FloatingPointModel="2"
+				RuntimeTypeInfo="false"
 				DebugInformationFormat="3"
 			/>
 			<Tool
