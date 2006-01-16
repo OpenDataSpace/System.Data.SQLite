@@ -14,7 +14,7 @@
 ** systems that do not need this facility may omit it by recompiling
 ** the library with -DSQLITE_OMIT_AUTHORIZATION=1
 **
-** $Id: auth.c,v 1.14 2006/01/12 20:54:07 rmsimpson Exp $
+** $Id: auth.c,v 1.15 2006/01/16 15:51:47 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 
@@ -118,6 +118,11 @@ void sqlite3AuthRead(
   if( pExpr->op==TK_AS ) return;
   assert( pExpr->op==TK_COLUMN );
   iDb = sqlite3SchemaToIndex(pParse->db, pExpr->pSchema);
+  if( iDb<0 ){
+    /* An attempt to read a column out of a subquery or other
+    ** temporary table. */
+    return;
+  }
   for(iSrc=0; pTabList && iSrc<pTabList->nSrc; iSrc++){
     if( pExpr->iTable==pTabList->a[iSrc].iCursor ) break;
   }
@@ -142,7 +147,7 @@ void sqlite3AuthRead(
   }else{
     zCol = "ROWID";
   }
-  assert( iDb<db->nDb );
+  assert( iDb>=0 && iDb<db->nDb );
   zDBase = db->aDb[iDb].zName;
   rc = db->xAuth(db->pAuthArg, SQLITE_READ, pTab->zName, zCol, zDBase, 
                  pParse->zAuthContext);

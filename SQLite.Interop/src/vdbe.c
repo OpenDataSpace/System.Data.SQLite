@@ -43,7 +43,7 @@
 ** in this file for details.  If in doubt, do not deviate from existing
 ** commenting and indentation practices when changing or adding code.
 **
-** $Id: vdbe.c,v 1.15 2006/01/13 03:36:39 rmsimpson Exp $
+** $Id: vdbe.c,v 1.16 2006/01/16 15:51:47 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include "os.h"
@@ -665,8 +665,7 @@ case OP_Real: {            /* same as TK_FLOAT, */
 
 /* Opcode: String8 * * P3
 **
-** P3 points to a nul terminated UTF-8 string that is P1 character long
-** (not counting the nul terminator). This opcode is transformed
+** P3 points to a nul terminated UTF-8 string. This opcode is transformed 
 ** into an OP_String before it is executed for the first time.
 */
 case OP_String8: {         /* same as TK_STRING */
@@ -687,7 +686,7 @@ case OP_String8: {         /* same as TK_STRING */
     }
     pOp->p3type = P3_DYNAMIC;
     pOp->p3 = pTos->z;
-    pOp->p1 *= 2;
+    pOp->p1 = pTos->n;
     break;
   }
 #endif
@@ -696,7 +695,7 @@ case OP_String8: {         /* same as TK_STRING */
   
 /* Opcode: String P1 * P3
 **
-** The string value P3 of length P1 is pushed onto the stack.
+** The string value P3 of length P1 (bytes) is pushed onto the stack.
 */
 case OP_String: {
   pTos++;
@@ -1883,10 +1882,7 @@ case OP_Column: {
   u32 *aType;        /* aType[i] holds the numeric type of the i-th column */
   u32 *aOffset;      /* aOffset[i] is offset to start of data for i-th column */
   u32 nField;        /* number of fields in the record */
-  u32 szHdr;         /* Number of bytes in the record header */
   int len;           /* The length of the serialized data for the column */
-  int offset = 0;    /* Offset into the data */
-  int idx;           /* Index into the header */
   int i;             /* Loop counter */
   char *zData;       /* Part of the record being decoded */
   Mem sMem;          /* For storing the record being decoded */
@@ -1962,7 +1958,7 @@ case OP_Column: {
 
   /* If payloadSize is 0, then just push a NULL onto the stack. */
   if( payloadSize==0 ){
-    pTos->flags = MEM_Null;
+    assert( pTos->flags==MEM_Null );
     break;
   }
 
@@ -1975,7 +1971,10 @@ case OP_Column: {
     aType = pC->aType;
     aOffset = pC->aOffset;
   }else{
-    int avail;    /* Number of bytes of available data */
+    u8 *zIdx;        /* Index into header */
+    u8 *zEndHdr;     /* Pointer to first byte after the header */
+    u32 offset;      /* Offset into the data */
+    int avail;       /* Number of bytes of available data */
     if( pC && pC->aType ){
       aType = pC->aType;
     }else{
@@ -2007,8 +2006,7 @@ case OP_Column: {
         pC->aRow = 0;
       }
     }
-    idx = GetVarint((u8*)zData, szHdr);
-
+    zIdx = (u8 *)GetVarint((u8*)zData, offset);
 
     /* The KeyFetch() or DataFetch() above are fast and will get the entire
     ** record header in most cases.  But they will fail to get the complete
@@ -2016,46 +2014,44 @@ case OP_Column: {
     ** in the B-Tree.  When that happens, use sqlite3VdbeMemFromBtree() to
     ** acquire the complete header text.
     */
-    if( !zRec && avail<szHdr ){
-      rc = sqlite3VdbeMemFromBtree(pCrsr, 0, szHdr, pC->isIndex, &sMem);
+    if( !zRec && avail<offset ){
+      rc = sqlite3VdbeMemFromBtree(pCrsr, 0, offset, pC->isIndex, &sMem);
       if( rc!=SQLITE_OK ){
         goto op_column_out;
       }
       zData = sMem.z;
     }
+    zEndHdr = (u8 *)zData + offset;
+    zIdx = zData + (int)zIdx;
 
     /* Scan the header and use it to fill in the aType[] and aOffset[]
     ** arrays.  aType[i] will contain the type integer for the i-th
     ** column and aOffset[i] will contain the offset from the beginning
     ** of the record to the start of the data for the i-th column
     */
-    offset = szHdr;
-    assert( offset>0 );
-    i = 0;
-    while( idx<szHdr && i<nField && offset<=payloadSize ){
-      aOffset[i] = offset;
-      idx += GetVarint((u8*)&zData[idx], aType[i]);
-      offset += sqlite3VdbeSerialTypeLen(aType[i]);
-      i++;
+    for(i=0; i<nField; i++){
+      if( zIdx<zEndHdr ){
+        aOffset[i] = offset;
+        zIdx += GetVarint(zIdx, aType[i]);
+        offset += sqlite3VdbeSerialTypeLen(aType[i]);
+      }else{
+        /* If i is less that nField, then there are less fields in this
+        ** record than SetNumColumns indicated there are columns in the
+        ** table. Set the offset for any extra columns not present in
+        ** the record to 0. This tells code below to push a NULL onto the
+        ** stack instead of deserializing a value from the record.
+        */
+        aOffset[i] = 0;
+      }
     }
     Release(&sMem);
     sMem.flags = MEM_Null;
 
-    /* If i is less that nField, then there are less fields in this
-    ** record than SetNumColumns indicated there are columns in the
-    ** table. Set the offset for any extra columns not present in
-    ** the record to 0. This tells code below to push a NULL onto the
-    ** stack instead of deserializing a value from the record.
+    /* If we have read more header data than was contained in the header,
+    ** or if the end of the last field appears to be past the end of the
+    ** record, then we must be dealing with a corrupt database.
     */
-    while( i<nField ){
-      aOffset[i++] = 0;
-    }
-
-    /* The header should end at the start of data and the data should
-    ** end at last byte of the record. If this is not the case then
-    ** we are dealing with a malformed record.
-    */
-    if( idx!=szHdr || offset!=payloadSize ){
+    if( zIdx>zEndHdr || offset>payloadSize ){
       rc = SQLITE_CORRUPT_BKPT;
       goto op_column_out;
     }
@@ -4210,7 +4206,7 @@ case OP_ContextPush: {        /* no-push */
   /* FIX ME: This should be allocated as part of the vdbe at compile-time */
   if( i>=p->contextStackDepth ){
     p->contextStackDepth = i+1;
-    sqlite3ReallocOrFree((void**)&p->contextStack, sizeof(Context)*(i+1));
+    sqliteReallocOrFree((void**)&p->contextStack, sizeof(Context)*(i+1));
     if( p->contextStack==0 ) goto no_mem;
   }
   pContext = &p->contextStack[i];

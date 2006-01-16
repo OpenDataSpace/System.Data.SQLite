@@ -14,7 +14,7 @@
 ** This file contains functions for allocating memory, comparing
 ** strings, and stuff like that.
 **
-** $Id: util.c,v 1.15 2006/01/12 20:54:08 rmsimpson Exp $
+** $Id: util.c,v 1.16 2006/01/16 15:51:47 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include "os.h"
@@ -647,9 +647,11 @@ void sqlite3ReallocOrFree(void **pp, int n){
 ** is the number of bytes that were available to SQLite using pointer p, 
 ** regardless of how much memory was actually allocated.
 */
+#if 0          /* This is never actually used */
 int sqlite3AllocSize(void *p){
   return OSSIZEOF(p);
 }
+#endif
 
 /*
 ** Make a copy of a string in memory obtained from sqliteMalloc(). These 
@@ -1353,8 +1355,8 @@ void sqlite3MallocClearFailed(){
 ** cause an assert to fail if sqliteMalloc() or sqliteRealloc() is called.
 */
 void sqlite3MallocDisallow(){
-  assert(!sqlite3ThreadData()->mallocDisallowed);
-  sqlite3ThreadData()->mallocDisallowed = 1;
+  assert( sqlite3ThreadData()->mallocDisallowed>=0 );
+  sqlite3ThreadData()->mallocDisallowed++;
 }
 
 /*
@@ -1362,7 +1364,7 @@ void sqlite3MallocDisallow(){
 ** by sqlite3MallocDisallow().
 */
 void sqlite3MallocAllow(){
-  assert(sqlite3ThreadData()->mallocDisallowed);
-  sqlite3ThreadData()->mallocDisallowed = 0;
+  assert( sqlite3ThreadData()->mallocDisallowed>0 );
+  sqlite3ThreadData()->mallocDisallowed--;
 }
 #endif

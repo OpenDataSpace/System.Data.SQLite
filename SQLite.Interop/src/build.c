@@ -22,7 +22,7 @@
 **     COMMIT
 **     ROLLBACK
 **
-** $Id: build.c,v 1.14 2006/01/12 20:54:07 rmsimpson Exp $
+** $Id: build.c,v 1.15 2006/01/16 15:51:47 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include <ctype.h>
@@ -1173,7 +1173,7 @@ void sqlite3AddCollateType(Parse *pParse, const char *zType, int nType){
 
   if( sqlite3LocateCollSeq(pParse, zType, nType) ){
     Index *pIdx;
-    p->aCol[i].zColl = sqlite3StrNDup(zType, nType);
+    p->aCol[i].zColl = sqliteStrNDup(zType, nType);
   
     /* If the column is declared as "<name> PRIMARY KEY COLLATE <type>",
     ** then an index may have been created on this column before the
@@ -1547,9 +1547,10 @@ void sqlite3EndTable(
 
 #ifndef SQLITE_OMIT_ALTERTABLE
     if( !p->pSelect ){
+      const unsigned char *zName = pParse->sNameToken.z;
       assert( !pSelect && pCons && pEnd );
       if( pCons->z==0 ) pCons = pEnd;
-      p->addColOffset = 13 + (pCons->z - pParse->sNameToken.z);
+      p->addColOffset = 13 + sqlite3utf8CharLen(zName, pCons->z - zName);
     }
 #endif
   }
@@ -3153,7 +3154,7 @@ void sqlite3Reindex(Parse *pParse, Token *pName1, Token *pName2){
     assert( pName1->z );
     pColl = sqlite3FindCollSeq(db, ENC(db), (char*)pName1->z, pName1->n, 0);
     if( pColl ){
-      char *z = sqlite3StrNDup(pName1->z, pName1->n);
+      char *z = sqliteStrNDup(pName1->z, pName1->n);
       if( z ){
         reindexDatabases(pParse, z);
         sqliteFree(z);

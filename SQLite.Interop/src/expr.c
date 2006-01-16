@@ -12,7 +12,7 @@
 ** This file contains routines used for analyzing expressions and
 ** for generating VDBE code that evaluates expressions in SQLite.
 **
-** $Id: expr.c,v 1.21 2006/01/12 20:54:07 rmsimpson Exp $
+** $Id: expr.c,v 1.22 2006/01/16 15:51:47 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include <ctype.h>
@@ -355,7 +355,7 @@ void sqlite3ExprAssignVarNumber(Parse *pParse, Expr *pExpr){
       pExpr->iTable = ++pParse->nVar;
       if( pParse->nVarExpr>=pParse->nVarExprAlloc-1 ){
         pParse->nVarExprAlloc += pParse->nVarExprAlloc + 10;
-        sqlite3ReallocOrFree((void**)&pParse->apVarExpr,
+        sqliteReallocOrFree((void**)&pParse->apVarExpr,
                        pParse->nVarExprAlloc*sizeof(pParse->apVarExpr[0]) );
       }
       if( !sqlite3ThreadDataReadOnly()->mallocFailed ){

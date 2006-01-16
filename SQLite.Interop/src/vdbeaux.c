@@ -102,7 +102,7 @@ int sqlite3VdbeAddOp(Vdbe *p, int op, int p1, int p2){
   p->nOp++;
   assert( p->magic==VDBE_MAGIC_INIT );
   resizeOpArray(p, i+1);
-  if( p->aOp==0 || p->nOp<=i ){
+  if( p->aOp==0 || p->nOpAlloc<=i ){
     return 0;
   }
   pOp = &p->aOp[i];
@@ -147,7 +147,7 @@ int sqlite3VdbeMakeLabel(Vdbe *p){
   assert( p->magic==VDBE_MAGIC_INIT );
   if( i>=p->nLabelAlloc ){
     p->nLabelAlloc = p->nLabelAlloc*2 + 10;
-    sqlite3ReallocOrFree((void**)&p->aLabel,
+    sqliteReallocOrFree((void**)&p->aLabel,
                           p->nLabelAlloc*sizeof(p->aLabel[0]));
   }
   if( p->aLabel ){

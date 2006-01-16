@@ -13,7 +13,7 @@
 ** interface, and routines that contribute to loading the database schema
 ** from disk.
 **
-** $Id: prepare.c,v 1.10 2006/01/12 20:54:07 rmsimpson Exp $
+** $Id: prepare.c,v 1.11 2006/01/16 15:51:47 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 #include "os.h"
@@ -322,8 +322,9 @@ static int sqlite3InitOne(sqlite3 *db, int iDb, char **pzErrMsg){
 ** created using ATTACH statements.  Return a success code.  If an
 ** error occurs, write an error message into *pzErrMsg.
 **
-** After the database is initialized, the SQLITE_Initialized
-** bit is set in the flags field of the sqlite structure. 
+** After a database is initialized, the DB_SchemaLoaded bit is set
+** bit is set in the flags field of the Db structure. If the database
+** file was of zero-length, then the DB_Empty flag is also set.
 */
 int sqlite3Init(sqlite3 *db, char **pzErrMsg){
   int i, rc;
@@ -494,6 +495,7 @@ int sqlite3_prepare(
   int rc = SQLITE_OK;
   int i;
 
+  /* Assert that malloc() has not failed */
   assert( !sqlite3ThreadDataReadOnly()->mallocFailed );
 
   assert( ppStmt );

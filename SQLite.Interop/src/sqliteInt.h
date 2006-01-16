@@ -11,7 +11,7 @@
 *************************************************************************
 ** Internal interface definitions for SQLite.
 **
-** @(#) $Id: sqliteInt.h,v 1.14 2006/01/12 20:54:07 rmsimpson Exp $
+** @(#) $Id: sqliteInt.h,v 1.15 2006/01/16 15:51:47 rmsimpson Exp $
 */
 #ifndef _SQLITEINT_H_
 #define _SQLITEINT_H_
@@ -284,6 +284,7 @@ extern int sqlite3_iMallocReset; /* Set iMallocFail to this when it reaches 0 */
 
 #define sqliteFree(x)          sqlite3FreeX(x)
 #define sqliteAllocSize(x)     sqlite3AllocSize(x)
+
 
 /*
 ** An instance of this structure might be allocated to store information
@@ -1753,7 +1754,7 @@ KeyInfo *sqlite3IndexKeyinfo(Parse *, Index *);
 #endif
 
 void sqlite3MallocClearFailed();
-#ifdef NDEBUG
+#ifndef SQLITE_MEMDEBUG
   #define sqlite3MallocDisallow()
   #define sqlite3MallocAllow()
 #else

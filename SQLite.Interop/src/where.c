@@ -16,7 +16,7 @@
 ** so is applicable.  Because this module is responsible for selecting
 ** indices, you might also think of this module as the "query optimizer".
 **
-** $Id: where.c,v 1.16 2006/01/12 20:54:08 rmsimpson Exp $
+** $Id: where.c,v 1.17 2006/01/16 15:51:47 rmsimpson Exp $
 */
 #include "sqliteInt.h"
 
@@ -643,7 +643,7 @@ static void exprAnalyze(
   }
 #endif /* SQLITE_OMIT_BETWEEN_OPTIMIZATION */
 
-#ifndef SQLITE_OMIT_OR_OPTIMIZATION
+#if !defined(SQLITE_OMIT_OR_OPTIMIZATION) && !defined(SQLITE_OMIT_SUBQUERY)
   /* Attempt to convert OR-connected terms into an IN operator so that
   ** they can make use of indices.  Example:
   **
@@ -652,6 +652,9 @@ static void exprAnalyze(
   ** is converted into
   **
   **      x IN (expr1,expr2,expr3)
+  **
+  ** This optimization must be omitted if OMIT_SUBQUERY is defined because
+  ** the compiler for the the IN operator is part of sub-queries.
   */
   else if( pExpr->op==TK_OR ){
     int ok;
@@ -1164,14 +1167,24 @@ static void disableTerm(WhereLevel *pLevel, WhereTerm *pTerm){
 **    *  Check the top nColumn entries on the stack.  If any
 **       of those entries are NULL, jump immediately to brk,
 **       which is the loop exit, since no index entry will match
-**       if any part of the key is NULL.
+**       if any part of the key is NULL. Pop (nColumn+nExtra) 
+**       elements from the stack.
 **
 **    *  Construct a probe entry from the top nColumn entries in
-**       the stack with affinities appropriate for index pIdx.
+**       the stack with affinities appropriate for index pIdx. 
+**       Only nColumn elements are popped from the stack in this case
+**       (by OP_MakeRecord).
+**
 */
-static void buildIndexProbe(Vdbe *v, int nColumn, int brk, Index *pIdx){
+static void buildIndexProbe(
+  Vdbe *v, 
+  int nColumn, 
+  int nExtra, 
+  int brk, 
+  Index *pIdx
+){
   sqlite3VdbeAddOp(v, OP_NotNull, -nColumn, sqlite3VdbeCurrentAddr(v)+3);
-  sqlite3VdbeAddOp(v, OP_Pop, nColumn, 0);
+  sqlite3VdbeAddOp(v, OP_Pop, nColumn+nExtra, 0);
   sqlite3VdbeAddOp(v, OP_Goto, 0, brk);
   sqlite3VdbeAddOp(v, OP_MakeRecord, nColumn, 0);
   sqlite3IndexAffinityStr(v, pIdx);
@@ -1210,7 +1223,7 @@ static void codeEqualityTerm(
     sqlite3VdbeAddOp(v, OP_Rewind, iTab, brk);
     VdbeComment((v, "# %.*s", pX->span.n, pX->span.z));
     pLevel->nIn++;
-    sqlite3ReallocOrFree((void**)&pLevel->aInLoop,
+    sqliteReallocOrFree((void**)&pLevel->aInLoop,
                                  sizeof(pLevel->aInLoop[0])*3*pLevel->nIn);
     aIn = pLevel->aInLoop;
     if( aIn ){
@@ -1582,6 +1595,13 @@ WhereInfo *sqlite3WhereBegin(
     if( pTab->isTransient || pTab->pSelect ) continue;
     if( (pLevel->flags & WHERE_IDX_ONLY)==0 ){
       sqlite3OpenTable(pParse, pTabItem->iCursor, iDb, pTab, OP_OpenRead);
+      if( pTab->nCol<(sizeof(Bitmask)*8) ){
+        Bitmask b = pTabItem->colUsed;
+        int n = 0;
+        for(; b; b=b>>1, n++);
+        sqlite3VdbeChangeP2(v, sqlite3VdbeCurrentAddr(v)-1, n);
+        assert( n<=pTab->nCol );
+      }
     }else{
       sqlite3TableLock(pParse, iDb, pTab->tnum, 0, pTab->zName);
     }
@@ -1783,7 +1803,7 @@ WhereInfo *sqlite3WhereBegin(
       if( testOp!=OP_Noop ){
         int nCol = nEq + topLimit;
         pLevel->iMem = pParse->nMem++;
-        buildIndexProbe(v, nCol, brk, pIdx);
+        buildIndexProbe(v, nCol, nEq, brk, pIdx);
         if( bRev ){
           int op = topEq ? OP_MoveLe : OP_MoveLt;
           sqlite3VdbeAddOp(v, op, iIdxCur, brk);
@@ -1818,7 +1838,7 @@ WhereInfo *sqlite3WhereBegin(
       }
       if( nEq>0 || btmLimit ){
         int nCol = nEq + btmLimit;
-        buildIndexProbe(v, nCol, brk, pIdx);
+        buildIndexProbe(v, nCol, 0, brk, pIdx);
         if( bRev ){
           pLevel->iMem = pParse->nMem++;
           sqlite3VdbeAddOp(v, OP_MemStore, pLevel->iMem, 1);
@@ -1872,7 +1892,7 @@ WhereInfo *sqlite3WhereBegin(
       /* Generate a single key that will be used to both start and terminate
       ** the search
       */
-      buildIndexProbe(v, nEq, brk, pIdx);
+      buildIndexProbe(v, nEq, 0, brk, pIdx);
       sqlite3VdbeAddOp(v, OP_MemStore, pLevel->iMem, 0);
 
       /* Generate code (1) to move to the first matching element of the table.
