@@ -5,8 +5,8 @@
   </head>
   <body>
     ADO.NET 2.0 SQLite Data Provider<br>
-    Version 1.0.24.3 (beta) - Jan 10, 2006<br>
-    Interop using SQLite 3.3.0 alpha<br>
+    Version 1.0.24.4 (beta) - Jan 16, 2006<br>
+    Interop using SQLite 3.3.1 alpha<br>
     Written by Robert Simpson (<a href="mailto:robert@blackcastlesoft.com">robert@blackcastlesoft.com</a>)<br>
     Released to the public domain, use at your own risk!<br>
     <br>
@@ -130,6 +130,19 @@
     <p></p>
     <p>
       <b>Version History</b></p>
+    <p><b>1.0.24.4 beta - January 16, 2006</b></p>
+    <ul>
+    <li>This beta is built from sqlite.org's 3.3.1 alpha and contains development-in-progress code.&nbsp; Therefore no guarantees
+      can be made regarding its suitability for production use.</li>
+    <li>Fixed a bug in the UTF-16 handling code for preparing statements due to a behavioral
+      change in SQLite 3.3.0.</li>
+      <li>Added pager.c code necessary to cleanup after an encrypted file is closed.</li>
+      <li>Fixed an encryption bug that caused a fault when an encrypted file was rolled
+        back.</li>
+      <li>Modified the testcase code to take advantage of optimizations regarding the use
+        of a DbCommandBuilder.&nbsp; DataAdapter insert speed increased dramatically as
+        a result.</li>
+    </ul>
     <p><b>1.0.24.3 beta - January 10, 2006</b></p>
     <ul>
     <li>This beta is built from sqlite.org's 3.3.0 alpha and contains development-in-progress code.&nbsp; Therefore no guarantees
