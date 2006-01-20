@@ -5,8 +5,8 @@
   </head>
   <body>
     ADO.NET 2.0 SQLite Data Provider<br>
-    Version 1.0.24.4 (beta) - Jan 16, 2006<br>
-    Interop using SQLite 3.3.1 alpha<br>
+    Version 1.0.24.5 (beta) - Jan 20, 2006<br>
+    Using SQLite 3.3.1 alpha<br>
     Written by Robert Simpson (<a href="mailto:robert@blackcastlesoft.com">robert@blackcastlesoft.com</a>)<br>
     Released to the public domain, use at your own risk!<br>
     <br>
@@ -20,21 +20,25 @@
     </h2>
     <UL>
       <LI>
-      Supports&nbsp;the Full and Compact .NET Framework.
+      Written from scratch on VS2005 specifically for ADO.NET 2.0, implenting all the
+      base classes and features recently introduced in the framework.<li>Supports the Full
+        and Compact .NET Framework, as well as native C/C++ development.&nbsp; 100% binary
+        compatible with the original sqlite3.dll.</li>
       <LI>
       On the Compact Framework, it is faster than the newly-introduced Sql Server 
       Mobile, often more than 10x faster at inserts/updates.&nbsp; SQLite databases 
       are also a fraction of the size of Sql Mobile databases.
+      <li>Encrypted database support.&nbsp; Encrypted databases are fully encrypted and
+        support both binary and cleartext password types.</li>
       <LI>
-      Full Visual Studio 2005 Design-Time Support.&nbsp; You can add a SQLite 
+      Visual Studio 2005 Design-Time Support.&nbsp; You can add a SQLite 
       database to the Servers list, design queries with the Query Designer, 
       drag-and-drop tables onto a Typed DataSet, etc.
       <LI>
-      Single file redistributable for the full .net framework (Compact Framework 
-      requires 2 binaries).&nbsp; The core sqlite3 codebase and the ADO.NET wrapper 
+      Single file redistributable.&nbsp; The core sqlite3 codebase and the ADO.NET wrapper 
       are combined into one multi-module assembly.
       <LI>
-      Native 64-bit multi-module assemblies for Itanium and X64 processors.
+      Binaries included for Itanium, x64, x86 and ARM processors.
       <LI>
       DbProviderFactory support.
       <LI>
@@ -63,9 +67,6 @@
       <LI>
       Full support for user-defined collating sequences, every bit as simple to 
       implement as user-defined functions and uses the same base class.
-      <LI>
-      Create and encrypt databases using Win2K+ Encrypting File System (EFS). 
-      Supports creating NTFS compressed database files.
       <LI>
         Full source for the entire engine and wrapper.&nbsp; No copyrights.&nbsp; 
         Public Domain.&nbsp; 100% free.&nbsp; If you want to know if you can use it in 
@@ -107,17 +108,10 @@
       collating sequences and functions.</p>
     <h2>
       <b><A name="redist"></A>Distributing The SQLite Engine and ADO.NET Assembly</b></h2>
-    <P>For Win32 platforms, only the <STRONG>System.Data.SQLite.DLL</STRONG> file in 
-      the <STRONG>bin</STRONG> folder should be distributed with your 
+    <P>
+      Only the <STRONG>System.Data.SQLite.DLL</STRONG> file needs to be distributed with your 
       application(s).&nbsp; This DLL contains both the managed wrapper and the native 
       SQLite3 codebase.</P>
-    <P>For Compact Framework platforms, your application should reference the <STRONG>System.Data.SQLite.DLL</STRONG>
-      file in the <STRONG>bin\CompactFramework</STRONG> folder.&nbsp; The <STRONG>System.Data.SQLite.DLL</STRONG>
-      and <STRONG>SQLite.Interop.DLL</STRONG> files from the <STRONG>bin\CompactFramework</STRONG>
-      folder must be distributed with your application(s).&nbsp; They contain the 
-      managed wrapper and the native SQLite3 codebase respectively.&nbsp; The Compact 
-      Framework does not currently support managed C++, thus the reason for two 
-      files.</P>
     <H2><B>Development Notes Regarding the SQLite 3 Source Code</B></H2>
     <p>
       The SQLite3 source code is compiled almost directly from the SQLite.org release
@@ -130,6 +124,24 @@
     <p></p>
     <p>
       <b>Version History</b></p>
+    <p><b>1.0.24.5 beta - January 20, 2006</b></p>
+    <ul>
+    <li>This beta is built from sqlite.org's 3.3.1 alpha and contains development-in-progress code.&nbsp; Therefore no guarantees
+      can be made regarding its suitability for production use.</li>
+    <li><strong>You no longer need to distribute 2 files on the CompactFramework.&nbsp;
+      You can delete SQLite.Interop.DLL entirely.&nbsp; </strong>I wrote a custom tool
+      called "mergebin" (available in the source zip file) which combines the two libraries
+      and gets around a glaring defect in the VS2005 linker for ARM processors which doesn't
+      allow you to link netmodules.</li>
+      <li><strong>x64 and ia64 builds now use the same strong name as the x86 build.</strong>&nbsp;
+        This means breaking backward compatibility, but it was necessary in order to allow
+        you to drop any of those 3 builds onto a PC and have your .NET program run properly.&nbsp;
+        Prior to this, you'd get an error if you built your program using the x86 build,
+        and then installed the x64 version on a target machine and tried to run your program
+        against it.</li>
+      <li>The entire source project has been gone over top to bottom.&nbsp; A debug build
+        no longer combines the binaries into a single module, which was preventing proper
+        debugging.</li></ul>
     <p><b>1.0.24.4 beta - January 16, 2006</b></p>
     <ul>
     <li>This beta is built from sqlite.org's 3.3.1 alpha and contains development-in-progress code.&nbsp; Therefore no guarantees
@@ -160,7 +172,9 @@
         previous CE adaptation.</li>
       <li>Moved some of the embedded schema XML data into a resource file to ease code readability.</li>
       <li>Automated the fixup of the original sqlite codebase's source prior to compiling,
-        to ease merging with sqlite.org's source.&nbsp;</li>
+        to ease merging with sqlite.org's source.</li>
+      <li>Fixed a memory leak in SQLiteCommand due to it not removing an internal reference
+        to itself in SQLiteConnection.&nbsp; </li>
     </ul>
     <p><b>1.0.24.2 - December 30, 2005</b></p>
     <ul>
