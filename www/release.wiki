@@ -1,0 +1,378 @@
+<title>Release Procedures</title>
+
+<a name="releaseProcedures"></a>
+<h2>Release Procedures</h2>
+
+<p>
+  Follow these steps to prepare a new release of System.Data.SQLite.
+  Unless otherwise noted, all steps need to be done in the order specified.
+</p>
+
+<a name="buildBinaries"></a>
+<h2>Build x86 &amp; x64 Binaries</h2>
+
+<ol>
+  <li>
+    The binaries for all supported architectures and platforms must be built
+    using procedures very similar to those documented in the normal
+    [./build.wiki | build procedures].
+  </li>
+
+  <li>Open a normal command prompt window with &quot;cmd.exe&quot;.</li>
+
+  <li>Change the current directory to &quot;&lt;root&gt;\Setup&quot;.</li>
+
+  <li>
+    Enter the following command to build all the x86 and x64 binaries:&nbsp;
+    <b>build_all.bat</b><br />
+  </li>
+</ol>
+
+<a name="testBinaries"></a>
+<h2>Test x86 &amp; x64 Binaries</h2>
+
+<ol>
+  <li>
+    The binaries for all supported architectures and platforms must be tested
+    using procedures very similar to those documented in the normal
+    [./test.wiki | test procedures].
+  </li>
+
+  <li>Open a normal command prompt window with &quot;cmd.exe&quot;.</li>
+
+  <li>Change the current directory to &quot;&lt;root&gt;\Setup&quot;.</li>
+
+  <li>
+    Enter the following command to test all the x86 or x64 binaries, depending
+    on the processor architecture of the current machine:&nbsp;
+    <b>test_all.bat</b><br />
+  </li>
+
+  <li>
+    Locate a machine with a processor architecture different from the one tested
+    in the previous step and then repeat all the previous steps.
+  </li>
+</ol>
+
+<a name="buildCeBinaries"></a>
+<h2>Build Windows CE Binaries</h2>
+
+<ol>
+  <li>Open a normal command prompt window with &quot;cmd.exe&quot;.</li>
+
+  <li>Change the current directory to &quot;&lt;root&gt;\Setup&quot;.</li>
+
+  <li>
+    Enter the following command to build all the binaries available for Windows
+    CE:&nbsp;<b>build_ce_200x.bat</b><br /><i>This assumes that Visual Studio
+    2005 and/or Visual Studio 2008, &quot;<b>Professional</b>&quot; edition or
+    &quot;better&quot; and the bundled Pocket PC 2003 SDK are installed.</i>
+  </li>
+
+  <li>
+    Enter the following command to build all the binaries available for Windows
+    Embedded Compact 2013:&nbsp;<b>build_ce_2013.bat</b><br /><i>This assumes
+    that Visual Studio 2012, &quot;<b>Professional</b>&quot; edition or
+    &quot;better&quot; and the Windows Embedded Compact 2013 Toolkit are
+    installed.</i>
+  </li>
+</ol>
+
+<a name="testCeBinariesAutomated"></a>
+<h2>Test Windows CE Binaries via Automation</h2>
+
+<ol>
+  <li>
+    Intead of testing the Windows CE binaries
+    <a href="#testCeBinariesManually">manually</a> as described in the next
+    section, the following steps may be used.
+  </li>
+
+  <li>Open a normal command prompt window with &quot;cmd.exe&quot;.</li>
+
+  <li>Change the current directory to &quot;&lt;root&gt;\Setup&quot;.</li>
+
+  <li>
+    Enter the following command to test all the binaries available for Windows
+    CE:&nbsp;<b>test_ce_200x.bat</b><br />
+  </li>
+</ol>
+
+<a name="testCeBinariesManually"></a>
+<h2>Test Windows CE Binaries Manually</h2>
+
+<ol>
+  <li>
+    If the Windows CE binaries were already tested using the
+    <a href="#testCeBinariesAutomated">automation</a> described in the previous
+    section, skip this section.
+  </li>
+
+  <li>
+    Launch <b>Visual Studio 2005</b>, &quot;<b>Professional</b>&quot; edition or
+    &quot;better&quot; with the bundled Pocket PC 2003 SDK. As of this writing,
+    in January 2012, <b>Visual Studio 2010 and later will not work</b> as they
+    do not include the necessary built-in support for Windows CE and the .NET
+    Compact Framework.
+  </li>
+
+  <li>
+    Open the &quot;<b>SQLite.NET.2008.sln</b>&quot; solution file in the
+    &quot;&lt;root&gt;&quot; directory.
+  </li>
+
+  <li>
+    Change the active solution configuration to &quot;<b>Debug</b>&quot;.
+  </li>
+
+  <li>
+    Change the active solution platform to &quot;<b>Pocket PC 2003
+    (ARMV4)</b>&quot;.
+  </li>
+
+  <li>
+    Right-click the &quot;<b>testce</b>&quot; project in the Solution Explorer
+    window and select &quot;<b>Set as StartUp Project</b>&quot;.
+  </li>
+
+  <li>
+    Select &quot;<b>Start Debugging</b>&quot; from the &quot;<b>Debug</b>&quot;
+    menu.
+  </li>
+
+  <li>
+    If any rebuild prompts appear (e.g. &quot;<b>SQLite.Interop.CE.2008</b>&quot;,
+    &quot;<b>Would you like to build it?</b>&quot;), select &quot;<b>Yes</b>&quot;.
+  </li>
+
+  <li>
+    When prompted for the device type to deploy the application to, select the
+    &quot;<b>Pocket PC 2003 SE Emulator</b>&quot; device.
+  </li>
+
+  <li>
+    Make sure all that the tests pass (i.e. they emit &quot;<b>SUCCESS</b>&quot;).
+  </li>
+</ol>
+
+<a name="updateDocumentation"></a>
+<h2>Update Documentation</h2>
+
+<ol>
+  <li>
+    Update the &quot;&lt;root&gt;\readme.htm&quot; file with information about
+    all the major changes since the last released version.
+  </li>
+
+  <li>
+    Copy those changes to the &quot;&lt;root&gt;\Doc\Extra\version.html&quot;
+    and &quot;&lt;root&gt;\www\news.wiki&quot; files, reformatting as necessary
+    to fit with the existing document conventions.
+  </li>
+</ol>
+
+<a name="buildDocumentation"></a>
+<h2>Build Documentation</h2>
+
+<ol>
+  <li>Open a normal command prompt window with &quot;cmd.exe&quot;.</li>
+
+  <li>Change the current directory to &quot;&lt;root&gt;\Doc&quot;.</li>
+
+  <li>
+    Enter the following command to build all the documentation in
+    [http://en.wikipedia.org/wiki/Microsoft_Compiled_HTML_Help | CHM]
+    format:&nbsp;<b>tclsh.exe&nbsp;buildChm.tcl</b><br /><i>This assumes that
+    [http://www.activestate.com/activetcl | ActiveTcl] version 8.4 or later, the
+    [http://www.microsoft.com/download/en/details.aspx?displaylang=en&id=21138 | HTML Help Workshop],
+    and [http://ndoc3.sourceforge.net/ | NDoc3] have all been installed using
+    the default settings.</i>
+  </li>
+</ol>
+
+<a name="buildSetupPackages"></a>
+<h2>Build Setup Release Packages</h2>
+
+<ol>
+  <li>Open a normal command prompt window with &quot;cmd.exe&quot;.</li>
+
+  <li>Change the current directory to &quot;&lt;root&gt;\Setup&quot;.</li>
+
+  <li>
+    Enter the following command to build all the setup packages for x86 and
+    x64:&nbsp;<b>bake_all.bat</b><br />
+  </li>
+</ol>
+
+<a name="buildBinaryPackages"></a>
+<h2>Build x86 &amp; x64 Binary Release Packages</h2>
+
+<ol>
+  <li>Open a normal command prompt window with &quot;cmd.exe&quot;.</li>
+
+  <li>Change the current directory to &quot;&lt;root&gt;\Setup&quot;.</li>
+
+  <li>
+    Enter the following command to build all the binary release packages for
+    x86 and x64:&nbsp;<b>release_all.bat</b><br />
+  </li>
+</ol>
+
+<a name="buildStaticBinaryPackages"></a>
+<h2>Build x86 &amp; x64 Static Binary Release Packages</h2>
+
+<ol>
+  <li>Open a normal command prompt window with &quot;cmd.exe&quot;.</li>
+
+  <li>Change the current directory to &quot;&lt;root&gt;\Setup&quot;.</li>
+
+  <li>
+    Enter the following command to build all the static binary release packages
+    for x86 and x64:&nbsp;<b>release_static.bat</b><br />
+  </li>
+</ol>
+
+<a name="buildCeBinaryPackages"></a>
+<h2>Build Windows CE Binary Release Packages</h2>
+
+<ol>
+  <li>Open a normal command prompt window with &quot;cmd.exe&quot;.</li>
+
+  <li>Change the current directory to &quot;&lt;root&gt;\Setup&quot;.</li>
+
+  <li>
+    Enter the following command to build all the binary release packages for
+    Windows CE:&nbsp;<b>release_ce_200x.bat</b><br />
+  </li>
+
+  <li>
+    Enter the following command to build all the binary release packages for
+    Windows Embedded Compact 2013:&nbsp;<b>release_ce_2013.bat</b><br />
+  </li>
+</ol>
+
+<a name="buildSourcePackages"></a>
+<h2>Build Source Release Packages</h2>
+
+<ol>
+  <li>Open a normal command prompt window with &quot;cmd.exe&quot;.</li>
+
+  <li>Change the current directory to &quot;&lt;root&gt;\Setup&quot;.</li>
+
+  <li>
+    Enter the following command to build all the source release packages:
+    &nbsp;<b>archive.bat</b><br />
+  </li>
+</ol>
+
+<a name="verifyAllPackages"></a>
+<h2>Verify All Release Packages</h2>
+
+<ol>
+  <li>Open a normal command prompt window with &quot;cmd.exe&quot;.</li>
+
+  <li>Change the current directory to &quot;&lt;root&gt;\Setup&quot;.</li>
+
+  <li>
+    Enter the following command to build all the source release packages:&nbsp;
+    <b>..\Externals\Eagle\bin\EagleShell.exe -file verify.eagle Output</b><br />
+    <i>If errors are generated, the file &quot;&lt;root&gt;\Setup\verify.lst&quot;
+    may need to be updated to account for the files that have been added and/or
+    removed from the release archives since the previous release.</i>
+  </li>
+</ol>
+
+<a name="buildNuGetPackages"></a>
+<h2>Build NuGet Packages</h2>
+
+<ol>
+  <li>Open a normal command prompt window with &quot;cmd.exe&quot;.</li>
+
+  <li>Change the current directory to &quot;&lt;root&gt;&quot;.</li>
+
+  <li>
+    Enter the following command to build the &quot;default&quot; NuGet package:
+    &nbsp;<b>nuget.exe&nbsp;pack&nbsp;SQLite.nuspec</b><br /><i>This assumes
+    that the NuGet binary is available somewhere along the
+    [http://en.wikipedia.org/wiki/PATH_%28variable%29 | PATH].<br />Please refer
+    to [http://docs.nuget.org/ | NuGet Documentation] for further details.</i>
+  </li>
+
+  <li>
+    Enter the following command to build the &quot;managed-only&quot; NuGet
+    package:&nbsp;<b>nuget.exe&nbsp;pack&nbsp;SQLite.MSIL.nuspec</b><br />
+    <i>This assumes that the NuGet binary is available somewhere along the
+    [http://en.wikipedia.org/wiki/PATH_%28variable%29 | PATH].<br />Please refer
+    to [http://docs.nuget.org/ | NuGet Documentation] for further details.</i>
+  </li>
+
+  <li>
+    Enter the following command to build the NuGet package for x86:&nbsp;
+    <b>nuget.exe&nbsp;pack&nbsp;SQLite.x86.nuspec</b><br /><i>This assumes that
+    the NuGet binary is available somewhere along the
+    [http://en.wikipedia.org/wiki/PATH_%28variable%29 | PATH].<br />Please refer
+    to [http://docs.nuget.org/ | NuGet Documentation] for further details.</i>
+  </li>
+
+  <li>
+    Enter the following command to build the NuGet package for x64:
+    &nbsp;<b>nuget.exe&nbsp;pack&nbsp;SQLite.x64.nuspec</b><br /><i>This assumes
+    that the NuGet binary is available somewhere along the
+    [http://en.wikipedia.org/wiki/PATH_%28variable%29 | PATH].<br />Please refer
+    to [http://docs.nuget.org/ | NuGet Documentation] for further details.</i>
+  </li>
+
+  <li>
+    Enter the following command to move the NuGet packages to the release output
+    directory:
+    &nbsp;<b>move *.nupkg Setup\Output</b>
+  </li>
+</ol>
+
+<a name="updateDownloadsPage"></a>
+<h2>Update Downloads Page</h2>
+
+<ol>
+  <li>Open a normal command prompt window with &quot;cmd.exe&quot;.</li>
+
+  <li>Change the current directory to &quot;&lt;root&gt;\Setup&quot;.</li>
+
+  <li>
+    Replace the version numbers for the previous release in the local working
+    copy of the [./downloads.wiki | downloads page] with the new version numbers
+    for System.Data.SQLite and the SQLite core.
+  </li>
+
+  <li>
+    Enter the following command to update the sizes and hashes on the downloads
+    page based on all the built release packages:&nbsp;<b>tclsh.exe&nbsp;
+    updateFileInfo.tcl</b><br /><i>This assumes that
+    [http://www.activestate.com/activetcl | ActiveTcl] version 8.4 or later has
+    been installed using the default settings and that the Fossil binary is
+    available somewhere along the
+    [http://en.wikipedia.org/wiki/PATH_%28variable%29 | PATH] (i.e. for
+    calculating the SHA1 hashes).</i>
+  </li>
+</ol>
+
+<a name="publishRelease"></a>
+<h2>Publish Release</h2>
+
+<ol>
+  <li>Upload all the release packages to the web site.</li>
+
+  <li>
+    Commit pending source code changes to the
+    [http://www.fossil-scm.org/ | Fossil] repository.
+  </li>
+
+  <li>Tag the release in the Fossil repository.</li>
+
+  <li>
+    Push the [http://www.nuget.org/ | NuGet] packages.<br />
+    <i>Please refer to [http://docs.nuget.org/ | NuGet Documentation] for
+    further details.</i>
+  </li>
+
+  <li>Announce the release on the System.Data.SQLite mailing list.</li>
+</ol>

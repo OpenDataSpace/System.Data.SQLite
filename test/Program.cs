@@ -1,35 +1,72 @@
-﻿using System;
-using System.Data;
-using System.Text;
-using System.Data.Common;
-using System.Data.SQLite;
+/********************************************************
+ * ADO.NET 2.0 Data Provider for SQLite Version 3.X
+ * Written by Robert Simpson (robert@blackcastlesoft.com)
+ * 
+ * Released to the public domain, use at your own risk!
+ ********************************************************/
+
+using System;
+using System.Diagnostics;
+using System.Windows.Forms;
 
 namespace test
 {
-  class Program
-  {
-    static void Main(string[] args)
+    class Program
     {
-      DbProviderFactory fact; // = DbProviderFactories.GetFactory("System.Data.OleDb");
-      DbConnection cnn; //  = fact.CreateConnection();
+        [STAThread()]
+        static void Main(string[] args)
+        {
+            if (Environment.GetEnvironmentVariable("BREAK") != null)
+            {
+                Console.WriteLine(
+                    "Attach a debugger to process {0} and press any key to continue.",
+                    Process.GetCurrentProcess().Id);
 
-//      cnn.ConnectionString = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source=C:\\Temp\\db.mdb;Persist Security Info=False";
-//      cnn.ConnectionString = "Provider=SQLOLEDB.1;Integrated Security=SSPI;Persist Security Info=False;Initial Catalog=DirectLink;Data Source=MASTER";
-//      cnn.Open();
+                try
+                {
+                    Console.ReadKey(true); /* throw */
+                }
+                catch (InvalidOperationException) // Console.ReadKey
+                {
+                    // do nothing.
+                }
 
-//      TestCases.Run(fact, cnn);
+                Debugger.Break();
+            }
 
-      fact = DbProviderFactories.GetFactory("System.Data.SQLite");
-      using (cnn = fact.CreateConnection())
-      {
-        cnn.ConnectionString = "Data Source=test.db3";
-        cnn.Open();
-        TestCases.Run(fact, cnn);
-      }
+            string fileName = "test.db"; // NOTE: New default, was "Test.db3".
+            bool autoRun = false;
 
-      System.IO.File.Delete("test.db3");
+            if (args != null)
+            {
+                int length = args.Length;
 
-      Console.ReadKey();
+                for (int index = 0; index < length; index++)
+                {
+                    string arg = args[index];
+
+                    if (arg != null)
+                    {
+                        arg = arg.TrimStart(new char[] { '-', '/' });
+
+                        if (String.Equals(arg, "fileName",
+                                StringComparison.OrdinalIgnoreCase))
+                        {
+                            index++;
+
+                            if (index < length)
+                                fileName = args[index];
+                        }
+                        else if (String.Equals(arg, "autoRun",
+                                StringComparison.OrdinalIgnoreCase))
+                        {
+                            autoRun = true;
+                        }
+                    }
+                }
+            }
+
+            Application.Run(new TestCasesDialog(fileName, autoRun));
+        }
     }
-  }
 }

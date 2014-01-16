@@ -1,0 +1,559 @@
+<!--
+ *
+ * SQLite.NET.Settings.targets -
+ *
+ * Written by Joe Mistachkin.
+ * Released to the public domain, use at your own risk!
+ *
+-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!--
+  ******************************************************************************
+  **                          Load Per-User Settings                          **
+  ******************************************************************************
+  -->
+
+  <!--
+      NOTE: If the per-user settings file exists, import it now.  The contained
+            settings, if any, will override the default ones provided below.
+  -->
+  <Import Project="$(SQLiteNetDir)\SQLite.NET.Settings.targets.user"
+          Condition="Exists('$(SQLiteNetDir)\SQLite.NET.Settings.targets.user')" />
+
+  <!--
+  ******************************************************************************
+  **                        Load Per-Framework Settings                       **
+  ******************************************************************************
+  -->
+
+  <!--
+      NOTE: If the per-framework settings files exist, import them now.  The
+            contained settings, if any, will override the default ones provided
+            below.
+  -->
+  <Import Project="$(SQLiteNetDir)\SQLite.NET.Settings.targets.netFx20"
+          Condition="'$(NetFx20)' != '' And '$(NetFx20)' != 'false' And
+                     ('$(NetFx20Settings)' == '' Or '$(NetFx20Settings)' != 'false') And
+                     Exists('$(SQLiteNetDir)\SQLite.NET.Settings.targets.netFx20')" />
+
+  <Import Project="$(SQLiteNetDir)\SQLite.NET.Settings.targets.netFx35"
+          Condition="'$(NetFx35)' != '' And '$(NetFx35)' != 'false' And
+                     ('$(NetFx35Settings)' == '' Or '$(NetFx35Settings)' != 'false') And
+                     Exists('$(SQLiteNetDir)\SQLite.NET.Settings.targets.netFx35')" />
+
+  <Import Project="$(SQLiteNetDir)\SQLite.NET.Settings.targets.netFx40"
+          Condition="'$(NetFx40)' != '' And '$(NetFx40)' != 'false' And
+                     ('$(NetFx40Settings)' == '' Or '$(NetFx40Settings)' != 'false') And
+                     Exists('$(SQLiteNetDir)\SQLite.NET.Settings.targets.netFx40')" />
+
+  <Import Project="$(SQLiteNetDir)\SQLite.NET.Settings.targets.netFx45"
+          Condition="'$(NetFx45)' != '' And '$(NetFx45)' != 'false' And
+                     ('$(NetFx45Settings)' == '' Or '$(NetFx45Settings)' != 'false') And
+                     Exists('$(SQLiteNetDir)\SQLite.NET.Settings.targets.netFx45')" />
+
+  <Import Project="$(SQLiteNetDir)\SQLite.NET.Settings.targets.netFx451"
+          Condition="'$(NetFx451)' != '' And '$(NetFx451)' != 'false' And
+                     ('$(NetFx451Settings)' == '' Or '$(NetFx451Settings)' != 'false') And
+                     Exists('$(SQLiteNetDir)\SQLite.NET.Settings.targets.netFx451')" />
+
+  <!--
+  ******************************************************************************
+  **                       [Fairly] Generic Properties                        **
+  ******************************************************************************
+  -->
+
+  <PropertyGroup>
+    <!--
+        NOTE: *UNCONDITIONAL* We never want to use the hosting process for
+              debugging.  It causes problems.
+    -->
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+
+    <!--
+        NOTE: *UNCONDITIONAL* We never want to use the fast up-to-date check
+              that Visual Studio provides.
+    -->
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
+
+    <!--
+        HACK: *UNCONDITIONAL* The Visual Studio IDE ignores the
+              BaseIntermediateOutputPath property and creates empty "bin" and
+              "obj" directories for every project whenever the project is opened
+              or built.  Also, the Visual Studio IDE will occasionally fail to
+              rebuild the project due to this confusion.  The situation appears
+              to improve somewhat when this is set to false.  Please note that
+              even if this is set to false, things still do not work 100%
+              correctly; however, at least there appears to be less build
+              failures.
+
+              Please see Microsoft Connect FeedbackID 105854 for their official
+              list of excuses, on this now more than 3 year old bug.
+    -->
+    <UseHostCompilerIfAvailable>false</UseHostCompilerIfAvailable>
+  </PropertyGroup>
+
+  <!--
+  ******************************************************************************
+  **                       Framework Version Properties                       **
+  ******************************************************************************
+  -->
+
+  <PropertyGroup>
+    <!--
+        NOTE: Only use functionality available in the .NET Framework 2.0?  By
+              default, this is disabled.  This must be enabled to successfully
+              build the project using Visual Studio 2005 and/or the .NET
+              Framework 2.0 (if necessary, it will typically be enabled from
+              within the project file itself).
+    -->
+    <NetFx20 Condition="'$(NetFx20)' == ''">false</NetFx20>
+
+    <!--
+        NOTE: Only use functionality available in the .NET Framework 3.5?  By
+              default, this is disabled.  This must be enabled to successfully
+              build the project using Visual Studio 2008 and/or the .NET
+              Framework 3.5 (if necessary, it will typically be enabled from
+              within the project file itself).
+    -->
+    <NetFx35 Condition="'$(NetFx35)' == ''">false</NetFx35>
+
+    <!--
+        NOTE: Only use functionality available in the .NET Framework 4.0?  By
+              default, this is disabled.  This must be enabled to successfully
+              build the project using Visual Studio 2010 and/or the .NET
+              Framework 4.0 (if necessary, it will typically be enabled from
+              within the project file itself).
+    -->
+    <NetFx40 Condition="'$(NetFx40)' == ''">false</NetFx40>
+
+    <!--
+        NOTE: Only use functionality available in the .NET Framework 4.5?  By
+              default, this is disabled.  This must be enabled to successfully
+              build the project using Visual Studio 2012 and/or the .NET
+              Framework 4.5 (if necessary, it will typically be enabled from
+              within the project file itself).
+    -->
+    <NetFx45 Condition="'$(NetFx45)' == ''">false</NetFx45>
+
+    <!--
+        NOTE: Only use functionality available in the .NET Framework 4.5.1?  By
+              default, this is disabled.  This must be enabled to successfully
+              build the project using Visual Studio 2013 and/or the .NET
+              Framework 4.5.1 (if necessary, it will typically be enabled from
+              within the project file itself).
+    -->
+    <NetFx451 Condition="'$(NetFx451)' == ''">false</NetFx451>
+
+    <!--
+        NOTE: Load the version-specific settings for the .NET Framework 2.0?
+              By default, this is disabled.  If this is enabled when compiling
+              for the .NET Framework 2.0, the version-specific settings file
+              "SQLite.NET.Settings.targets.netFx20" will be loaded if it is
+              actually present, before any other settings in this file are
+              processed.
+    -->
+    <NetFx20Settings Condition="'$(NetFx20Settings)' == ''">false</NetFx20Settings>
+
+    <!--
+        NOTE: Load the version-specific settings for the .NET Framework 3.5?
+              By default, this is disabled.  If this is enabled when compiling
+              for the .NET Framework 3.5, the version-specific settings file
+              "SQLite.NET.Settings.targets.netFx35" will be loaded if it is
+              actually present, before any other settings in this file are
+              processed.
+    -->
+    <NetFx35Settings Condition="'$(NetFx35Settings)' == ''">false</NetFx35Settings>
+
+    <!--
+        NOTE: Load the version-specific settings for the .NET Framework 4.0?
+              By default, this is disabled.  If this is enabled when compiling
+              for the .NET Framework 4.0, the version-specific settings file
+              "SQLite.NET.Settings.targets.netFx40" will be loaded if it is
+              actually present, before any other settings in this file are
+              processed.
+    -->
+    <NetFx40Settings Condition="'$(NetFx40Settings)' == ''">false</NetFx40Settings>
+
+    <!--
+        NOTE: Load the version-specific settings for the .NET Framework 4.5?
+              By default, this is disabled.  If this is enabled when compiling
+              for the .NET Framework 4.5, the version-specific settings file
+              "SQLite.NET.Settings.targets.netFx45" will be loaded if it is
+              actually present, before any other settings in this file are
+              processed.
+    -->
+    <NetFx45Settings Condition="'$(NetFx45Settings)' == ''">false</NetFx45Settings>
+
+    <!--
+        NOTE: Load the version-specific settings for the .NET Framework 4.5.1?
+              By default, this is disabled.  If this is enabled when compiling
+              for the .NET Framework 4.5.1, the version-specific settings file
+              "SQLite.NET.Settings.targets.netFx451" will be loaded if it is
+              actually present, before any other settings in this file are
+              processed.
+    -->
+    <NetFx451Settings Condition="'$(NetFx451Settings)' == ''">false</NetFx451Settings>
+  </PropertyGroup>
+
+  <!--
+  ******************************************************************************
+  **                            Feature Properties                            **
+  ******************************************************************************
+  -->
+
+  <PropertyGroup>
+    <!--
+        NOTE: Enable extra internal state checking for the public members of
+              several key classes that use a connection.  By default, this is
+              disabled.
+    -->
+    <CheckState Condition="'$(CheckState)' == ''">false</CheckState>
+
+    <!--
+        NOTE: Enable counting of all object instances for the CriticalHandle
+              derived classes?  By default, this is disabled.  If this is
+              enabled, this library will keep count of all non-disposed object
+              instances for all the CriticalHandle derived classes.  Each
+              counter will be incremented when an instance of the associated
+              critical handle class is constructed and decremented when the
+              ReleaseHandle method is completed successfully on an instance.
+              These counts are intended to be used by the test suite to detect
+              possible resource leaks.
+    -->
+    <CountHandle Condition="'$(CountHandle)' == ''">false</CountHandle>
+
+    <!--
+        NOTE: Enable tracking of all outstanding bytes allocated by the
+              SQLiteMemory class.  By default, this is disabled.  If this is
+              enabled, this library will keep track of all outstanding bytes
+              allocated by the SQLiteMemory class.  This has the potential to
+              slow down the library a bit.
+    -->
+    <TrackMemoryBytes Condition="'$(TrackMemoryBytes)' == ''">false</TrackMemoryBytes>
+
+    <!--
+        NOTE: For interaction with the native SQLite implementation, use the
+              custom built interop DLL (i.e. "SQLite.Interop.dll")?  By default,
+              this is enabled.  This property is mutually exclusive with the
+              "UseSqliteStandard" one, below.  This should always be disabled in
+              the project file that builds the NetModule target.
+    -->
+    <UseInteropDll Condition="'$(UseInteropDll)' == ''">true</UseInteropDll>
+
+    <!--
+        NOTE: For interaction with the native SQLite implementation, use the
+              sqlite3_prepare_v2() function when preparing queries?  By default,
+              this is enabled.  When using a native SQLite implementation prior
+              to version 3.3.9, this must be disabled.
+    -->
+    <UsePrepareV2 Condition="'$(UsePrepareV2)' == ''">true</UsePrepareV2>
+
+    <!--
+        NOTE: For interaction with the native SQLite implementation, use the
+              standard DLL (i.e. "sqlite3.dll")?  By default, this is disabled.
+              This property is mutually exclusive with the "UseInteropDll" one,
+              above.  This should always be disabled in the project file that
+              builds the NetModule target.
+    -->
+    <UseSqliteStandard Condition="'$(UseSqliteStandard)' == ''">false</UseSqliteStandard>
+
+    <!--
+        NOTE: Is the project being built to support the .NET Compact Framework?
+    -->
+    <IsCompactFramework Condition="'$(IsCompactFramework)' == ''">false</IsCompactFramework>
+
+    <!--
+        NOTE: Emit an AssemblyFlags attribute that includes the Retargetable
+              flag from the AssemblyNameFlags enumeration?
+    -->
+    <IsRetargetable Condition="'$(IsRetargetable)' == ''">false</IsRetargetable>
+
+    <!--
+        NOTE: Throw an exception if an object has already been disposed?  By
+              default, this is enabled.  If this is disabled, an exception will
+              not be thrown when a SQLite object which has already been disposed
+              is accessed.
+    -->
+    <ThrowOnDisposed Condition="'$(ThrowOnDisposed)' == ''">true</ThrowOnDisposed>
+
+    <!--
+        NOTE: *EXPERIMENTAL* Attempt to pre-load the native SQLite library?  By
+              default, this is enabled.  If this is disabled, no attempt will be
+              made to pre-load the native SQLite library appropriate to the
+              processor architecture of the currently running process upon using
+              the component.  This feature is experimental and may be modified
+              or removed in a future release.
+    -->
+    <PreLoadNativeLibrary Condition="'$(PreLoadNativeLibrary)' == ''">true</PreLoadNativeLibrary>
+
+    <!--
+        NOTE: Enable using the "well-known" extension functions from the custom
+              built interop DLL (i.e. "SQLite.Interop.dll")?  By default, this
+              is enabled.  If this is disabled, the "well-known" extension
+              functions will be unavailable.  If this is enabled, it must also
+              be enabled via the "INTEROP_EXTENSION_FUNCTIONS=1" preprocessor
+              define being present in the "INTEROP_EXTRA_DEFINES" macro in the
+              build properties file:
+
+                  "SQLite.Interop\props\SQLite.Interop.20YY.[vs]props"
+
+              for the corresponding version(s) of Visual Studio.
+    -->
+    <InteropExtensionFunctions Condition="'$(InteropExtensionFunctions)' == ''">true</InteropExtensionFunctions>
+
+    <!--
+        NOTE: Enable the test extension from the custom built interop DLL (i.e.
+              "SQLite.Interop.dll")?  By default, this is enabled only in the
+              Debug build configuration.  If this is disabled, the test
+              extension will be unavailable.  If this is enabled, it must also
+              be enabled via the "INTEROP_TEST_EXTENSION=1" preprocessor define
+              being present in the "INTEROP_DEBUG_DEFINES" macro in the build
+              properties file:
+
+                  "SQLite.Interop\props\SQLite.Interop.20YY.[vs]props"
+
+              for the corresponding version(s) of Visual Studio.
+    -->
+    <InteropTestExtension Condition="'$(InteropTestExtension)' == '' And '$(Configuration)' == 'Debug'">true</InteropTestExtension>
+    <InteropTestExtension Condition="'$(InteropTestExtension)' == '' And '$(Configuration)' != 'Debug'">false</InteropTestExtension>
+
+    <!--
+        NOTE: Enable exposing the CryptoAPI based codec from the custom built
+              interop DLL (i.e. "SQLite.Interop.dll")?  By default, this is
+              enabled.  If this is disabled, support for encrypted databases
+              will be unavailable.  If this is enabled, it must also be enabled
+              via the "SQLITE_HAS_CODEC=1" preprocessor define being present in
+              the "SQLITE_EXTRA_DEFINES" macro in the build properties file:
+
+                  "SQLite.Interop\props\sqlite3.[vs]props"
+
+              AND via the "INTEROP_CODEC=1" preprocessor define being present in
+              the "INTEROP_EXTRA_DEFINES" macro in the build properties file:
+
+                  "SQLite.Interop\props\SQLite.Interop.20YY.[vs]props"
+
+              both for the corresponding version(s) of Visual Studio.
+    -->
+    <InteropCodec Condition="'$(InteropCodec)' == ''">true</InteropCodec>
+
+    <!--
+        NOTE: Enable extra diagnostics from the custom built interop DLL (i.e.
+              "SQLite.Interop.dll")?  By default, this is enabled in the Debug
+              build configuration.  If this is disabled, no extra diagnostics
+              will be emitted.  If this is enabled, it must also be enabled via
+              the "INTEROP_DEBUG=XX" preprocessor define being present in the
+              "INTEROP_DEBUG_DEFINES" macro in the build properties file:
+
+                  "SQLite.Interop\props\SQLite.Interop.20YY.[vs]props"
+
+              for the corresponding version(s) of Visual Studio where the XX is
+              an integer value that represents a combination of one or more of
+              the following bit flags values (i.e. to enable extra diagnostics
+              for a particular native function call):
+
+                  INTEROP_DEBUG_CLOSE          (0x0001)
+                  INTEROP_DEBUG_FINALIZE       (0x0002)
+                  INTEROP_DEBUG_BACKUP_FINISH  (0x0004)
+                  INTEROP_DEBUG_OPEN           (0x0008)
+                  INTEROP_DEBUG_OPEN16         (0x0010)
+                  INTEROP_DEBUG_PREPARE        (0x0020)
+                  INTEROP_DEBUG_PREPARE16      (0x0040)
+                  INTEROP_DEBUG_RESET          (0x0080)
+                  INTEROP_DEBUG_CHANGES        (0x0100)
+                  INTEROP_DEBUG_BREAK          (0x0200)
+    -->
+    <InteropDebug Condition="'$(InteropDebug)' == '' And '$(Configuration)' == 'Debug'">true</InteropDebug>
+    <InteropDebug Condition="'$(InteropDebug)' == '' And '$(Configuration)' != 'Debug'">false</InteropDebug>
+
+    <!--
+        NOTE: Disable all use of the sqlite3_close_v2() native API and use the
+              legacy System.Data.SQLite connection closing algorithm instead.
+              By default, this is disabled.  If this is enabled, it must also
+              be enabled via the "INTEROP_LEGACY_CLOSE=1" preprocessor define
+              being present in the "INTEROP_EXTRA_DEFINES" macro in the build
+              properties file:
+
+                  "SQLite.Interop\props\SQLite.Interop.20YY.[vs]props"
+
+              for the corresponding version(s) of Visual Studio.
+    -->
+    <InteropLegacyClose Condition="'$(InteropLegacyClose)' == ''">false</InteropLegacyClose>
+
+    <!--
+        NOTE: Enable the logging callback in the custom built interop DLL (i.e.
+              "SQLite.Interop.dll")?  By default, this is enabled in the Debug
+              build configuration.  If this is disabled, the logging callback
+              will be unavailable and diagnostic messages may not be seen if
+              another native logging callback is not configured.  If this is
+              enabled, it must also be enabled via the "INTEROP_LOG=1"
+              preprocessor define being present in the "INTEROP_DEBUG_DEFINES"
+              macro in the build properties file:
+
+                  "SQLite.Interop\props\SQLite.Interop.20YY.[vs]props"
+
+              for the corresponding version(s) of Visual Studio.
+    -->
+    <InteropLog Condition="'$(InteropLog)' == '' And '$(Configuration)' == 'Debug'">true</InteropLog>
+    <InteropLog Condition="'$(InteropLog)' == '' And '$(Configuration)' != 'Debug'">false</InteropLog>
+
+    <!--
+        NOTE: Enable including the vtshim module as a statically available
+              extension?  This will allow virtual tables to be implemented in
+              managed code.  By default, this is enabled.  If this is disabled,
+              support for implementing virtual tables in managed code will be
+              unavailable.  If this is enabled, it must also be enabled via
+              the "INTEROP_VIRTUAL_TABLE=1" preprocessor define being present
+              in the "INTEROP_EXTRA_DEFINES" macro in the build properties
+              file:
+
+                  "SQLite.Interop\props\SQLite.Interop.20YY.[vs]props"
+
+              both for the corresponding version(s) of Visual Studio.
+    -->
+    <InteropVirtualTable Condition="'$(InteropVirtualTable)' == ''">true</InteropVirtualTable>
+
+    <!--
+        NOTE: Enable the use of native Windows APIs, when available?  By
+              default, this is enabled.  If this is disabled, all features
+              that require the use of native Windows APIs will be unavailable.
+    -->
+    <UseWindows Condition="'$(UseWindows)' == ''">true</UseWindows>
+  </PropertyGroup>
+
+  <!--
+  ******************************************************************************
+  **                             Trace Properties                             **
+  ******************************************************************************
+  -->
+
+  <PropertyGroup>
+    <!--
+        NOTE: Enable tracing of events related to connection handling?  By
+              default, this is disabled.
+    -->
+    <TraceConnection Condition="'$(TraceConnection)' == ''">false</TraceConnection>
+
+    <!--
+        NOTE: Enable tracing of events related to CriticalHandle handling?  By
+              default, this is disabled.
+    -->
+    <TraceHandle Condition="'$(TraceHandle)' == ''">false</TraceHandle>
+
+    <!--
+        NOTE: Enable tracing of events related to the native library pre-loading
+              code?  By default, this is enabled.
+    -->
+    <TracePreLoad Condition="'$(TracePreLoad)' == ''">true</TracePreLoad>
+
+    <!--
+        NOTE: Enable tracing of events related to the prepared statements?  By
+              default, this is disabled.
+    -->
+    <TraceStatement Condition="'$(TraceStatement)' == ''">false</TraceStatement>
+
+    <!--
+        NOTE: Enable tracing of potentially important, but non-fatal error
+              conditions that cannot be reported another way?  By default, this
+              is enabled.
+    -->
+    <TraceWarning Condition="'$(TraceWarning)' == ''">true</TraceWarning>
+  </PropertyGroup>
+
+  <!--
+  ******************************************************************************
+  **                            Warning Properties                            **
+  ******************************************************************************
+  -->
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <!--
+        NOTE: Debug build.  Set the warning level to maximum.  Also, disable
+              warnings that tend to cause too much noise.
+    -->
+    <WarningLevel>4</WarningLevel>
+    <NoWarn>618,1591;3001</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <!--
+        NOTE: Release build.  Set the warning level to maximum.  Also, disable
+              warnings that tend to cause too much noise.
+    -->
+    <WarningLevel>4</WarningLevel>
+    <NoWarn>618,1591;3001</NoWarn>
+  </PropertyGroup>
+
+  <!--
+  ******************************************************************************
+  **                      Build Configuration Properties                      **
+  ******************************************************************************
+  -->
+
+  <PropertyGroup>
+    <!--
+        NOTE: The suffix for the name of the build configuration directory .  By
+              default, this is an empty string.
+    -->
+    <ConfigurationSuffix Condition="'$(ConfigurationSuffix)' == ''"></ConfigurationSuffix>
+  </PropertyGroup>
+
+  <!--
+  ******************************************************************************
+  **                         Relative Path Properties                         **
+  ******************************************************************************
+  -->
+
+  <PropertyGroup Condition="'$(SQLiteNetDir)' != ''">
+    <!--
+        NOTE: Keep all the intermediate files in one place.  The Visual Studio
+              IDE seems to have a nasty habit of ignoring this setting.  The
+              Visual Studio IDE then fails to build the project(s) properly when
+              the output does not end up where it expects the output to be.  The
+              value of this property must have a trailing backslash.
+    -->
+    <BaseIntermediateOutputPath Condition="'$(ConfigurationSuffix)' == ''">$(SQLiteNetDir)\obj\$(ConfigurationYear)\</BaseIntermediateOutputPath>
+    <BaseIntermediateOutputPath Condition="'$(ConfigurationSuffix)' != ''">$(SQLiteNetDir)\obj\$(ConfigurationYear)\$(ConfigurationSuffix)\</BaseIntermediateOutputPath>
+  </PropertyGroup>
+
+  <!--
+  ******************************************************************************
+  **                Per-Configuration Relative Path Properties                **
+  ******************************************************************************
+  -->
+
+  <PropertyGroup Condition="'$(SQLiteNetDir)' != '' And '$(Configuration)' != ''">
+    <!--
+        NOTE: The final output files need to end up in one place.  The value of
+              this property must have a trailing backslash.
+    -->
+    <BinaryOutputPath Condition="'$(BinaryOutputPath)' == ''">$(SQLiteNetDir)\bin\$(ConfigurationYear)\$(Configuration)$(ConfigurationSuffix)\bin\</BinaryOutputPath>
+  </PropertyGroup>
+
+  <!--
+  ******************************************************************************
+  **                      Strong Name Signing Properties                      **
+  ******************************************************************************
+  -->
+
+  <PropertyGroup Condition="'$(SQLiteNetDir)' != '' And
+                            !HasTrailingSlash('$(SQLiteNetDir)') And
+                            (('$(IsCompactFramework)' == 'false' And Exists('$(SQLiteNetDir)\System.Data.SQLite\System.Data.SQLite.snk')) Or
+                             ('$(IsCompactFramework)' != 'false' And Exists('$(SQLiteNetDir)\System.Data.SQLite\System.Data.SQLite.CF.snk')))">
+    <!--
+        NOTE: Sign the assembly?  By default, this is enabled.
+    -->
+    <SignAssembly Condition="'$(SignAssembly)' == ''">true</SignAssembly>
+
+    <!--
+        NOTE: Use delay signing?  By default, this is disabled because the
+              default strong name key pair is included with the source code.
+    -->
+    <DelaySign Condition="'$(DelaySign)' == ''">false</DelaySign>
+
+    <!--
+        NOTE: The full path and file name for the strong name key pair to use.
+    -->
+    <AssemblyOriginatorKeyFile Condition="'$(AssemblyOriginatorKeyFile)' == '' And '$(IsCompactFramework)' == 'false'">$(SQLiteNetDir)\System.Data.SQLite\System.Data.SQLite.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile Condition="'$(AssemblyOriginatorKeyFile)' == '' And '$(IsCompactFramework)' != 'false'">$(SQLiteNetDir)\System.Data.SQLite\System.Data.SQLite.CF.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+</Project>

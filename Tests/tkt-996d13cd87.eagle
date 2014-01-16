@@ -1,0 +1,301 @@
+###############################################################################
+#
+# tkt-996d13cd87.eagle --
+#
+# Written by Joe Mistachkin.
+# Released to the public domain, use at your own risk!
+#
+###############################################################################
+
+package require Eagle
+package require Eagle.Library
+package require Eagle.Test
+
+runTestPrologue
+
+###############################################################################
+
+package require System.Data.SQLite.Test
+runSQLiteTestPrologue
+
+###############################################################################
+
+for {set i 1} {$i < 11} {incr i} {
+  set pooling [expr {$i % 2 == 0 ? True : False}]
+  set count [expr {$i <= 2 ? 100 : int(rand() * 100 + 1)}]
+
+  runTest {test [appendArgs tkt-996d13cd87-1. $i] {SQLiteConnection stress} \
+      -setup {
+    set fileName [appendArgs tkt-996d13cd87-1. $i .db]
+
+    tputs $test_channel [appendArgs \
+        "---- using a total of " $count " threads...\n"]
+
+    if {![haveConstraint runtime.noPoolCounts] && [catch {
+        object invoke -flags +NonPublic \
+            System.Data.SQLite.SQLiteConnectionPool _poolOpened 0
+
+        object invoke -flags +NonPublic \
+            System.Data.SQLite.SQLiteConnectionPool _poolClosed 0
+    }] == 0} then {
+      set havePoolCounts true
+    } else {
+      set havePoolCounts false
+
+      tputs $test_channel \
+          "==== WARNING: connection pool counts are not available\n"
+    }
+
+    proc getPoolCounts {} {
+      #
+      # NOTE: If we have the ability to determine the opened/closed pool
+      #       counts, fetch them now; otherwise, just set them to zero.
+      #
+      if {$::havePoolCounts} then {
+        set ::poolCounts(opened) [object invoke -flags +NonPublic \
+            System.Data.SQLite.SQLiteConnectionPool _poolOpened]
+
+        set ::poolCounts(closed) [object invoke -flags +NonPublic \
+            System.Data.SQLite.SQLiteConnectionPool _poolClosed]
+
+        tputs $::test_channel [appendArgs \
+            "---- opened " $::poolCounts(opened) " connections from the pool\n"]
+
+        tputs $::test_channel [appendArgs \
+            "---- closed " $::poolCounts(closed) " connections to the pool\n"]
+      } else {
+        set ::poolCounts(opened) 0
+        set ::poolCounts(closed) 0
+      }
+
+      return ""
+    }
+  } -body {
+    set id [object invoke Interpreter.GetActive NextId]
+    set dataSource [file join [getDatabaseDirectory] $fileName]
+
+    set sql { \
+      CREATE TABLE t1(x TEXT); \
+      INSERT INTO t1 (x) VALUES(RANDOMBLOB(1000)); \
+    }
+
+    unset -nocomplain results errors
+
+    set code [compileCSharpWith [subst {
+      using System;
+      using System.Data.SQLite;
+      using System.Diagnostics;
+      using System.Threading;
+
+      namespace _Dynamic${id}
+      {
+        public static class Test${id}
+        {
+          public static int Main()
+          {
+            //
+            // NOTE: This is the total number of exceptions caught by all the
+            //       test threads.
+            //
+            int errors = 0;
+
+            //
+            // NOTE: This is the total number of test threads to create.
+            //
+            int count = ${count};
+
+            //
+            // NOTE: This is the total number of times we should force a full
+            //       garbage collection.
+            //
+            int gcCount = 2;
+
+            //
+            // NOTE: Create a random number generator suitable for waiting a
+            //       random number of milliseconds between each attempt to
+            //       cause the race condition on a given thread.
+            //
+            Random random = new Random();
+
+            //
+            // NOTE: Create the event that will be used to synchronize all the
+            //       created threads so that they start doing their actual test
+            //       "work" at approximately the same time.
+            //
+            using (ManualResetEvent goEvent = new ManualResetEvent(false))
+            {
+              //
+              // NOTE: Create a (reusable) delegate that will contain the code
+              //       that most of the created test threads are going to
+              //       execute.  The code in this delegate will create, open,
+              //       use, and close a single database connection with (or
+              //       without) pooling enabled.
+              //
+              ThreadStart threadStart1 = delegate()
+              {
+                try
+                {
+                  //
+                  // NOTE: Wait forever for the "GO" signal so that all threads
+                  //       can start working at approximately the same time.
+                  //
+                  goEvent.WaitOne();
+
+                  //
+                  // NOTE: Try to create, open, and close a database connection
+                  //       and then wait a random number of milliseconds before
+                  //       doing it again.
+                  //
+                  Thread.Sleep(random.Next(0, 500));
+
+                  SQLiteConnection connection = new SQLiteConnection(
+                      "Data Source=${dataSource};Pooling=${pooling};");
+
+                  connection.Open();
+
+                  using (SQLiteCommand command = new SQLiteCommand("${sql}",
+                      connection))
+                  {
+                    command.ExecuteNonQuery();
+                  }
+
+                  connection.Close();
+                  connection = null;
+                }
+                catch (Exception e)
+                {
+                  Interlocked.Increment(ref errors);
+                  Trace.WriteLine(e);
+                }
+              };
+
+              //
+              // NOTE: Create a (reusable) delegate that will contain the code
+              //       that the garbage collection thread is to execute.  The
+              //       code in this delegate will attempt to force a full round
+              //       of garbage collection several times.
+              //
+              ThreadStart threadStart2 = delegate()
+              {
+                try
+                {
+                  //
+                  // NOTE: Wait forever for the "GO" signal so that all threads
+                  //       can start working at approximately the same time.
+                  //
+                  goEvent.WaitOne();
+
+                  //
+                  // NOTE: Wait a random number of milliseconds before forcing
+                  //       a full garbage collection.
+                  //
+                  for (int index = 0; index < gcCount; index++)
+                  {
+                    Thread.Sleep(random.Next(0, 1000));
+                    GC.GetTotalMemory(true);
+                  }
+                }
+                catch (Exception e)
+                {
+                  Interlocked.Increment(ref errors);
+                  Trace.WriteLine(e);
+                }
+              };
+
+              //
+              // NOTE: Create the array of thread objects.
+              //
+              Thread\[\] thread = new Thread\[count\];
+
+              //
+              // NOTE: Create each of the test threads with a suitable stack
+              //       size.  We must specify a stack size here because the
+              //       default one for the process would be the same as the
+              //       parent executable (the Eagle shell), which is 16MB,
+              //       too large to be useful.
+              //
+              for (int index = 0; index < count; index++)
+              {
+                //
+                // NOTE: Figure out what kind of thread to create (i.e. one
+                //       that uses a connection or one that calls the GC).
+                //
+                ThreadStart threadStart;
+
+                if (index == 0)
+                  threadStart = threadStart2;
+                else
+                  threadStart = threadStart1;
+
+                thread\[index\] = new Thread(threadStart, 1048576);
+
+                //
+                // NOTE: Name each thread for a better debugging experience.
+                //
+                thread\[index\].Name = String.Format(
+                    "[file rootname ${fileName}] #{0}", index);
+              }
+
+              //
+              // NOTE: Start all the threads now.  They should not actually do
+              //       any of the test "work" until we signal the event.
+              //
+              for (int index = 0; index < count; index++)
+                thread\[index\].Start();
+
+              //
+              // NOTE: Send the signal that all threads should start doing
+              //       their test "work" now.
+              //
+              goEvent.Set(); /* GO */
+
+              //
+              // NOTE: Wait forever for each thread to finish its test "work"
+              //       and then die.
+              //
+              for (int index = 0; index < count; index++)
+                thread\[index\].Join();
+            }
+
+            //
+            // NOTE: Return the total number of exceptions caught by the test
+            //       threads.
+            //
+            return errors;
+          }
+        }
+      }
+    }] true true true results errors System.Data.SQLite.dll]
+
+    list $code $results \
+        [expr {[info exists errors] ? $errors : ""}] \
+        [expr {$code eq "Ok" ? [catch {
+          object invoke _Dynamic${id}.Test${id} Main
+        } result] : [set result ""]}] $result [getPoolCounts] \
+        [expr {$havePoolCounts ? $pooling ? $poolCounts(opened) > 0 : \
+            $poolCounts(opened) == 0} : True] \
+        [expr {$havePoolCounts ? $pooling ? $poolCounts(closed) > 0 : \
+            $poolCounts(closed) == 0} : True]
+  } -cleanup {
+    object invoke System.Data.SQLite.SQLiteConnection ClearAllPools
+    collectGarbage $test_channel
+
+    cleanupDb $fileName
+
+    unset -nocomplain result results errors code sql dataSource id \
+        poolCounts havePoolCounts fileName
+
+    rename getPoolCounts ""
+  } -constraints {eagle monoBug28 command.sql compile.DATA\
+SQLite System.Data.SQLite compileCSharp} -match regexp -result {^Ok\
+System#CodeDom#Compiler#CompilerResults#\d+ \{\} 0 \d+ \{\} True True$}}
+}
+
+###############################################################################
+
+unset -nocomplain count pooling i
+
+###############################################################################
+
+runSQLiteTestEpilogue
+runTestEpilogue

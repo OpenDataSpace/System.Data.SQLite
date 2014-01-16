@@ -1,0 +1,98 @@
+###############################################################################
+#
+# tkt-2c630bffa7.eagle --
+#
+# Written by Joe Mistachkin.
+# Released to the public domain, use at your own risk!
+#
+###############################################################################
+
+package require Eagle
+package require Eagle.Library
+package require Eagle.Test
+
+runTestPrologue
+
+###############################################################################
+
+package require System.Data.SQLite.Test
+runSQLiteTestPrologue
+
+###############################################################################
+
+set y [list -1.79769e308 -3.40282e038 -1 0 1 3.40282e038 1.79769e308]
+
+###############################################################################
+
+runTest {test tkt-2c630bffa7-1.1 {range of REAL type} -setup {
+  setupDb [set fileName tkt-2c630bffa7-1.1.db]
+} -body {
+  sql execute $db "CREATE TABLE t1(x INTEGER, y REAL);"
+
+  for {set x 0} {$x < [llength $y]} {incr x} {
+    sql execute $db \
+        "INSERT INTO t1 (x, y) VALUES($x, [lindex $y $x]);"
+  }
+
+  set result [sql execute -execute reader -format list $db \
+      "SELECT x, y FROM t1 ORDER BY x;"]
+} -cleanup {
+  cleanupDb $fileName
+
+  unset -nocomplain x result db fileName
+} -constraints \
+{eagle monoBug28 command.sql compile.DATA SQLite System.Data.SQLite} -result \
+{0 -1.79769E+308 1 -3.40282E+38 2 -1 3 0 4 1 5 3.40282E+38 6 1.79769E+308}}
+
+###############################################################################
+
+runTest {test tkt-2c630bffa7-1.2 {range of FLOAT type} -setup {
+  setupDb [set fileName tkt-2c630bffa7-1.2.db]
+} -body {
+  sql execute $db "CREATE TABLE t2(x INTEGER, y FLOAT);"
+
+  for {set x 0} {$x < [llength $y]} {incr x} {
+    sql execute $db \
+        "INSERT INTO t2 (x, y) VALUES($x, [lindex $y $x]);"
+  }
+
+  set result [sql execute -execute reader -format list $db \
+      "SELECT x, y FROM t2 ORDER BY x;"]
+} -cleanup {
+  cleanupDb $fileName
+
+  unset -nocomplain x result db fileName
+} -constraints \
+{eagle monoBug28 command.sql compile.DATA SQLite System.Data.SQLite} -result \
+{0 -1.79769E+308 1 -3.40282E+38 2 -1 3 0 4 1 5 3.40282E+38 6 1.79769E+308}}
+
+###############################################################################
+
+runTest {test tkt-2c630bffa7-1.3 {range of DOUBLE type} -setup {
+  setupDb [set fileName tkt-2c630bffa7-1.3.db]
+} -body {
+  sql execute $db "CREATE TABLE t3(x INTEGER, y DOUBLE);"
+
+  for {set x 0} {$x < [llength $y]} {incr x} {
+    sql execute $db \
+        "INSERT INTO t3 (x, y) VALUES($x, [lindex $y $x]);"
+  }
+
+  set result [sql execute -execute reader -format list $db \
+      "SELECT x, y FROM t3 ORDER BY x;"]
+} -cleanup {
+  cleanupDb $fileName
+
+  unset -nocomplain x result db fileName
+} -constraints \
+{eagle monoBug28 command.sql compile.DATA SQLite System.Data.SQLite} -result \
+{0 -1.79769E+308 1 -3.40282E+38 2 -1 3 0 4 1 5 3.40282E+38 6 1.79769E+308}}
+
+###############################################################################
+
+unset -nocomplain y
+
+###############################################################################
+
+runSQLiteTestEpilogue
+runTestEpilogue

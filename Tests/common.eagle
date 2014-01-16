@@ -1,0 +1,2560 @@
+###############################################################################
+#
+# common.eagle --
+#
+# Written by Joe Mistachkin.
+# Released to the public domain, use at your own risk!
+#
+###############################################################################
+
+#
+# NOTE: Use our own namespace here because even though we do not directly
+#       support namespaces ourselves, we do not want to pollute the global
+#       namespace if this script actually ends up being evaluated in Tcl.
+#
+namespace eval ::Eagle {
+  if {[isEagle]} then {
+    ###########################################################################
+    ############################ BEGIN Eagle ONLY #############################
+    ###########################################################################
+
+    proc getBuildYear {} {
+      #
+      # NOTE: See if the "year" setting has been overridden by the user (e.g.
+      #       on the command line).  This helps control exactly which set of
+      #       binaries we are testing, those produced using the Visual Studio
+      #       2005, 2008, 2010, 2012, or 2013 build systems.  To override this
+      #       value via the command line, enter a command similar to one of
+      #       the following (all on one line):
+      #
+      #       EagleShell.exe -anyInitialize "set test_year 2005"
+      #         -file .\path\to\all.eagle
+      #
+      #       EagleShell.exe -anyInitialize "set test_year 2008"
+      #         -file .\path\to\all.eagle
+      #
+      #       EagleShell.exe -anyInitialize "set test_year 2010"
+      #         -file .\path\to\all.eagle
+      #
+      #       EagleShell.exe -anyInitialize "set test_year 2012"
+      #         -file .\path\to\all.eagle
+      #
+      #       EagleShell.exe -anyInitialize "set test_year 2013"
+      #         -file .\path\to\all.eagle
+      #
+      #       EagleShell.exe -anyInitialize "unset -nocomplain test_year"
+      #         -file .\path\to\all.eagle
+      #
+      if {[info exists ::test_year] && [string length $::test_year] > 0} then {
+        #
+        # NOTE: Use the specified test year.  If this variable is not set, the
+        #       default value will be based on whether or not Eagle has been
+        #       compiled against the CLR v2.0 or CLR v4.0.
+        #
+        return $::test_year
+      } else {
+        #
+        # NOTE: If Eagle has been compiled against the CLR v4.0, use "2010" by
+        #       default (we could use "2012" or "2013" in that case as well) as
+        #       the test year; otherwise, use "2008" by default (we could use
+        #       "2005" in that case as well).  If another major [incompatible]
+        #       version of the CLR is released, this check will have to be
+        #       changed.  The default test year to use for a particular CLR
+        #       version may be overridden by setting the global variable
+        #       "test_year_clr_v$X", where "$X" may [currently] be either "2"
+        #       or "4".
+        #
+        if {[haveConstraint imageRuntime40]} then {
+          if {[info exists ::test_year_clr_v4] && \
+              [string length $::test_year_clr_v4] > 0} then {
+            #
+            # NOTE: Use the specified test year for the CLR v4.0.
+            #
+            return $::test_year_clr_v4
+          } else {
+            #
+            # NOTE: Use the default test year for the CLR v4.0.
+            #
+            return 2010; # TODO: Good "fallback" default?
+          }
+        } else {
+          if {[info exists ::test_year_clr_v2] && \
+              [string length $::test_year_clr_v2] > 0} then {
+            #
+            # NOTE: Use the specified test year for the CLR v2.0.
+            #
+            return $::test_year_clr_v2
+          } else {
+            #
+            # NOTE: Use the default test year for the CLR v2.0.
+            #
+            return 2008; # TODO: Good "fallback" default?
+          }
+        }
+      }
+    }
+
+    proc getBuildYears {} {
+      #
+      # NOTE: See if the list of test years has been overridden by the user
+      #       (e.g. on the command line).
+      #
+      if {[info exists ::test_years] && [llength $::test_years] > 0} then {
+        #
+        # NOTE: Use the specified list of test years.
+        #
+        return $::test_years
+      } else {
+        #
+        # NOTE: Use the default list of test years.
+        #
+        return [list 2005 2008 2010 2012 2013]
+      }
+    }
+
+    proc getBuildPlatform { native } {
+      if {[info exists ::test_platform] && \
+          [string length $::test_platform] > 0} then {
+        #
+        # NOTE: Use the specified test platform.  If this variable is not set,
+        #       the default value will be based on the machine architecture.
+        #
+        return [expr {$native ? $::test_platform : ""}]
+      } elseif {[info exists ::test_machine] && \
+          [string length $::test_machine] > 0} then {
+        #
+        # NOTE: For native builds, return the platform name corresponding to
+        #       the test machine architecture; otherwise, return an empty
+        #       string.
+        #
+        return [expr {$native ? [machineToPlatform $::test_machine] : ""}]
+      } elseif {[info exists ::tcl_platform(machine)]} then {
+        #
+        # NOTE: For native builds, return the platform name corresponding to
+        #       the machine architecture; otherwise, return an empty string.
+        #
+        return [expr {$native ? \
+            [machineToPlatform $::tcl_platform(machine)] : ""}]
+      } else {
+        #
+        # NOTE: No machine architecture is available, return an empty string.
+        #
+        return ""
+      }
+    }
+
+    proc getBuildConfiguration {} {
+      #
+      # NOTE: See if the "configuration" setting has been overridden by the
+      #       user (e.g. on the command line).  This helps control exactly
+      #       which set of binaries we are testing (i.e. those built in the
+      #       "Debug" or "Release" build configurations).  To override this
+      #       value via the command line, enter a command similar to one of
+      #       the following (all on one line):
+      #
+      #       EagleShell.exe -anyInitialize "set test_configuration Debug"
+      #         -file .\path\to\all.eagle
+      #
+      #       EagleShell.exe -anyInitialize "set test_configuration Release"
+      #         -file .\path\to\all.eagle
+      #
+      #       EagleShell.exe -file .\path\to\all.eagle -preTest
+      #         "unset -nocomplain test_configuration"
+      #
+      if {[info exists ::test_configuration] && \
+          [string length $::test_configuration] > 0} then {
+        #
+        # NOTE: Use the specified test configuration.  The default value used
+        #       for this variable is typically "Release", as set by the test
+        #       suite itself.
+        #
+        return $::test_configuration
+      } else {
+        #
+        # NOTE: Normally, we will never hit this case because the value of the
+        #       test configuration variable is always set by the test suite
+        #       itself; however, it can be overridden using the unset command
+        #       from the -preTest option to the test suite.
+        #
+        return $::eagle_platform(configuration)
+      }
+    }
+
+    proc getBuildConfigurations {} {
+      #
+      # NOTE: See if the list of test configurations has been overridden by
+      #       the user (e.g. on the command line).
+      #
+      if {[info exists ::test_configurations] && \
+          [llength $::test_configurations] > 0} then {
+        #
+        # NOTE: Use the specified list of test configurations.
+        #
+        return $::test_configurations
+      } else {
+        #
+        # NOTE: Use the default list of test configurations.
+        #
+        return [list Debug Release]
+      }
+    }
+
+    proc getBuildBaseDirectory {} {
+      #
+      # NOTE: Figure out the base directory where all the builds should be
+      #       located.  This will be the directory that contains the actual
+      #       build output directory (e.g. parent of "bin").
+      #
+      if {[info exists ::build_base_directory] && \
+          [string length $::build_base_directory] > 0} then {
+        #
+        # NOTE: The location of the build base directory has been overridden;
+        #       therefore, use it verbatim.
+        #
+        return $::build_base_directory
+      } elseif {[info exists ::common_directory] && \
+          [string length $::common_directory] > 0} then {
+        #
+        # NOTE: Next, fallback to the parent directory of the one containing
+        #       this file (i.e. "common.eagle"), if available.
+        #
+        return [file dirname $::common_directory]
+      } elseif {[info exists ::path] && \
+          [string length $::path] > 0} then {
+        #
+        # NOTE: Finally, fallback to the parent directory of the EagleTest
+        #       path.  The EagleTest package guarantees that this variable
+        #       will be set to the directory containing the first file to
+        #       execute the [runTestPrologue] script library procedure.
+        #
+        return [file dirname $::path]
+      } else {
+        #
+        # NOTE: No path is available, return an empty string.  This point
+        #       should not be reached.
+        #
+        return ""
+      }
+    }
+
+    proc isMixedModeAssembly { fileName {varName ""} } {
+      #
+      # NOTE: First, make sure the test suite infrastructure is allowed to
+      #       use the [exec] command.
+      #
+      if {![info exists ::no(exec)] && ![info exists ::no(corFlags)]} then {
+        #
+        # NOTE: If the location of CorFlags is present in the environment,
+        #       use it; otherwise assume it is in the PATH.
+        #
+        set corFlags [expr {
+          [info exists ::env(CorFlags)] ? $::env(CorFlags) : "CorFlags"
+        }]
+
+        #
+        # NOTE: Attempt to execute CorFlags on the specified file.
+        #
+        if {[catch {
+          exec -- $corFlags [file nativename $fileName]
+        } exec] == 0} then {
+          #
+          # NOTE: If requested by our caller, attempt to determine the
+          #       platform for the specified file as well.
+          #
+          if {[string length $varName] > 0} then {
+            #
+            # NOTE: Store the platform in the named variable in the
+            #       context of our caller.
+            #
+            upvar 1 $varName platform
+
+            #
+            # NOTE: Attempt to extract the PE line from the captured
+            #       output.  If this value is "PE32" or "PE32+", the
+            #       assembly file is 32-bit or 64-bit, respectively;
+            #       otherwise, its type is unknown.
+            #
+            set pattern {^PE        : (PE32|PE32\+)\s+$}
+
+            if {[regexp -line -- $pattern $exec dummy pe32]} then {
+              #
+              # HACK: This [switch] assumes that 32-bit executables are
+              #       always x86 and that 64-bit executables are always
+              #       x64.
+              #
+              switch -exact -- $pe32 {
+                PE32 {
+                  set platform Win32
+                }
+                PE32+ {
+                  set platform x64
+                }
+                default {
+                  set platform ""
+                }
+              }
+            } else {
+              set platform ""
+            }
+          }
+
+          #
+          # NOTE: Attempt to extract the ILONLY line from the captured
+          #       output.  If this value is zero, the specified file must
+          #       be a mixed-mode assembly; otherwise, it contains only
+          #       managed components.
+          #
+          set pattern {^ILONLY    : (0|1)\s+$}
+
+          if {![regexp -line -- $pattern $exec dummy ilOnly]} then {
+            return false
+          }
+
+          if {!$ilOnly} then {
+            return true
+          }
+        }
+      }
+
+      #
+      # NOTE: If the test suite cannot use [exec] or execution of CorFlags
+      #       failed, return false.
+      #
+      return false
+    }
+
+    proc isBuildAvailable { native directory {varName ""} } {
+      #
+      # NOTE: Build the fully qualified file name for the primary assembly
+      #       containing the System.Data.SQLite managed components.  It
+      #       should be noted that this assembly file may also contain the
+      #       native components, if a native build is in use.
+      #
+      set fileName [file nativename [file join $directory \
+          System.Data.SQLite.dll]]
+
+      if {![file exists $fileName]} then {
+        return false
+      }
+
+      #
+      # NOTE: Attempt to automatically detect if the primary assembly
+      #       contains any native components, if necessary.
+      #
+      if {[string length $native] == 0} then {
+        if {[string length $varName] > 0} then {
+          upvar 1 $varName $varName
+        }
+
+        set native [isMixedModeAssembly $fileName $varName]
+      }
+
+      #
+      # NOTE: If the primary assembly also contains the native components,
+      #       we have everything we need.
+      #
+      if {$native} then {
+        return true
+      }
+
+      #
+      # NOTE: Build the fully qualified file name for the interop assembly
+      #       containing the System.Data.SQLite native components.  If this
+      #       file exists, we should have everything we need.
+      #
+      set fileName [file nativename [file join $directory \
+          SQLite.Interop.dll]]
+
+      if {[file exists $fileName]} then {
+        return true
+      }
+
+      #
+      # NOTE: Build the fully qualified file name for the SQLite core
+      #       library.  If this file exists, we should have everything we
+      #       need.
+      #
+      set fileName [file nativename [file join $directory \
+          sqlite3.dll]]
+
+      if {[file exists $fileName]} then {
+        return true
+      }
+
+      #
+      # NOTE: One or more native components needed by System.Data.SQLite
+      #       are missing.
+      #
+      return false
+    }
+
+    proc isReleaseAvailable { directory {varName ""} } {
+      if {[string length $varName] > 0} then {
+        upvar 1 $varName $varName
+      }
+
+      return [isBuildAvailable "" $directory $varName]
+    }
+
+    proc joinBuildDirectory { native path year platform configuration } {
+      #
+      # NOTE: Figure out and then return the fully qualified path to the build
+      #       directory based on all the arguments provided by our caller.
+      #
+      if {$native} then {
+        return [file join $path bin $year $platform $configuration]
+      } else {
+        return [file join $path bin $year $configuration bin]
+      }
+    }
+
+    proc getBuildDirectory {} {
+      #
+      # NOTE: See if the "native" runtime option has been set.  If so, use the
+      #       directory for the mixed-mode assembly (a.k.a. the native interop
+      #       assembly).  To enable this option via the command line, enter a
+      #       command similar to one of the following (all on one line):
+      #
+      #       EagleShell.exe -initialize -runtimeOption native
+      #         -file .\path\to\all.eagle
+      #
+      #       To enable this option via the command line prior to the "beta 16"
+      #       release of Eagle, the following command must be used instead
+      #       (also all on one line):
+      #
+      #       EagleShell.exe -initialize -postInitialize
+      #         "object invoke Interpreter.GetActive AddRuntimeOption native"
+      #         -file .\path\to\all.eagle
+      #
+      if {[info exists ::build_directory] && \
+          [string length $::build_directory] > 0} then {
+        #
+        # NOTE: The location of the build directory has been overridden;
+        #       therefore, use it verbatim.
+        #
+        return $::build_directory
+      } else {
+        #
+        # NOTE: If the "native" runtime option is set, the mixed-mode assembly
+        #       is being tested.  In that case, the path to the build directory
+        #       will contain the platform name and all the binaries under test
+        #       should be present in that directory.  If the "native" runtime
+        #       option is not set, the build directory will be considered to be
+        #       "platform-neutral", with the notable exception of any native
+        #       assembly (e.g. "SQLite.Interop.dll") copied there during the
+        #       build process itself.  If the build process somehow does not
+        #       copy the native assembly for this platform, most of the tests
+        #       in the suite will simply be skipped.  Generally speaking, there
+        #       are two ways to build the binaries when preparing to run the
+        #       test suite:
+        #
+        #       1. Build the separate managed and native assemblies using some
+        #          commands similar to:
+        #
+        #          build.bat ${Configuration}ManagedOnly ${Platform}
+        #          build.bat ${Configuration}NativeOnly ${Platform}
+        #
+        #          Where ${Configuration} is either "Debug" or "Release" and
+        #          ${Platform} is either "Win32" or "x64".
+        #
+        #       2. Build the mixed-mode assembly using a command similar to:
+        #
+        #          build.bat ${Configuration} ${Platform}
+        #
+        #          Where ${Configuration} is either "Debug" or "Release" and
+        #          ${Platform} is either "Win32" or "x64".  If this command is
+        #          used, various tests that require supplementary managed
+        #          assemblies (e.g. LINQ) may be skipped unless those binaries
+        #          are subsequently copied into the correct directory (i.e. by
+        #          "test_all.bat").
+        #
+        #       Note that all of the build commands above will default to using
+        #       the latest version of MSBuild available and the "test_year" may
+        #       need to be adjusted accordingly to actually run the test suite.
+        #       Refer to the comments in [getBuildYear] for more information on
+        #       how to set this variable.
+        #
+        set native [hasRuntimeOption native]
+
+        return [joinBuildDirectory $native [getBuildBaseDirectory] \
+            [getBuildYear] [getBuildPlatform $native] [getBuildConfiguration]]
+      }
+    }
+
+    proc getReleaseVersion {} {
+      #
+      # NOTE: Figure out the release version for use with the build directory
+      #       when checking for available releases.
+      #
+      if {[info exists ::release_version] && \
+          [string length $::release_version] > 0} then {
+        #
+        # NOTE: The release version has been overridden; therefore, use it
+        #       verbatim.
+        #
+        return $::release_version
+      } else {
+        #
+        # NOTE: No release version is available, return an empty string.
+        #
+        return ""
+      }
+    }
+
+    proc getBuildFileName { fileName } {
+      #
+      # NOTE: Returns the specified file name as if it were located in the
+      #       build directory, discarding any directory information present
+      #       in the file name as provided by our caller.
+      #
+      return [file nativename \
+          [file join [getBuildDirectory] [file tail $fileName]]]
+    }
+
+    proc getBinaryDirectory {} {
+      #
+      # NOTE: This procedure returns the directory where the test application
+      #       itself (i.e. the Eagle shell) is located.  This will be used as
+      #       the destination for the copied System.Data.SQLite native and
+      #       managed assemblies (i.e. because this is one of the few places
+      #       where the CLR will actually find and load them properly).
+      #
+      if {[info exists ::binary_directory] && \
+          [string length $::binary_directory] > 0} then {
+        #
+        # NOTE: The location of the binary directory has been overridden;
+        #       therefore, use it verbatim.
+        #
+        return $::binary_directory
+      } else {
+        return [info binary]
+      }
+    }
+
+    proc getBinaryFileName { fileName } {
+      #
+      # NOTE: Returns the specified file name as if it were located in the
+      #       binary directory, discarding any directory information present
+      #       in the file name as provided by our caller.
+      #
+      return [file nativename \
+          [file join [getBinaryDirectory] [file tail $fileName]]]
+    }
+
+    proc getCoreBinaryFileName { {standard false} } {
+      #
+      # NOTE: Returns the full path for the file containing the core SQLite
+      #       library code for this platform.
+      #
+      if {[hasRuntimeOption native]} then {
+        #
+        # NOTE: Return the mixed-mode assembly file name.
+        #
+        return [file nativename \
+            [file join [getBinaryDirectory] System.Data.SQLite.dll]]
+      } elseif {$standard} then {
+        #
+        # NOTE: Return the native-only standard SQLite library file name.
+        #
+        return [file nativename \
+            [file join [getBinaryDirectory] sqlite3.dll]]
+      } else {
+        #
+        # NOTE: Return the native-only interop assembly file name.
+        #
+        return [file nativename \
+            [file join [getBinaryDirectory] SQLite.Interop.dll]]
+      }
+    }
+
+    proc getCommonDirectory {} {
+      #
+      # NOTE: This procedure returns the directory where the test scripts
+      #       should be located.  By default, this just returns the Eagle
+      #       binary directory.
+      #
+      if {[info exists ::common_directory] && \
+          [string length $::common_directory] > 0} then {
+        #
+        # NOTE: The location of the common directory has been set;
+        #       therefore, use it.
+        #
+        return $::common_directory
+      } elseif {[info exists ::vendor_directory] && \
+          [string length $::vendor_directory] > 0} then {
+        #
+        # NOTE: The location of the vendor directory has been set;
+        #       therefore, use it.
+        #
+        return $::vendor_directory
+      } elseif {[info exists ::tcl_library] && \
+          [string length $::tcl_library] > 0 && \
+          [file isdirectory $::tcl_library]} then {
+        #
+        # NOTE: The variable with the location of the script library is
+        #       set and appears to be a real directory (i.e. not embedded
+        #       within a file); therefore, use it.
+        #
+        return $::tcl_library
+      } else {
+        #
+        # NOTE: Fallback to the directory containing the executable.
+        #
+        return [info binary]
+      }
+    }
+
+    proc getDatabaseDirectory {} {
+      #
+      # NOTE: This procedure returns the directory where the test databases
+      #       should be located.  By default, this just uses the temporary
+      #       directory configured for this system.
+      #
+      if {[info exists ::database_directory] && \
+          [string length $::database_directory] > 0} then {
+        #
+        # NOTE: The location of the database directory has been overridden;
+        #       therefore, use it.
+        #
+        return $::database_directory
+      } elseif {[info exists ::scratch_directory] && \
+          [string length $::scratch_directory] > 0} then {
+        #
+        # NOTE: The location of the scratch directory has been overridden;
+        #       therefore, use it.
+        #
+        return $::scratch_directory
+      } else {
+        return [getTemporaryPath]
+      }
+    }
+
+    proc getTemporaryDirectory {} {
+      #
+      # NOTE: This procedure returns the directory where the temporary files
+      #       should be located.  By default, this just uses the temporary
+      #       directory configured for this system.
+      #
+      if {[info exists ::temporary_directory] && \
+          [string length $::temporary_directory] > 0} then {
+        #
+        # NOTE: The location of the temporary directory has been overridden;
+        #       therefore, use it.
+        #
+        return $::temporary_directory
+      } elseif {[info exists ::scratch_directory] && \
+          [string length $::scratch_directory] > 0} then {
+        #
+        # NOTE: The location of the scratch directory has been overridden;
+        #       therefore, use it.
+        #
+        return $::scratch_directory
+      } else {
+        return [getTemporaryPath]
+      }
+    }
+
+    proc getTestOverridesPreamble { {extraVarNames ""} } {
+      set varNames [list]
+
+      #
+      # NOTE: If available, start with the master list of test override
+      #       variables.
+      #
+      if {[info exists ::test_overrides] && \
+          [llength $::test_overrides] > 0} then {
+        eval lappend varNames $::test_overrides
+      }
+
+      #
+      # NOTE: If requested by our caller, add any additional variable
+      #       names to copy now.
+      #
+      if {[llength $extraVarNames] > 0} then {
+        eval lappend varNames $extraVarNames
+      }
+
+      #
+      # NOTE: Build the script fragment to be returned by processing each
+      #       variable name and adding the nececessary script fragments for
+      #       each one.
+      #
+      set result ""
+
+      foreach varName $varNames {
+        #
+        # NOTE: Build the qualified global variable name.
+        #
+        set fullVarName [appendArgs :: $varName]
+
+        #
+        # NOTE: Does the variable exist in this interpreter context?
+        #
+        if {[info exists $fullVarName]} then {
+          #
+          # NOTE: Append a script fragment to the result that will correctly
+          #       copy any contained value to another interpreter context.
+          #
+          append result \n "set " $fullVarName " \{" [set $fullVarName] \}
+        }
+      }
+
+      #
+      # NOTE: If the result contains one or more script fragments, append a
+      #       newline.
+      #
+      if {[string length $result] > 0} then {
+        append result \n
+      }
+
+      return $result
+    }
+
+    proc getAppDomainPreamble { {prefix ""} {suffix ""} } {
+      #
+      # NOTE: This procedure returns a test setup script fragment suitable for
+      #       evaluation by an interpreter created in an isolated application
+      #       domain.  The script fragment being returned will be surrounded by
+      #       the prefix and suffix "script fragments" specified by our caller,
+      #       if any.  The entire script being returned will be substituted via
+      #       [subst], in the context of our caller, before being returned.
+      #       This step is necessary so that some limited context information,
+      #       primarily related to the testing directories, can be transferred
+      #       to the interpreter in the isolated application domain, making it
+      #       able to successfully run tests that require one or more of the
+      #       files in one of the testing directories.  Callers should keep in
+      #       mind that the test script fragment being returned cannot rely on
+      #       any script library procedures that are not provided by the Eagle
+      #       library package (i.e. "init.eagle"), including those provided by
+      #       the Eagle test package, unless the file containing them is loaded
+      #       manually via some other mechanism (e.g. by including appropriate
+      #       [package require] or [source] commands in the prefix or suffix
+      #       script fragments).  Also, all variable references and all nested
+      #       commands (i.e. those in square brackets) contained in the final
+      #       script fragment will end up being evaluated in the context of the
+      #       calling interpreter and not the target interpreter created in the
+      #       isolated application domain unless the dollar signs and/or square
+      #       brackets are specially quoted with backslashes.
+      #
+      return [uplevel 1 [list subst [appendArgs $prefix {
+        if {[hasRuntimeOption native]} then {
+          object invoke Interpreter.GetActive AddRuntimeOption native
+        }
+      } [getTestOverridesPreamble [list path test_channel]] $suffix]]]
+    }
+
+    proc tryCopyBinaryFile { fileName {newFileName ""} } {
+      set sourceFileName [getBinaryFileName $fileName]
+
+      if {![file exists $sourceFileName]} then {
+        tputs $::test_channel [appendArgs \
+            "---- skipped copying binary file \"" $sourceFileName \
+            "\", it does not exist\n"]
+
+        return
+      }
+
+      if {[string length $newFileName] > 0} then {
+        set targetFileName [getBuildFileName $newFileName]
+      } else {
+        set targetFileName [getBuildFileName $fileName]
+      }
+
+      if {[catch {
+              file copy -force $sourceFileName $targetFileName}] == 0} then {
+        tputs $::test_channel [appendArgs \
+            "---- copied binary file from \"" $sourceFileName "\" to \"" \
+            $targetFileName \"\n]
+      } else {
+        tputs $::test_channel [appendArgs \
+            "---- failed to copy binary file from \"" $sourceFileName \
+            "\" to \"" $targetFileName \"\n]
+      }
+    }
+
+    proc tryCopyBuildFile { fileName {newFileName ""} } {
+      set sourceFileName [getBuildFileName $fileName]
+
+      if {![file exists $sourceFileName]} then {
+        tputs $::test_channel [appendArgs \
+            "---- skipped copying build file \"" $sourceFileName \
+            "\", it does not exist\n"]
+
+        return
+      }
+
+      if {[string length $newFileName] > 0} then {
+        set targetFileName [getBinaryFileName $newFileName]
+      } else {
+        set targetFileName [getBinaryFileName $fileName]
+      }
+
+      if {[catch {
+              file copy -force $sourceFileName $targetFileName}] == 0} then {
+        tputs $::test_channel [appendArgs \
+            "---- copied build file from \"" $sourceFileName "\" to \"" \
+            $targetFileName \"\n]
+      } else {
+        tputs $::test_channel [appendArgs \
+            "---- failed to copy build file from \"" $sourceFileName \
+            "\" to \"" $targetFileName \"\n]
+      }
+    }
+
+    proc tryDeleteBinaryFile { fileName } {
+      set fileName [getBinaryFileName $fileName]
+
+      if {![file exists $fileName]} then {
+        tputs $::test_channel [appendArgs \
+            "---- skipped deleting binary file \"" $fileName \
+            "\", it does not exist\n"]
+
+        return
+      }
+
+      if {[catch {file delete $fileName}] == 0} then {
+        tputs $::test_channel [appendArgs \
+            "---- deleted binary file \"" $fileName \"\n]
+      } else {
+        tputs $::test_channel [appendArgs \
+            "---- failed to delete binary file \"" $fileName \"\n]
+      }
+    }
+
+    proc tryDeleteBuildFile { fileName } {
+      set fileName [getBuildFileName $fileName]
+
+      if {![file exists $fileName]} then {
+        tputs $::test_channel [appendArgs \
+            "---- skipped deleting build file \"" $fileName \
+            "\", it does not exist\n"]
+
+        return
+      }
+
+      if {[catch {file delete $fileName}] == 0} then {
+        tputs $::test_channel [appendArgs \
+            "---- deleted build file \"" $fileName \"\n]
+      } else {
+        tputs $::test_channel [appendArgs \
+            "---- failed to delete build file \"" $fileName \"\n]
+      }
+    }
+
+    proc tryCopyAssembly { fileName {pdb true} } {
+      tryCopyBuildFile $fileName
+
+      if {$pdb} then {
+        tryCopyBuildFile [appendArgs [file rootname $fileName] .pdb]
+      }
+    }
+
+    proc tryDeleteAssembly { fileName {pdb true} } {
+      tryDeleteBinaryFile $fileName
+
+      if {$pdb} then {
+        tryDeleteBinaryFile [appendArgs [file rootname $fileName] .pdb]
+      }
+    }
+
+    proc tryLoadAssembly { fileName } {
+      set fileName [getBinaryFileName $fileName]
+
+      if {[catch {set assembly \
+              [object load -loadtype File -alias $fileName]}] == 0} then {
+        #
+        # NOTE: Now, add the necessary test constraint.
+        #
+        addConstraint [file rootname [file tail $fileName]]
+
+        #
+        # NOTE: Grab the image runtime version from the assembly because
+        #       several tests rely on it having a certain value.
+        #
+        addConstraint [appendArgs [file tail $fileName] _ \
+            [$assembly ImageRuntimeVersion]]
+
+        #
+        # NOTE: Return the full path of the loaded file.
+        #
+        return $fileName
+      }
+
+      return ""
+    }
+
+    proc isSQLiteReady {} {
+      #
+      # NOTE: This procedure must return non-zero only if the SQLite native
+      #       library and the System.Data.SQLite managed assembly are loaded
+      #       and ready for use by the test suite.  Currently, this procedure
+      #       should be called only after the [tryLoadAssembly] procedure has
+      #       been called to probe for the System.Data.SQLite managed assembly
+      #       and the [checkForSQLite] procedure has been called to probe for
+      #       the SQLite native library; otherwise, this procedure will simply
+      #       always return zero.
+      #
+      return [expr {[haveConstraint System.Data.SQLite] && \
+          [haveConstraint SQLite]}]
+    }
+
+    proc matchMachine { platform } {
+      #
+      # NOTE: An empty string for the platform means that the build is not
+      #       [primarily] a native build; therefore, it always matches.
+      #
+      if {[string length $platform] == 0} then {
+        return true
+      }
+
+      #
+      # NOTE: Does the specified platform match up to the current process?
+      #
+      if {$platform eq [machineToPlatform $::tcl_platform(machine)]} then {
+        return true
+      }
+
+      #
+      # NOTE: The specified platform does not match up with the platform
+      #       for the current process.
+      #
+      return false
+    }
+
+    proc checkForSQLiteBuilds { channel {select false} } {
+      #
+      # NOTE: Check for every possible valid combination of values used when
+      #       locating out the build output directory, showing each available
+      #       build variation along the way.
+      #
+      foreach native [list false true] {
+        foreach year [getBuildYears] {
+          foreach configuration [getBuildConfigurations] {
+            #
+            # NOTE: Figure out the effective build platform.  This is
+            #       based on whether or not a [primarily] native build
+            #       is being used.  For [primarily] non-native builds,
+            #       this will be an empty string.
+            #
+            set platform [getBuildPlatform $native]
+
+            tputs $channel [appendArgs \
+                "---- checking for System.Data.SQLite build \"" [expr \
+                {$native ? "native/" : ""}] [expr {[string length \
+                $platform] > 0 ? [appendArgs $platform /] : ""}] $year \
+                / $configuration "\"... "]
+
+            #
+            # NOTE: Build the fully qualified directory where the necessary
+            #       components for System.Data.SQLite should be found.
+            #
+            set directory [joinBuildDirectory $native \
+                [getBuildBaseDirectory] $year $platform $configuration]
+
+            #
+            # NOTE: Do the necessary files exist?  Currently, no other steps
+            #       are taken to verify this build is actually viable.
+            #
+            if {[isBuildAvailable $native $directory]} then {
+              #
+              # NOTE: When in "select" mode, automatically select the first
+              #       available build of System.Data.SQLite and then return
+              #       immediately.
+              #
+              if {$select && [matchMachine $platform]} then {
+                #
+                # NOTE: Manually override all the build directory selection
+                #       related test settings in order to force this build
+                #       of System.Data.SQLite to be used.
+                #
+                object invoke Interpreter.GetActive [expr {$native ? \
+                    "AddRuntimeOption" : "RemoveRuntimeOption"}]  native
+
+                set ::test_year $year
+                set ::test_platform $platform
+                set ::test_configuration $configuration
+
+                tputs $channel [appendArgs \
+                    "yes, selected (" [expr {$native ? "native/" : ""}] \
+                    [expr {[string length $platform] > 0 ? [appendArgs \
+                    $platform /] : ""}] $year / $configuration ")\n"]
+
+                return true
+              } else {
+                tputs $channel yes\n
+              }
+            } else {
+              tputs $channel no\n
+            }
+          }
+        }
+      }
+
+      return false
+    }
+
+    proc checkForSQLiteReleases { channel {select false} } {
+      #
+      # NOTE: Check for past releases of System.Data.SQLite in the directory
+      #       contained in the "System.Data.SQLite" environment variable, if
+      #       present.
+      #
+      if {[info exists ::env(System.Data.SQLite)] && \
+          [string length $::env(System.Data.SQLite)] > 0} then {
+        #
+        # NOTE: Build the fully qualified directory where the necessary
+        #       components for System.Data.SQLite should be found.
+        #
+        set directory [file nativename [file join \
+            $::env(System.Data.SQLite) [getReleaseVersion]]]
+
+        tputs $channel [appendArgs \
+            "---- checking for System.Data.SQLite release \"" \
+            $directory "\"... "]
+
+        if {[isReleaseAvailable $directory platform]} then {
+          if {[string length $platform] == 0} then {
+            set platform unknown
+          }
+
+          if {$select && [matchMachine $platform]} then {
+            set ::build_directory $directory
+
+            tputs $channel [appendArgs "yes, selected (" $platform ")\n"]
+
+            return true
+          } else {
+            tputs $channel [appendArgs "yes (" $platform ")\n"]
+          }
+        } else {
+          tputs $channel no\n
+
+          foreach path [lsort -decreasing [file list $directory *]] {
+            if {[file exists $path] && [file isdirectory $path]} then {
+              tputs $channel [appendArgs \
+                  "---- checking for System.Data.SQLite release \"" \
+                  $path "\"... "]
+
+              if {[isReleaseAvailable $path platform]} then {
+                if {[string length $platform] == 0} then {
+                  set platform unknown
+                }
+
+                if {$select && [matchMachine $platform]} then {
+                  set ::build_directory $path
+
+                  tputs $channel [appendArgs "yes, selected (" $platform ")\n"]
+
+                  return true
+                } else {
+                  tputs $channel [appendArgs "yes (" $platform ")\n"]
+                }
+              } else {
+                tputs $channel no\n
+              }
+            }
+          }
+        }
+      } else {
+        tputs $channel [appendArgs \
+            "---- environment variable \"System.Data.SQLite\" is not " \
+            "set, skipping check for releases...\n"]
+      }
+
+      return false
+    }
+
+    proc checkForSQLiteLibrary { channel } {
+      tputs $channel "---- checking for SQLite core library... "
+
+      if {[catch {
+              object invoke -flags +NonPublic System.Data.SQLite.SQLite3 \
+              SQLiteVersion} version] == 0} then {
+        #
+        # NOTE: Check if the returned version was null.  If so, make it easy
+        #       to spot.
+        #
+        if {[string length $version] == 0} then {
+          set version null
+        }
+
+        #
+        # NOTE: Attempt to query the Fossil source identifier for the SQLite
+        #       core library.
+        #
+        if {[catch {
+                object invoke -flags +NonPublic System.Data.SQLite.SQLite3 \
+                SQLiteSourceId} sourceId]} then {
+          #
+          # NOTE: We failed to query the Fossil source identifier.
+          #
+          set sourceId unknown
+        }
+
+        #
+        # NOTE: Check if the returned Fossil source identifier was null.  If
+        #       so, make it easy to spot.
+        #
+        if {[string length $sourceId] == 0} then {
+          set sourceId null
+        }
+
+        #
+        # NOTE: Yes, the SQLite core library appears to be available.
+        #
+        addConstraint SQLite
+
+        tputs $channel [appendArgs "yes (" $version " " $sourceId ")\n"]
+      } else {
+        tputs $channel no\n
+      }
+    }
+
+    proc checkForSQLiteInterop { channel } {
+      tputs $channel "---- checking for SQLite interop assembly... "
+
+      if {[catch {
+              object invoke -flags +NonPublic System.Data.SQLite.SQLite3 \
+              InteropVersion} version] == 0} then {
+        #
+        # NOTE: Check if the returned version was null.  If so, make it easy
+        #       to spot.
+        #
+        if {[string length $version] == 0} then {
+          set version null
+        }
+
+        #
+        # NOTE: Attempt to query the Fossil source identifier for the SQLite
+        #       core library.
+        #
+        if {[catch {
+                object invoke -flags +NonPublic System.Data.SQLite.SQLite3 \
+                InteropSourceId} sourceId]} then {
+          #
+          # NOTE: We failed to query the Fossil source identifier.
+          #
+          set sourceId unknown
+        }
+
+        #
+        # NOTE: Check if the returned Fossil source identifier was null.  If
+        #       so, make it easy to spot.
+        #
+        if {[string length $sourceId] == 0} then {
+          set sourceId null
+        }
+
+        #
+        # NOTE: Yes, the SQLite interop assembly appears to be available.
+        #
+        addConstraint SQLiteInterop
+
+        tputs $channel [appendArgs "yes (" $version " " $sourceId ")\n"]
+      } else {
+        tputs $channel no\n
+      }
+    }
+
+    proc checkForSQLiteDefineConstant { channel name } {
+      tputs $channel [appendArgs \
+          "---- checking for System.Data.SQLite define constant \"" $name \
+          "\"... "]
+
+      if {[catch {
+              object invoke -flags +NonPublic System.Data.SQLite.SQLite3 \
+              DefineConstants} defineConstants] == 0} then {
+        if {[lsearch -exact -nocase $defineConstants $name] != -1} then {
+          #
+          # NOTE: Yes, this define constant was enabled when the managed
+          #       assembly was compiled.
+          #
+          addConstraint [appendArgs defineConstant.System.Data.SQLite. $name]
+
+          tputs $channel yes\n
+        } else {
+          tputs $channel no\n
+        }
+      } else {
+        tputs $channel error\n
+      }
+    }
+
+    proc getDateTimeFormat {} {
+      #
+      # NOTE: This procedure simply returns the "default" DateTime format used
+      #       by the test suite.
+      #
+      if {[info exists ::datetime_format] && \
+          [string length $::datetime_format] > 0} then {
+        #
+        # NOTE: Return the manually overridden value for the DateTime format.
+        #
+        return $::datetime_format
+      } else {
+        #
+        # NOTE: Return an ISO8601 DateTime format compatible with SQLite,
+        #       System.Data.SQLite, and suitable for round-tripping with the
+        #       DateTime class of the framework.  If this value is changed,
+        #       various tests may fail.
+        #
+        return "yyyy-MM-dd HH:mm:ss.FFFFFFFK"
+      }
+    }
+
+    proc enumerableToList { enumerable } {
+      set result [list]
+
+      if {[string length $enumerable] == 0 || $enumerable eq "null"} then {
+        return $result
+      }
+
+      object foreach -alias item $enumerable {
+        if {[string length $item] > 0} then {
+          lappend result [$item ToString]
+        }
+      }
+
+      return $result
+    }
+
+    proc catchAndReturn { script {stackTrace false} {strict true} } {
+      #
+      # NOTE: Evaluate the script provided by our caller in their context,
+      #       capturing both the result and the return code.
+      #
+      set code [catch {uplevel 1 $script} result]
+
+      #
+      # NOTE: Did the script provided by our caller NOT raise an error?
+      #
+      if {$strict && $code == 0 || !$strict && $code != 1} then {
+        #
+        # NOTE: Success.  Return a list with the return code and the result.
+        #
+        return [list $code $result]
+      } elseif {$stackTrace} then {
+        #
+        # NOTE: Failure.  Our caller wants a full stack trace (if applicable),
+        #       return a list with the return code and the result verbatim.
+        #
+        return [list $code $result]
+      } else {
+        #
+        # NOTE: Failure.  Our caller does not want a full stack trace (if
+        #       applicable), return a list with the return code, the error
+        #       code for the interpreter, and the error message up to the
+        #       point where the stack trace should start.
+        #
+        set index [string first "   at " $result]; # HACK: Reliable?
+
+        return [list $code $::errorCode [expr {$index != -1 ? \
+            [string trim [string range $result 0 $index]] : $result}]]
+      }
+    }
+
+    proc compileCSharpWith {
+            text memory symbols strict resultsVarName errorsVarName fileNames
+            args } {
+      #
+      # NOTE: Since we are going to use this method name a lot, assign it to a
+      #       variable first.
+      #
+      set add ReferencedAssemblies.Add
+
+      #
+      # NOTE: Create the base command to evaluate and add the property settings
+      #       that are almost always needed by our unit tests (i.e. the System
+      #       and System.Data assembly references).
+      #
+      set command [list \
+          compileCSharp $text $memory $symbols $strict results errors \
+          $add System.dll $add System.Data.dll $add System.Transactions.dll \
+          $add System.Xml.dll]
+
+      #
+      # NOTE: Add all the provided file names as assembly references.
+      #
+      foreach fileName $fileNames {
+        lappend command $add [getBinaryFileName $fileName]
+      }
+
+      #
+      # NOTE: Add the extra arguments, if any, to the command to evaluate.
+      #
+      eval lappend command $args
+
+      #
+      # NOTE: Alias the compiler local results and errors variables to the
+      #       variable names provided by our caller.
+      #
+      upvar 1 $resultsVarName results
+      upvar 1 $errorsVarName errors
+
+      #
+      # NOTE: Evaluate the constructed [compileCSharp] command and return the
+      #       result.
+      #
+      eval $command
+    }
+
+    proc isMemoryDb { fileName } {
+      #
+      # NOTE: Is the specified database file name really an in-memory database?
+      #
+      return [expr {$fileName eq ":memory:" || \
+          [string range $fileName 0 12] eq "file::memory:"}]
+    }
+
+    proc isTableInDb { name {varName db} } {
+      #
+      # NOTE: Refer to the specified variable (e.g. "db") in the context of our
+      #       caller.  It contains the database connection handle that will be
+      #       used to execute the query used to determine if the named table is
+      #       present in that database.
+      #
+      upvar 1 $varName db
+
+      #
+      # NOTE: Execute the SQL query against the sqlite_master table to check if
+      #       the named table is present and return non-zero if it is.
+      #
+      return [expr {[sql execute -execute scalar $db \
+          "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?;" \
+          [list param1 String $name]] > 0}]
+    }
+
+    proc trimSql { sql } {
+      return [regsub -all -- {\s+} [string trim $sql] " "]
+    }
+
+    proc executeSql { sql {execute none} {fileName ""} } {
+      if {[string length $fileName] == 0} then {set fileName :memory:}
+      setupDb $fileName "" "" "" "" "" false false false false memDb
+
+      try {
+        return [sql execute -execute $execute $memDb $sql]
+      } finally {
+        cleanupDb $fileName memDb false false
+      }
+    }
+
+    proc setupDb {
+            fileName {mode ""} {dateTimeFormat ""} {dateTimeKind ""} {flags ""}
+            {extra ""} {qualify true} {delete true} {uri false}
+            {temporary true} {varName db} } {
+      #
+      # NOTE: First, see if our caller has requested an in-memory database.
+      #
+      set isMemory [isMemoryDb $fileName]
+
+      #
+      # NOTE: For now, all test databases used by the test suite are placed
+      #       into the database directory.  Each database and related files
+      #       used by a test should be cleaned up by that test using the
+      #       "cleanupDb" procedure, below.
+      #
+      if {!$isMemory && $qualify} then {
+        set fileName [file join [getDatabaseDirectory] [file tail $fileName]]
+      }
+
+      #
+      # NOTE: By default, delete any pre-existing database with the same file
+      #       name if it currently exists.
+      #
+      if {!$isMemory && $delete && [file exists $fileName]} then {
+        #
+        # NOTE: Attempt to delete any pre-existing database with the same file
+        #       name.
+        #
+        if {[catch {file delete $fileName} error]} then {
+          #
+          # NOTE: We somehow failed to delete the file, report why.
+          #
+          tputs $::test_channel [appendArgs \
+              "==== WARNING: failed to delete database file \"" $fileName \
+              "\" during setup, error: " \n\t $error \n]
+        }
+      }
+
+      #
+      # NOTE: Refer to the specified variable (e.g. "db") in the context of our
+      #       caller.  The handle to the opened database will be stored there.
+      #
+      upvar 1 $varName db
+
+      #
+      # NOTE: Start building the connection string.  The only required portion
+      #       of the connection string is the data source, which contains the
+      #       database file name itself.  If our caller wants to use a URI as
+      #       the data source, use the FullUri connection string property to
+      #       prevent the data source string from being mangled.
+      #
+      if {$uri} then {
+        set connection {FullUri=${fileName}}
+      } else {
+        set connection {Data Source=${fileName}}
+      }
+
+      #
+      # NOTE: Since this procedure has no special knowledge of what the default
+      #       setting is for the ToFullPath connection string propery, always
+      #       add the value we know about to the connection string.
+      #
+      append connection {;ToFullPath=${qualify}}
+
+      #
+      # NOTE: If our caller specified a journal mode, add the necessary portion
+      #       of the connection string now.
+      #
+      if {[string length $mode] > 0} then {
+        append connection {;Journal Mode=${mode}}
+      }
+
+      #
+      # NOTE: If our caller specified a DateTime format, add the necessary
+      #       portion of the connection string now.
+      #
+      if {[string length $dateTimeFormat] > 0} then {
+        append connection {;DateTimeFormat=${dateTimeFormat}}
+      }
+
+      #
+      # NOTE: If our caller specified a DateTimeKind, add the necessary portion
+      #       of the connection string now.
+      #
+      if {[string length $dateTimeKind] > 0} then {
+        append connection {;DateTimeKind=${dateTimeKind}}
+      }
+
+      #
+      # NOTE: If there are any global (per test run) connection flags currently
+      #       set, use them now (i.e. by combining them with the ones for this
+      #       connection).
+      #
+      if {[info exists ::connection_flags] && \
+          [string length $::connection_flags] > 0} then {
+        #
+        # NOTE: Show (and log) that we detected some global connection flags.
+        #
+        tputs $::test_channel [appendArgs \
+            "---- global connection flags detected: " $::connection_flags \n]
+
+        #
+        # NOTE: Combine and/or replace the connection flags and then show the
+        #       new value.
+        #
+        set flags [combineFlags $flags $::connection_flags]
+
+        tputs $::test_channel [appendArgs \
+            "---- combined connection flags are: " $flags \n]
+      }
+
+      #
+      # NOTE: If our caller specified some SQLiteConnectionFlags, add the
+      #       necessary portion of the connection string now.
+      #
+      if {[string length $flags] > 0} then {
+        append connection {;Flags=${flags}}
+      }
+
+      #
+      # NOTE: If our caller specified an extra payload to the connection
+      #       string, append it now.
+      #
+      if {[string length $extra] > 0} then {
+        append connection \; $extra
+      }
+
+      #
+      # NOTE: Open the database connection now, placing the opaque handle value
+      #       into the variable specified by our caller.
+      #
+      set db [sql open -type SQLite [subst $connection]]
+
+      #
+      # NOTE: Configure the temporary directory for the newly opened database
+      #       connection now unless our caller forbids it.
+      #
+      if {$temporary && ![info exists ::no(setTemporaryDirectory)]} then {
+        sql execute $db [appendArgs \
+            "PRAGMA temp_store_directory = \"" [getTemporaryDirectory] \"\;]
+      }
+
+      #
+      # NOTE: Always return the connection handle upon success.
+      #
+      return $db
+    }
+
+    proc getDbConnection { {varName db} } {
+      #
+      # NOTE: Refer to the specified variable (e.g. "db") in the context of our
+      #       caller.  The handle to the database previously opened via the
+      #       [setupDb] procedure should be stored there.
+      #
+      upvar 1 $varName db
+
+      #
+      # NOTE: This returns the ADO.NET IDbConnection object instance for the
+      #       specified databse handle.  Since getting this object relies upon
+      #       Eagle internals, great care should be taken to avoid disposing of
+      #       this object or otherwise putting it into an invalid state.
+      #
+      if {[info exists db]} then {
+        if {[catch {
+                object invoke -flags +NonPublic -objectflags +NoDispose \
+                -alias Interpreter.GetActive.connections Item $db} \
+                result] == 0} then {
+          #
+          # NOTE: Success, return the opaque object handle.
+          #
+          return $result
+        } else {
+          #
+          # NOTE: Failure, report why.
+          #
+          tputs $::test_channel [appendArgs \
+              "==== WARNING: failed to get connection handle for database \"" \
+              $db "\", error: " \n\t $result \n]
+        }
+      }
+    }
+
+    proc freeDbConnection { {varName connection} } {
+      #
+      # NOTE: Refer to the specified variable (e.g. "connection") in the
+      #       context of our caller.  The opaque object handle for an ADO.NET
+      #       connection previously returned by [getDbConnection] should be
+      #       stored there.
+      #
+      upvar 1 $varName connection
+
+      #
+      # NOTE: Attempt to remove the opaque object handle from the interpreter
+      #       now.  This [object dispose] call will not actually dispose of the
+      #       underlying object because the +NoDispose flag was set on it
+      #       during creation of the opaque object handle.
+      #
+      if {[info exists connection] && \
+          [catch {object dispose $connection} error]} then {
+        #
+        # NOTE: We somehow failed to remove the handle, report why.
+        #
+        tputs $::test_channel [appendArgs \
+            "==== WARNING: failed to remove connection handle \"" $connection \
+            "\", error: " \n\t $error \n]
+      }
+    }
+
+    proc addDbConnection { connection {varName db} } {
+      #
+      # NOTE: Refer to the specified variable (e.g. "db") in the context of our
+      #       caller.
+      #
+      upvar 1 $varName db
+
+      #
+      # NOTE: Create a correctly formatted name for the database connection to
+      #       be added to the list managed by the Eagle interpreter.
+      #
+      set db [object invoke -flags +NonPublic \
+          Eagle._Components.Private.FormatOps DatabaseObjectName $connection \
+          SQLiteConnection [object invoke Interpreter.GetActive NextId]]
+
+      #
+      # NOTE: Add the database connection provided by our caller to the list
+      #       of those known to the Eagle interpreter.
+      #
+      object invoke -flags +NonPublic Interpreter.GetActive.connections Add \
+          $db $connection
+    }
+
+    proc cleanupDb { fileName {varName db} {collect true} {qualify true}
+                     {delete true} } {
+      #
+      # NOTE: Attempt to force all pending "garbage" objects to be collected,
+      #       including SQLite statements and backup objects; this should allow
+      #       the underlying database file to be deleted.
+      #
+      if {$collect} then {
+        collectGarbage $::test_channel
+      }
+
+      #
+      # NOTE: Refer to the specified variable (e.g. "db") in the context of our
+      #       caller.  The handle to the database previously opened via the
+      #       [setupDb] procedure should be stored there.
+      #
+      upvar 1 $varName db
+
+      #
+      # NOTE: Close the connection to the database now.  This should allow us
+      #       to delete the underlying database file.
+      #
+      if {[info exists db] && [catch {sql close $db} error]} then {
+        #
+        # NOTE: We somehow failed to close the database, report why.
+        #
+        tputs $::test_channel [appendArgs \
+            "==== WARNING: failed to close database \"" $db "\", error: " \
+            \n\t $error \n]
+      }
+
+      #
+      # NOTE: First, see if our caller has requested an in-memory database.
+      #
+      set isMemory [isMemoryDb $fileName]
+
+      #
+      # NOTE: Build the full path to the database file name.  For now, all test
+      #       database files are stored in the temporary directory.
+      #
+      if {!$isMemory && $qualify} then {
+        set fileName [file join [getDatabaseDirectory] [file tail $fileName]]
+      }
+
+      #
+      # NOTE: Check if the file still exists.
+      #
+      if {!$isMemory && $delete && [file exists $fileName]} then {
+        #
+        # NOTE: Skip deleting database files if somebody sets the global
+        #       variable to prevent it.
+        #
+        if {![info exists ::no(cleanupDbFile)]} then {
+          #
+          # NOTE: Attempt to delete the test database file now.
+          #
+          if {[set code [catch {file delete $fileName} error]]} then {
+            #
+            # NOTE: We somehow failed to delete the file, report why.
+            #
+            tputs $::test_channel [appendArgs \
+                "==== WARNING: failed to delete database file \"" $fileName \
+                "\" during cleanup, error: " \n\t $error \n]
+          }
+        } else {
+          #
+          # NOTE: Show that we skipped deleting the file.
+          #
+          set code 0
+
+          tputs $::test_channel [appendArgs \
+              "==== WARNING: skipped deleting database file \"" $fileName \
+              "\" during cleanup\n"]
+        }
+      } else {
+        #
+        # NOTE: The file does not exist, success!
+        #
+        set code 0
+      }
+
+      return $code
+    }
+
+    proc setupDbInterruptCallback { channel log } {
+      tputs $channel "---- setting up debugger interrupt callback... "
+
+      if {[catch {
+        #
+        # NOTE: Make sure the script debugger and the isolated interpreter are
+        #       setup and ready for use.
+        #
+        debug setup true true
+
+        #
+        # NOTE: Load the necessary packages into the isolated interpreter.
+        #
+        debug eval {
+          package require Eagle
+          package require Eagle.Library
+          package require Eagle.Test
+        }
+
+        #
+        # NOTE: Copy the necessary variables into the isolated interpreter.
+        #
+        debug invoke 0 set ::test_channel $channel; # NOTE: For [tputs].
+        debug invoke 0 set ::test_log $log; # NOTE: For [tlog].
+
+        #
+        # NOTE: Install the callback script to be evaluated in the isolated
+        #       interpreter when this interpreter is interrupted by script
+        #       cancellation, etc.
+        #
+        debug callback apply {{sender e} {
+          #
+          # NOTE: Check if this callback is one that we care about.
+          #
+          if {"Canceled" in [split [$e InterruptType] ", "]} then {
+            #
+            # NOTE: Iterate through all database connections known to the
+            #       parent interpreter.
+            #
+            object foreach -alias pair \
+                [object invoke -flags +NonPublic $e Interpreter.connections] {
+              #
+              # NOTE: Attempt to cancel any SQL queries in progress on this
+              #       database connection.
+              #
+              if {[catch {$pair Value.Cancel} error]} then {
+                tputs $::test_channel [appendArgs \n \
+                    "==== WARNING: failed to cancel query for connection \"" \
+                    [$pair Key] "\", error: " \n\t $error \n]
+              }
+            }
+          }
+        }}
+      } error] == 0} then {
+        addConstraint interruptCallback.sqlite3
+
+        tputs $channel yes\n
+      } else {
+        tputs $channel [appendArgs "no, error: " \n\t $error \n]
+      }
+    }
+
+    proc cleanupFile { fileName {collect true} {force false} } {
+      #
+      # NOTE: Attempt to force all pending "garbage" objects to be collected,
+      #       including SQLite statements and backup objects; this should allow
+      #       the underlying database file to be deleted.
+      #
+      if {$collect} then {
+        collectGarbage $::test_channel
+      }
+
+      #
+      # NOTE: Check if the file still exists.
+      #
+      if {[file exists $fileName]} then {
+        #
+        # NOTE: Skip deleting test files if somebody sets the global variable
+        #       to prevent it.
+        #
+        if {$force || ![info exists ::no(cleanupFile)]} then {
+          #
+          # NOTE: Attempt to delete the test file now.
+          #
+          if {[set code [catch {file delete $fileName} error]]} then {
+            #
+            # NOTE: We somehow failed to delete the file, report why.
+            #
+            tputs $::test_channel [appendArgs \
+                "==== WARNING: failed to delete test file \"" $fileName \
+                "\" during cleanup, error: " \n\t $error \n]
+          }
+        } else {
+          #
+          # NOTE: Show that we skipped deleting the file.
+          #
+          set code 0
+
+          tputs $::test_channel [appendArgs \
+              "==== WARNING: skipped deleting test file \"" $fileName \
+              "\" during cleanup\n"]
+        }
+      } else {
+        #
+        # NOTE: The file does not exist, success!
+        #
+        set code 0
+      }
+
+      return $code
+    }
+
+    proc collectGarbage { channel {milliseconds 1000} {quiet true} } {
+      if {[catch {object invoke GC GetTotalMemory false} result] == 0} then {
+        if {!$quiet} then {
+          tputs $channel [appendArgs \
+              "---- memory in use by the CLR before collection... " \
+              $result " bytes\n"]
+        }
+      } else {
+        tputs $channel [appendArgs \
+            "==== WARNING: failed to get CLR memory usage, error: " \
+            \n\t $result \n]
+      }
+
+      #########################################################################
+
+      #
+      # NOTE: Repeatedly attempt to collect garbage until the allotted number
+      #       of milliseconds has elapsed.  Always attempt to collect garbage
+      #       at least once.
+      #
+      set start [clock seconds]
+      set stop [expr {$start + ($milliseconds / 1000)}]
+
+      do {
+        #
+        # NOTE: Attempt to force a full garbage collection now.  Report any
+        #       error that is encountered if we fail.
+        #
+        if {[catch {object invoke GC GetTotalMemory true} error]} then {
+          tputs $channel [appendArgs \
+              "==== WARNING: failed full garbage collection, error: " \
+              \n\t $error \n]
+        }
+
+        set now [clock seconds]
+      } while {$start <= $now && $now < $stop}
+
+      #########################################################################
+
+      if {[catch {object invoke GC GetTotalMemory false} result] == 0} then {
+        if {!$quiet} then {
+          tputs $channel [appendArgs \
+              "---- memory in use by the CLR after collection... " \
+              $result " bytes\n"]
+        }
+      } else {
+        tputs $channel [appendArgs \
+            "==== WARNING: failed to get CLR memory usage, error: " \
+            \n\t $result \n]
+      }
+    }
+
+    proc getSQLiteHandleCounts { channel {quiet false} } {
+      set result [list]
+
+      if {[haveConstraint \
+              defineConstant.System.Data.SQLite.COUNT_HANDLE]} then {
+        #
+        # NOTE: Add each critical handle count to the resulting list.
+        #
+        foreach name [list connectionCount statementCount backupCount] {
+          set value [object invoke -flags +NonPublic \
+              System.Data.SQLite.UnsafeNativeMethods $name]
+
+          if {!$quiet} then {
+            tputs $channel [appendArgs \
+                "---- critical handle count \"" $name "\" is " $value \n]
+          }
+
+          lappend result $value
+        }
+      } elseif {!$quiet} then {
+        #
+        # NOTE: The actual handle counts are not available; therefore, just
+        #       return an empty list.
+        #
+        tputs $channel "---- critical handle counts unavailable\n"
+      }
+
+      return $result
+    }
+
+    proc shutdownSQLite { channel {force false} {quiet false} } {
+      #
+      # NOTE: Make sure that SQLite core library is completely shutdown.  This
+      #       is used by tests that change configuration options and/or those
+      #       that need to make sure logging is initialized (i.e. just in case
+      #       the SQLite core library was initialized in the process prior to
+      #       the SQLiteLog class being able to setup its logging callback).
+      #       Normally, this should only be performed if SQLite is loaded and
+      #       ready for use by the test suite.
+      #
+      if {$force || [isSQLiteReady]} then {
+        #
+        # BUGFIX: Before calling the native shutdown function, make sure both
+        #         of the PRAGMA related directory names are freed.
+        #
+        checkForSQLiteDirectories $channel true
+
+        if {[catch {object invoke -flags +NonPublic \
+                System.Data.SQLite.UnsafeNativeMethods \
+                sqlite3_shutdown} result] == 0} then {
+          if {!$quiet} then {
+            tputs $channel [appendArgs \
+                "---- call sqlite3_shutdown()... ok: " $result \n]
+          }
+        } else {
+          if {!$quiet} then {
+            tputs $channel [appendArgs \
+                "---- call sqlite3_shutdown()... error: " \n\t $result \n]
+          }
+        }
+      }
+    }
+
+    proc reportSQLiteResources { channel {quiet false} {collect true} } {
+      #
+      # NOTE: Skip all output if we are running in "quiet" mode.
+      #
+      if {[haveConstraint \
+              defineConstant.System.Data.SQLite.INTEROP_VIRTUAL_TABLE] && \
+          [haveConstraint \
+              defineConstant.System.Data.SQLite.TRACK_MEMORY_BYTES]} then {
+        if {!$quiet} then {
+          tputs $channel "---- current memory in use by SQLiteMemory... "
+        }
+
+        if {[catch {object invoke -flags +NonPublic \
+                System.Data.SQLite.SQLiteMemory \
+                bytesAllocated} memory] == 0} then {
+          if {!$quiet} then {
+            tputs $channel [appendArgs $memory " bytes\n"]
+          }
+        } else {
+          set memory unknown
+
+          if {!$quiet} then {
+            tputs $channel [appendArgs $memory \n]
+          }
+        }
+
+        if {!$quiet} then {
+          tputs $channel "---- maximum memory in use by SQLiteMemory... "
+        }
+
+        if {[catch {object invoke -flags +NonPublic \
+                System.Data.SQLite.SQLiteMemory \
+                maximumBytesAllocated} memory] == 0} then {
+          if {!$quiet} then {
+            tputs $channel [appendArgs $memory " bytes\n"]
+          }
+        } else {
+          set memory unknown
+
+          if {!$quiet} then {
+            tputs $channel [appendArgs $memory \n]
+          }
+        }
+      }
+
+      if {!$quiet} then {
+        tputs $channel "---- current memory in use by SQLite... "
+      }
+
+      if {[catch {object invoke -flags +NonPublic \
+              System.Data.SQLite.UnsafeNativeMethods \
+              sqlite3_memory_used} memory] == 0} then {
+        if {!$quiet} then {
+          tputs $channel [appendArgs $memory " bytes\n"]
+        }
+      } else {
+        #
+        # NOTE: Maybe the SQLite core library is unavailable?
+        #
+        set memory unknown
+
+        if {!$quiet} then {
+          tputs $channel [appendArgs $memory \n]
+        }
+      }
+
+      set result $memory; # NOTE: Return memory in-use to our caller.
+
+      if {!$quiet} then {
+        tputs $channel "---- maximum memory in use by SQLite... "
+      }
+
+      if {[catch {object invoke -flags +NonPublic \
+              System.Data.SQLite.UnsafeNativeMethods \
+              sqlite3_memory_highwater 0} memory] == 0} then {
+        if {!$quiet} then {
+          tputs $channel [appendArgs $memory " bytes\n"]
+        }
+      } else {
+        #
+        # NOTE: Maybe the SQLite core library is unavailable?
+        #
+        set memory unknown
+
+        if {!$quiet} then {
+          tputs $channel [appendArgs $memory \n]
+        }
+      }
+
+      if {$collect} then {
+        collectGarbage $channel
+      }
+
+      if {!$quiet} then {
+        tputs $channel "---- current memory in use by the CLR... "
+      }
+
+      if {[catch {object invoke GC GetTotalMemory false} memory] == 0} then {
+        if {[string is integer -strict $memory]} then {
+          if {!$quiet} then {
+            tputs $channel [appendArgs $memory " bytes\n"]
+          }
+        } else {
+          set memory invalid
+
+          if {!$quiet} then {
+            tputs $channel [appendArgs $memory \n]
+          }
+        }
+      } else {
+        set memory unknown
+
+        if {!$quiet} then {
+          tputs $channel [appendArgs $memory \n]
+        }
+      }
+
+      return $result
+    }
+
+    proc checkForSQLiteDirectories { channel {reset false} } {
+      #
+      # NOTE: Check if the sqlite3_win32_set_directory function is available.
+      #
+      tputs $channel \
+          "---- checking for function sqlite3_win32_set_directory... "
+
+      #
+      # NOTE: This call to the sqlite3_win32_set_directory function uses the
+      #       invalid value 0 for the first argument.  This code is designed
+      #       to check if calling the function will raise an exception (i.e.
+      #       the actual result of the function does not matter as long as no
+      #       directory is changed).
+      #
+      if {[catch {
+              object invoke -flags +NonPublic \
+              System.Data.SQLite.UnsafeNativeMethods \
+              sqlite3_win32_set_directory 0 null}] == 0} then {
+        #
+        # NOTE: Calling the sqlite3_win32_set_directory function does not
+        #       cause an exception; therefore, it must be available (i.e.
+        #       even though it should return a failure return code in this
+        #       case).
+        #
+        addConstraint sqlite3_win32_set_directory
+
+        tputs $channel yes\n
+
+        #
+        # NOTE: Does our caller want to reset the directories?
+        #
+        if {$reset} then {
+          #
+          # NOTE: Now make sure the database and temporary directories are
+          #       reset their default values, which should be null for both.
+          #       Since the sqlite3_win32_set_directory function is available,
+          #       use it.
+          #
+          for {set index 1} {$index < 3} {incr index} {
+            if {[catch {
+                    object invoke -flags +NonPublic \
+                    System.Data.SQLite.UnsafeNativeMethods \
+                    sqlite3_win32_set_directory $index null} \
+                    result] == 0} then {
+              tputs $channel [appendArgs \
+                  "---- call sqlite3_win32_set_directory(" $index \
+                  ", null)... ok: " $result \n]
+            } else {
+              tputs $channel [appendArgs \
+                  "---- call sqlite3_win32_set_directory(" $index \
+                  ", null)... error: " \n\t $result \n]
+            }
+          }
+        }
+      } else {
+        tputs $channel no\n
+
+        #
+        # NOTE: Does our caller want to reset the directories?  This can only
+        #       be performed if SQLite is loaded and ready for use by the test
+        #       suite.
+        #
+        if {$reset && [isSQLiteReady]} then {
+          #
+          # NOTE: Now make sure the database and temporary directories are
+          #       reset their default values, which should be null for both.
+          #       Since the sqlite3_win32_set_directory function does not
+          #       appear to be available, use the associated PRAGMA commands
+          #       instead.
+          #
+          foreach directory [list data_store_directory temp_store_directory] {
+            set sql [appendArgs "PRAGMA " $directory " = \"\";"]
+
+            if {[catch {executeSql $sql} result] == 0} then {
+              tputs $channel [appendArgs \
+                  "---- execute PRAGMA " $directory "... ok: \"" \
+                  $result \"\n]
+            } else {
+              tputs $channel [appendArgs \
+                  "---- execute PRAGMA " $directory "... error: " \
+                  \n\t $result \n]
+            }
+          }
+        }
+      }
+
+      #
+      # NOTE: Finally, show the current value of the database and temporary
+      #       directories.  This can only be performed if SQLite is loaded
+      #       and ready for use by the test suite.
+      #
+      if {[isSQLiteReady]} then {
+        foreach directory [list data_store_directory temp_store_directory] {
+          tputs $channel [appendArgs "---- checking " $directory "... "]
+
+          set sql [appendArgs "PRAGMA " $directory \;]
+
+          if {[catch {executeSql $sql scalar} result] == 0} then {
+            tputs $channel [appendArgs "ok: \"" $result \"\n]
+          } else {
+            tputs $channel [appendArgs "error: " \n\t $result \n]
+          }
+        }
+      }
+    }
+
+    proc loadSQLiteTestSettings { channel {suffix ""} {quiet false} } {
+      #
+      # NOTE: Skip loading the settings if their usage has been disabled.
+      #
+      if {![info exists ::no(sqliteTestSettings)]} then {
+        #
+        # NOTE: Load custom per-user and/or per-host test settings now.
+        #
+        if {[info exists ::tcl_platform(user)]} then {
+          set userSettingsFileName [file join [getCommonDirectory] \
+              [appendArgs settings $suffix . $::tcl_platform(user) .eagle]]
+
+          if {[file exists $userSettingsFileName]} then {
+            if {!$quiet} then {
+              tputs $channel [appendArgs \
+                  "---- loading per-user test settings file \"" \
+                  $userSettingsFileName \"...\n]
+            }
+
+            if {[catch {uplevel 1 [list source $userSettingsFileName]} \
+                    error]} then {
+              if {!$quiet} then {
+                tputs $channel [appendArgs \
+                    "==== WARNING: failed to load per-user settings file \"" \
+                    $userSettingsFileName "\", error: " \n\t $error \n]
+              }
+            }
+          } else {
+            if {!$quiet} then {
+              tputs $channel [appendArgs \
+                  "---- skipped loading per-user test settings file \"" \
+                  $userSettingsFileName "\", it does not exist\n"]
+            }
+          }
+        }
+
+        #######################################################################
+
+        if {[info exists ::tcl_platform(host)]} then {
+          set hostSettingsFileName [file join [getCommonDirectory] \
+              [appendArgs settings $suffix . $::tcl_platform(host) .eagle]]
+
+          if {[file exists $hostSettingsFileName]} then {
+            if {!$quiet} then {
+              tputs $channel [appendArgs \
+                  "---- loading per-host test settings file \"" \
+                  $hostSettingsFileName \"...\n]
+            }
+
+            if {[catch {uplevel 1 [list source $hostSettingsFileName]} \
+                    error]} then {
+              if {!$quiet} then {
+                tputs $channel [appendArgs \
+                    "==== WARNING: failed to load per-host settings file \"" \
+                    $hostSettingsFileName "\", error: " \n\t $error \n]
+              }
+            }
+          } else {
+            if {!$quiet} then {
+              tputs $channel [appendArgs \
+                  "---- skipped loading per-host test settings file \"" \
+                  $hostSettingsFileName "\", it does not exist\n"]
+            }
+          }
+        }
+      }
+    }
+
+    proc runSQLiteTestPrologue {} {
+      #
+      # NOTE: Skip running our custom prologue if the main one has been
+      #       skipped.
+      #
+      if {![info exists ::no(prologue.eagle)]} then {
+        #
+        # NOTE: Load the "before-constraints" custom per-user and/or per-host
+        #       test settings now.
+        #
+        uplevel 1 [list loadSQLiteTestSettings $::test_channel .before]
+
+        #
+        # NOTE: Skip all System.Data.SQLite related file handling (deleting,
+        #       copying, and loading) if we are so instructed.
+        #
+        if {![info exists ::no(sqliteFiles)]} then {
+          #
+          # NOTE: Skip trying to delete any files if we are so instructed.
+          #
+          if {![info exists ::no(deleteSqliteFiles)]} then {
+            tryDeleteAssembly sqlite3.dll
+            removeConstraint file_sqlite3.dll
+
+            tryDeleteAssembly SQLite.Interop.dll
+            removeConstraint file_SQLite.Interop.dll
+
+            tryDeleteAssembly System.Data.SQLite.dll
+            removeConstraint file_System.Data.SQLite.dll
+
+            tryDeleteAssembly System.Data.SQLite.Linq.dll
+            removeConstraint file_System.Data.SQLite.Linq.dll
+          }
+
+          #
+          # NOTE: Check for the "autoSelect" runtime option.  If present,
+          #       attempt to automatically select the first available
+          #       build (or "release") of SQLite and System.Data.SQLite
+          #       for use with the test suite.
+          #
+          if {[hasRuntimeOption autoSelect]} then {
+            if {![checkForSQLiteBuilds $::test_channel true]} then {
+              checkForSQLiteReleases $::test_channel true
+            }
+          }
+
+          #
+          # NOTE: Skip trying to verify the build directory if we are so
+          #       instructed; otherwise, make sure it actually exists or
+          #       halt the entire testing process if it does not exist.
+          #
+          if {![info exists ::no(verifyBuildDirectory)]} then {
+            #
+            # NOTE: At this point, the build directory MUST exist as a
+            #       valid directory for the testing process to continue.
+            #
+            set directory [getBuildDirectory]
+
+            if {![file exists $directory] || \
+                ![file isdirectory $directory]} then {
+              #
+              # NOTE: Just prior to actually halting the testing process,
+              #       add an error to the test log file.
+              #
+              tputs $::test_channel [appendArgs \
+                  "---- could not verify build directory \"" $directory \
+                  "\", all testing halted\n"]
+
+              #
+              # NOTE: Raising a script error from this point should halt
+              #       the testing process.
+              #
+              error [appendArgs \
+                  "could not verify build directory \"" $directory \
+                  "\", all testing halted"]
+            }
+          }
+
+          #
+          # NOTE: Skip trying to copy any files if we are so instructed.
+          #
+          if {![info exists ::no(copySqliteFiles)]} then {
+            tryCopyAssembly sqlite3.dll
+            tryCopyAssembly SQLite.Interop.dll
+            tryCopyAssembly System.Data.SQLite.dll
+            tryCopyAssembly System.Data.SQLite.Linq.dll
+          }
+
+          #
+          # NOTE: Skip trying to load any files if we are so instructed.
+          #
+          if {![info exists ::no(loadSqliteFiles)]} then {
+            tryLoadAssembly System.Data.SQLite.dll
+            tryLoadAssembly System.Data.SQLite.Linq.dll
+          }
+
+          #
+          # NOTE: Skip trying to delete external files if we are so instructed.
+          #
+          if {![info exists ::no(deleteSqliteExternalFiles)]} then {
+            tryDeleteBuildFile Installer.exe.mda.config
+            tryDeleteBuildFile test.exe.mda.config
+            tryDeleteBuildFile testlinq.exe.mda.config
+          }
+
+          #
+          # NOTE: Skip trying to copy external files if we are so instructed.
+          #
+          if {![info exists ::no(copySqliteExternalFiles)]} then {
+            #
+            # NOTE: Copy the MDA configuration file for the Eagle shell to the
+            #       build output directory; however, use the name of the legacy
+            #       test executable.  This will make sure that the legacy tests
+            #       run with the same set of MDAs configured.
+            #
+            tryCopyBinaryFile EagleShell.exe.mda.config Installer.exe.mda.config
+            tryCopyBinaryFile EagleShell.exe.mda.config test.exe.mda.config
+            tryCopyBinaryFile EagleShell.exe.mda.config testlinq.exe.mda.config
+          }
+        }
+
+        catch {
+          tputs $::test_channel [appendArgs \
+              "---- file version of \"sqlite3.dll\"... " \
+              [file version [getBinaryFileName sqlite3.dll]] \n]
+        }
+
+        catch {
+          tputs $::test_channel [appendArgs \
+              "---- file version of \"SQLite.Interop.dll\"... " \
+              [file version [getBinaryFileName SQLite.Interop.dll]] \n]
+        }
+
+        catch {
+          tputs $::test_channel [appendArgs \
+              "---- file version of \"System.Data.SQLite.dll\"... " \
+              [file version [getBinaryFileName System.Data.SQLite.dll]] \n]
+        }
+
+        catch {
+          tputs $::test_channel [appendArgs \
+              "---- file version of \"System.Data.SQLite.Linq.dll\"... " \
+              [file version [getBinaryFileName System.Data.SQLite.Linq.dll]] \n]
+        }
+
+        set assemblies [object invoke AppDomain.CurrentDomain GetAssemblies]
+
+        object foreach assembly $assemblies {
+          if {[string match \{System.Data.SQLite* $assembly]} then {
+            tputs $::test_channel [appendArgs \
+                "---- found assembly: " $assembly \n]
+          }
+        }
+
+        catch {
+          tputs $::test_channel \
+              "---- define constants for \"System.Data.SQLite\"... "
+
+          if {[catch {object invoke -flags +NonPublic \
+                  System.Data.SQLite.SQLite3 DefineConstants} \
+                  defineConstants] == 0} then {
+            tputs $::test_channel [appendArgs [formatList [lsort \
+                $defineConstants] <none>] \n]
+          } else {
+            tputs $::test_channel unknown\n
+          }
+        }
+
+        catch {
+          tputs $::test_channel \
+              "---- source version of \"System.Data.SQLite.dll\"... "
+
+          if {[catch {object invoke -flags +NonPublic \
+                  System.Data.SQLite.SQLiteConnection ProviderVersion} \
+                  version] == 0} then {
+            if {[string length $version] == 0} then {
+              set version null
+            }
+            tputs $::test_channel [appendArgs $version \n]
+          } else {
+            tputs $::test_channel unknown\n
+          }
+        }
+
+        catch {
+          tputs $::test_channel \
+              "---- source checkout of \"System.Data.SQLite.dll\"... "
+
+          if {[catch {object invoke -flags +NonPublic \
+                  System.Data.SQLite.SQLiteConnection ProviderSourceId} \
+                  sourceId] == 0} then {
+            if {[string length $sourceId] == 0} then {
+              set sourceId null
+            }
+            tputs $::test_channel [appendArgs $sourceId \n]
+          } else {
+            tputs $::test_channel unknown\n
+          }
+        }
+
+        #
+        # NOTE: Check the available builds (and "releases") of SQLite and
+        #       System.Data.SQLite.
+        #
+        checkForSQLiteBuilds $::test_channel
+        checkForSQLiteReleases $::test_channel
+
+        #
+        # NOTE: Now, we need to know if the SQLite core library is available
+        #       (i.e. because the managed-only System.Data.SQLite assembly can
+        #       load without it; however, it cannot do anything useful without
+        #       it).  If we are using the mixed-mode assembly and we already
+        #       found it (above), this should always succeed.
+        #
+        checkForSQLiteLibrary $::test_channel
+
+        #
+        # NOTE: Check if the SQLite interop assembly is available.
+        #
+        checkForSQLiteInterop $::test_channel
+
+        #
+        # NOTE: Check the SQLite database and temporary directories.
+        #
+        checkForSQLiteDirectories $::test_channel
+
+        #
+        # NOTE: Attempt to determine if various compile-time options needed for
+        #       test constraints were enabled for the managed assembly.  There
+        #       are some compile-time options that must also have been enabled
+        #       for the interop assembly in order to be effective.  For those
+        #       options, it will be assumed that it was enabled for the interop
+        #       assembly if it was enabled for the managed assembly.
+        #
+        foreach defineConstant [list \
+            CHECK_STATE COUNT_HANDLE DEBUG INTEROP_CODEC INTEROP_DEBUG \
+            INTEROP_EXTENSION_FUNCTIONS INTEROP_LEGACY_CLOSE INTEROP_LOG \
+            INTEROP_TEST_EXTENSION INTEROP_VIRTUAL_TABLE NET_20 NET_35 \
+            NET_40 NET_45 NET_451 NET_COMPACT_20 PLATFORM_COMPACTFRAMEWORK \
+            PRELOAD_NATIVE_LIBRARY RETARGETABLE SQLITE_STANDARD \
+            THROW_ON_DISPOSED TRACE TRACE_CONNECTION TRACE_HANDLE \
+            TRACE_PRELOAD TRACE_STATEMENT TRACE_WARNING TRACK_MEMORY_BYTES \
+            USE_INTEROP_DLL USE_PREPARE_V2 WINDOWS] {
+          #
+          # NOTE: Check if the compile-time option is listed in the list of
+          #       "define constants" kept track of by the managed assembly.
+          #
+          checkForSQLiteDefineConstant $::test_channel $defineConstant
+        }
+
+        #
+        # NOTE: Check the current build year.  Basically, this indicates
+        #       which version of MSBuild and/or Visual Studio was used to
+        #       compile the assembly binaries under test.
+        #
+        tputs $::test_channel \
+            "---- checking for System.Data.SQLite build year... "
+
+        set year [getBuildYear]
+        addConstraint [appendArgs buildYear. $year]
+        tputs $::test_channel [appendArgs \" $year \"\n]
+
+        #
+        # NOTE: Check the current build configuration.  This should normally
+        #       be either "Debug" or "Release".
+        #
+        tputs $::test_channel \
+            "---- checking for System.Data.SQLite build configuration... "
+
+        set configuration [getBuildConfiguration]
+        addConstraint [appendArgs buildConfiguration. $configuration]
+        tputs $::test_channel [appendArgs \" $configuration \"\n]
+
+        #
+        # NOTE: Try to setup an interrupt callback using the script debugger
+        #       that will cancel all SQL queries in progress for all database
+        #       connections known to this interpreter.
+        #
+        if {![info exists ::no(sqliteInterruptCallback)]} then {
+          setupDbInterruptCallback $::test_channel $::test_log
+        }
+
+        #
+        # NOTE: Check for the native runtime option, which would mean we are
+        #       using the mixed-mode assembly.
+        #
+        checkForRuntimeOption $::test_channel native
+
+        #
+        # NOTE: Check if the test suite should count the number of connections
+        #       "opened" and "closed" from the pool when determining if a test
+        #       passed.  Disabling this behavior is sometimes necessary (e.g.
+        #       during the release testing process) because there are several
+        #       tests that rely on the "opened from pool" count being greater
+        #       than zero.  These tests may fail due to the non-deterministic
+        #       behavior of the CLR GC, even when there is no bug in the code
+        #       being tested.
+        #
+        checkForRuntimeOption $::test_channel noPoolCounts
+
+        #
+        # NOTE: Report the resource usage prior to running any tests.
+        #
+        reportSQLiteResources $::test_channel
+
+        #
+        # NOTE: Show the active test constraints.
+        #
+        tputs $::test_channel [appendArgs "---- constraints: " \
+            [formatList [lsort [getConstraints]] <none>] \n]
+
+        #
+        # NOTE: Save the test constraints for use by threads created in this
+        #       application domain.  This is necessary because all the Eagle
+        #       "test context" information is per-thread.
+        #
+        if {![info exists ::test_constraints]} then {
+          set ::test_constraints $::eagle_tests(constraints)
+        }
+
+        #
+        # NOTE: Load the "after-constraints" custom per-user and/or per-host
+        #       test settings now.
+        #
+        uplevel 1 [list loadSQLiteTestSettings $::test_channel .after]
+
+        #
+        # NOTE: Show when our tests actually began (now).
+        #
+        tputs $::test_channel [appendArgs \
+            "---- System.Data.SQLite tests began at " \
+            [clock format [clock seconds]] \n]
+      }
+    }
+
+    proc runSQLiteTestEpilogue {} {
+      #
+      # NOTE: Skip running our custom epilogue if the main one has been
+      #       skipped.
+      #
+      if {![info exists ::no(epilogue.eagle)]} then {
+        #
+        # NOTE: Show when our tests actually ended (now).
+        #
+        tputs $::test_channel [appendArgs \
+            "---- System.Data.SQLite tests ended at " \
+            [clock format [clock seconds]] \n]
+
+        #
+        # BUGFIX: Before checking the final resources in use by SQLite, make
+        #         sure both of the PRAGMA related directory names are freed.
+        #
+        checkForSQLiteDirectories $::test_channel true
+
+        #
+        # NOTE: Also report the resource usage after running the tests.
+        #
+        reportSQLiteResources $::test_channel
+
+        #
+        # NOTE: Report the critical handle counts after running the tests.
+        #
+        getSQLiteHandleCounts $::test_channel
+      }
+    }
+
+    ###########################################################################
+    ############################# END Eagle ONLY ##############################
+    ###########################################################################
+  }
+
+  #
+  # NOTE: Save the name of the directory containing this file.
+  #
+  if {![info exists common_directory]} then {
+    set common_directory [file dirname [info script]]
+  }
+
+  #
+  # NOTE: Provide the System.Data.SQLite test package to the interpreter.
+  #
+  package provide System.Data.SQLite.Test 1.0
+}

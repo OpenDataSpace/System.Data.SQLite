@@ -1,4 +1,4 @@
-﻿/********************************************************
+/********************************************************
  * ADO.NET 2.0 Data Provider for SQLite Version 3.X
  * Written by Robert Simpson (robert@blackcastlesoft.com)
  * 
@@ -8,17 +8,103 @@
 namespace System.Data.SQLite
 {
   using System;
+  using System.Collections.Generic;
+
+#if !NET_COMPACT_20 && TRACE_CONNECTION
+  using System.Diagnostics;
+#endif
+
+  using System.IO;
   using System.Runtime.InteropServices;
 
   /// <summary>
   /// Alternate SQLite3 object, overriding many text behaviors to support UTF-16 (Unicode)
   /// </summary>
-  internal class SQLite3_UTF16 : SQLite3
+  internal sealed class SQLite3_UTF16 : SQLite3
   {
-    internal SQLite3_UTF16(DateTimeFormat fmt)
-      : base(fmt)
+    /// <summary>
+    /// Constructs the object used to interact with the SQLite core library
+    /// using the UTF-8 text encoding.
+    /// </summary>
+    /// <param name="fmt">
+    /// The DateTime format to be used when converting string values to a
+    /// DateTime and binding DateTime parameters.
+    /// </param>
+    /// <param name="kind">
+    /// The <see cref="DateTimeKind" /> to be used when creating DateTime
+    /// values.
+    /// </param>
+    /// <param name="fmtString">
+    /// The format string to be used when parsing and formatting DateTime
+    /// values.
+    /// </param>
+    /// <param name="db">
+    /// The native handle to be associated with the database connection.
+    /// </param>
+    /// <param name="fileName">
+    /// The fully qualified file name associated with <paramref name="db" />.
+    /// </param>
+    /// <param name="ownHandle">
+    /// Non-zero if the newly created object instance will need to dispose
+    /// of <paramref name="db" /> when it is no longer needed.
+    /// </param>
+    internal SQLite3_UTF16(
+        SQLiteDateFormats fmt,
+        DateTimeKind kind,
+        string fmtString,
+        IntPtr db,
+        string fileName,
+        bool ownHandle
+        )
+        : base(fmt, kind, fmtString, db, fileName, ownHandle)
     {
     }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    #region IDisposable "Pattern" Members
+    private bool disposed;
+    private void CheckDisposed() /* throw */
+    {
+#if THROW_ON_DISPOSED
+        if (disposed)
+            throw new ObjectDisposedException(typeof(SQLite3_UTF16).Name);
+#endif
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    protected override void Dispose(bool disposing)
+    {
+        try
+        {
+            if (!disposed)
+            {
+                //if (disposing)
+                //{
+                //    ////////////////////////////////////
+                //    // dispose managed resources here...
+                //    ////////////////////////////////////
+                //}
+
+                //////////////////////////////////////
+                // release unmanaged resources here...
+                //////////////////////////////////////
+            }
+        }
+        finally
+        {
+            base.Dispose(disposing);
+
+            //
+            // NOTE: Everything should be fully disposed at this point.
+            //
+            disposed = true;
+        }
+    }
+    #endregion
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
 
     /// <summary>
     /// Overrides SQLiteConvert.ToString() to marshal UTF-16 strings instead of UTF-8
@@ -28,131 +114,242 @@ namespace System.Data.SQLite
     /// <returns>A .NET string</returns>
     public override string ToString(IntPtr b, int nbytelen)
     {
-      if (nbytelen == 0) return "";
-      return Marshal.PtrToStringUni(b, nbytelen / 2);
+      CheckDisposed();
+      return UTF16ToString(b, nbytelen);
     }
 
-    /// <summary>
-    /// Another custom string marshaling function
-    /// </summary>
-    /// <param name="b">A pointer to a zero-terminated UTF-16 string</param>
-    /// <returns>A .NET string</returns>
-    internal string ToString(IntPtr b)
+    public static string UTF16ToString(IntPtr b, int nbytelen)
     {
-      if (b == IntPtr.Zero) return "";
-      return Marshal.PtrToStringUni(b);
+      if (nbytelen == 0 || b == IntPtr.Zero) return "";
+
+      if (nbytelen == -1)
+        return Marshal.PtrToStringUni(b);
+      else
+        return Marshal.PtrToStringUni(b, nbytelen / 2);
     }
 
-    internal override void Open(string strFilename)
+    internal override void Open(string strFilename, SQLiteConnectionFlags connectionFlags, SQLiteOpenFlagsEnum openFlags, int maxPoolSize, bool usePool)
     {
-      if (_sql != 0) return;
-      int n = UnsafeNativeMethods.sqlite3_open16_interop(strFilename, out _sql);
-      if (n > 0) throw new SQLiteException(n, SQLiteLastError());
+      //
+      // NOTE: If the database connection is currently open, attempt to
+      //       close it now.  This must be done because the file name or
+      //       other parameters that may impact the underlying database
+      //       connection may have changed.
+      //
+      if (_sql != null) Close(true);
 
-      _functionsArray = SQLiteFunction.BindFunctions(this);
+      //
+      // NOTE: If the connection was not closed successfully, throw an
+      //       exception now.
+      //
+      if (_sql != null)
+          throw new SQLiteException("connection handle is still active");
+
+      _usePool = usePool;
+      _fileName = strFilename;
+
+      if (usePool)
+      {
+        _sql = SQLiteConnectionPool.Remove(strFilename, maxPoolSize, out _poolVersion);
+
+#if !NET_COMPACT_20 && TRACE_CONNECTION
+        Trace.WriteLine(String.Format("Open16 (Pool): {0}", (_sql != null) ? _sql.ToString() : "<null>"));
+#endif
+      }
+
+      if (_sql == null)
+      {
+        try
+        {
+            // do nothing.
+        }
+        finally /* NOTE: Thread.Abort() protection. */
+        {
+          IntPtr db;
+          SQLiteErrorCode n;
+
+#if !SQLITE_STANDARD
+          if ((connectionFlags & SQLiteConnectionFlags.NoExtensionFunctions) != SQLiteConnectionFlags.NoExtensionFunctions)
+          {
+            n = UnsafeNativeMethods.sqlite3_open16_interop(ToUTF8(strFilename), openFlags, out db);
+          }
+          else
+#endif
+          {
+            //
+            // NOTE: This flag check is designed to enforce the constraint that opening
+            //       a database file that does not already exist requires specifying the
+            //       "Create" flag, even when a native API is used that does not accept
+            //       a flags parameter.
+            //
+            if (((openFlags & SQLiteOpenFlagsEnum.Create) != SQLiteOpenFlagsEnum.Create) && !File.Exists(strFilename))
+              throw new SQLiteException(SQLiteErrorCode.CantOpen, strFilename);
+
+            n = UnsafeNativeMethods.sqlite3_open16(strFilename, out db);
+          }
+
+#if !NET_COMPACT_20 && TRACE_CONNECTION
+          Trace.WriteLine(String.Format("Open16: {0}", db));
+#endif
+
+          if (n != SQLiteErrorCode.Ok) throw new SQLiteException(n, null);
+          _sql = new SQLiteConnectionHandle(db, true);
+        }
+        lock (_sql) { /* HACK: Force the SyncBlock to be "created" now. */ }
+
+        SQLiteConnection.OnChanged(null, new ConnectionEventArgs(
+            SQLiteConnectionEventType.NewCriticalHandle, null, null,
+            null, null, _sql, strFilename, new object[] { strFilename,
+            connectionFlags, openFlags, maxPoolSize, usePool }));
+      }
+
+      // Bind functions to this connection.  If any previous functions of the same name
+      // were already bound, then the new bindings replace the old.
+      if ((connectionFlags & SQLiteConnectionFlags.NoBindFunctions) != SQLiteConnectionFlags.NoBindFunctions)
+      {
+          if (_functions == null)
+              _functions = new List<SQLiteFunction>();
+
+          _functions.AddRange(new List<SQLiteFunction>(SQLiteFunction.BindFunctions(this, connectionFlags)));
+      }
+
+      SetTimeout(0);
+      GC.KeepAlive(_sql);
     }
 
-    internal override string SQLiteLastError()
+    internal override void Bind_DateTime(SQLiteStatement stmt, SQLiteConnectionFlags flags, int index, DateTime dt)
     {
-      return ToString(UnsafeNativeMethods.sqlite3_errmsg16_interop(_sql));
+        switch (_datetimeFormat)
+        {
+            case SQLiteDateFormats.Ticks:
+            case SQLiteDateFormats.JulianDay:
+            case SQLiteDateFormats.UnixEpoch:
+                {
+                    base.Bind_DateTime(stmt, flags, index, dt);
+                    break;
+                }
+            default:
+                {
+#if !PLATFORM_COMPACTFRAMEWORK
+                    if ((flags & SQLiteConnectionFlags.LogBind) == SQLiteConnectionFlags.LogBind)
+                    {
+                        SQLiteStatementHandle handle =
+                            (stmt != null) ? stmt._sqlite_stmt : null;
+
+                        LogBind(handle, index, dt);
+                    }
+#endif
+
+                    Bind_Text(stmt, flags, index, ToString(dt));
+                    break;
+                }
+        }
     }
 
-    internal override SQLiteStatement Prepare(string strSql, ref int nParamStart, out string strRemain)
+    internal override void Bind_Text(SQLiteStatement stmt, SQLiteConnectionFlags flags, int index, string value)
     {
-      int stmt;
-      IntPtr ptr;
+        SQLiteStatementHandle handle = stmt._sqlite_stmt;
 
-      int n = UnsafeNativeMethods.sqlite3_prepare16_interop(_sql, strSql, strSql.Length, out stmt, out ptr);
-      if (n > 0) throw new SQLiteException(n, SQLiteLastError());
+#if !PLATFORM_COMPACTFRAMEWORK
+        if ((flags & SQLiteConnectionFlags.LogBind) == SQLiteConnectionFlags.LogBind)
+        {
+            LogBind(handle, index, value);
+        }
+#endif
 
-      strRemain = ToString(ptr);
-
-      SQLiteStatement cmd = new SQLiteStatement(this, stmt, strSql.Substring(0, strSql.Length - strRemain.Length), ref nParamStart);
-
-      return cmd;
-    }
-
-    internal override void Bind_DateTime(SQLiteStatement stmt, int index, DateTime dt)
-    {
-      Bind_Text(stmt, index, ToString(dt));
-    }
-
-    internal override void Bind_Text(SQLiteStatement stmt, int index, string value)
-    {
-      int n = UnsafeNativeMethods.sqlite3_bind_text16_interop(stmt._sqlite_stmt, index, value, value.Length * 2, -1);
-      if (n > 0) throw new SQLiteException(n, SQLiteLastError());
-    }
-
-    internal override string ColumnName(SQLiteStatement stmt, int index)
-    {
-      return ToString(UnsafeNativeMethods.sqlite3_column_name16_interop(stmt._sqlite_stmt, index));
+        SQLiteErrorCode n = UnsafeNativeMethods.sqlite3_bind_text16(handle, index, value, value.Length * 2, (IntPtr)(-1));
+        if (n != SQLiteErrorCode.Ok) throw new SQLiteException(n, GetLastError());
     }
 
     internal override DateTime GetDateTime(SQLiteStatement stmt, int index)
     {
+      if (_datetimeFormat == SQLiteDateFormats.Ticks)
+        return ToDateTime(GetInt64(stmt, index), _datetimeKind);
+      else if (_datetimeFormat == SQLiteDateFormats.JulianDay)
+        return ToDateTime(GetDouble(stmt, index), _datetimeKind);
+      else if (_datetimeFormat == SQLiteDateFormats.UnixEpoch)
+        return ToDateTime(GetInt32(stmt, index), _datetimeKind);
+
       return ToDateTime(GetText(stmt, index));
     }
+
+    internal override string ColumnName(SQLiteStatement stmt, int index)
+    {
+#if !SQLITE_STANDARD
+      int len;
+      IntPtr p = UnsafeNativeMethods.sqlite3_column_name16_interop(stmt._sqlite_stmt, index, out len);
+#else
+      IntPtr p = UnsafeNativeMethods.sqlite3_column_name16(stmt._sqlite_stmt, index);
+#endif
+      if (p == IntPtr.Zero)
+        throw new SQLiteException(SQLiteErrorCode.NoMem, GetLastError());
+#if !SQLITE_STANDARD
+      return UTF16ToString(p, len);
+#else
+      return UTF16ToString(p, -1);
+#endif
+    }
+
     internal override string GetText(SQLiteStatement stmt, int index)
     {
-      return ToString(UnsafeNativeMethods.sqlite3_column_text16_interop(stmt._sqlite_stmt, index));
+#if !SQLITE_STANDARD
+      int len;
+      return UTF16ToString(UnsafeNativeMethods.sqlite3_column_text16_interop(stmt._sqlite_stmt, index, out len), len);
+#else
+      return UTF16ToString(UnsafeNativeMethods.sqlite3_column_text16(stmt._sqlite_stmt, index),
+        UnsafeNativeMethods.sqlite3_column_bytes16(stmt._sqlite_stmt, index));
+#endif
     }
 
-    internal override string ColumnType(SQLiteStatement stmt, int index, out TypeAffinity nAffinity)
+    internal override string ColumnOriginalName(SQLiteStatement stmt, int index)
     {
-      nAffinity = TypeAffinity.None;
-
-      IntPtr p = UnsafeNativeMethods.sqlite3_column_decltype16_interop(stmt._sqlite_stmt, index);
-      if (p != IntPtr.Zero) return ToString(p);
-      else
-      {
-        nAffinity = UnsafeNativeMethods.sqlite3_column_type_interop(stmt._sqlite_stmt, index);
-        switch (nAffinity)
-        {
-          case TypeAffinity.Int64:
-            return "BIGINT";
-          case TypeAffinity.Double:
-            return "DOUBLE";
-          case TypeAffinity.Blob:
-            return "BLOB";
-          default:
-            return "TEXT";
-        }
-      }
+#if !SQLITE_STANDARD
+      int len;
+      return UTF16ToString(UnsafeNativeMethods.sqlite3_column_origin_name16_interop(stmt._sqlite_stmt, index, out len), len);
+#else
+      return UTF16ToString(UnsafeNativeMethods.sqlite3_column_origin_name16(stmt._sqlite_stmt, index), -1);
+#endif
     }
 
-    internal override int CreateFunction(string strFunction, int nArgs, SQLiteCallback func, SQLiteCallback funcstep, SQLiteCallback funcfinal)
+    internal override string ColumnDatabaseName(SQLiteStatement stmt, int index)
     {
-      int nCookie;
-
-      int n = UnsafeNativeMethods.sqlite3_create_function16_interop(_sql, strFunction, nArgs, 4, func, funcstep, funcfinal, out nCookie);
-      if (n > 0) throw new SQLiteException(n, SQLiteLastError());
-
-      return nCookie;
+#if !SQLITE_STANDARD
+      int len;
+      return UTF16ToString(UnsafeNativeMethods.sqlite3_column_database_name16_interop(stmt._sqlite_stmt, index, out len), len);
+#else
+      return UTF16ToString(UnsafeNativeMethods.sqlite3_column_database_name16(stmt._sqlite_stmt, index), -1);
+#endif
     }
 
-    internal override int CreateCollation(string strCollation, SQLiteCollation func)
+    internal override string ColumnTableName(SQLiteStatement stmt, int index)
     {
-      int nCookie;
-
-      int n = UnsafeNativeMethods.sqlite3_create_collation16_interop(_sql, strCollation, 4, 0, func, out nCookie);
-      if (n > 0) throw new SQLiteException(n, SQLiteLastError());
-
-      return nCookie;
+#if !SQLITE_STANDARD
+      int len;
+      return UTF16ToString(UnsafeNativeMethods.sqlite3_column_table_name16_interop(stmt._sqlite_stmt, index, out len), len);
+#else
+      return UTF16ToString(UnsafeNativeMethods.sqlite3_column_table_name16(stmt._sqlite_stmt, index), -1);
+#endif
     }
 
-    internal override string GetParamValueText(int ptr)
+    internal override string GetParamValueText(IntPtr ptr)
     {
-      return ToString(UnsafeNativeMethods.sqlite3_value_text16_interop(ptr));
+#if !SQLITE_STANDARD
+      int len;
+      return UTF16ToString(UnsafeNativeMethods.sqlite3_value_text16_interop(ptr, out len), len);
+#else
+      return UTF16ToString(UnsafeNativeMethods.sqlite3_value_text16(ptr),
+        UnsafeNativeMethods.sqlite3_value_bytes16(ptr));
+#endif
     }
 
-    internal override void ReturnError(int context, string value)
+    internal override void ReturnError(IntPtr context, string value)
     {
-      UnsafeNativeMethods.sqlite3_result_error16_interop(context, value, value.Length);
+      UnsafeNativeMethods.sqlite3_result_error16(context, value, value.Length * 2);
     }
 
-    internal override void ReturnText(int context, string value)
+    internal override void ReturnText(IntPtr context, string value)
     {
-      UnsafeNativeMethods.sqlite3_result_text16_interop(context, value, value.Length, -1);
+      UnsafeNativeMethods.sqlite3_result_text16(context, value, value.Length * 2, (IntPtr)(-1));
     }
   }
 }

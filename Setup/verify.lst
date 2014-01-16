@@ -1,0 +1,1140 @@
+###############################################################################
+#
+# verify.lst -- Release Archive Manifest
+#
+# Written by Joe Mistachkin.
+# Released to the public domain, use at your own risk!
+#
+###############################################################################
+#
+# NOTE: This file contains the master lists of all files that should be present
+#       in the various archives generated during the release process.
+#
+###############################################################################
+#
+# NOTE: This is the list of all files that should be present in the standard
+#       source code archive.
+#
+set sds_manifests(source) {
+  Doc/
+  Doc/buildChm.tcl
+  Doc/Extra/
+  Doc/Extra/dbfactorysupport.html
+  Doc/Extra/designer.html
+  Doc/Extra/environment.html
+  Doc/Extra/lang_altertable.html
+  Doc/Extra/lang_analyze.html
+  Doc/Extra/lang_attach.html
+  Doc/Extra/lang_comment.html
+  Doc/Extra/lang_conflict.html
+  Doc/Extra/lang_createindex.html
+  Doc/Extra/lang_createtable.html
+  Doc/Extra/lang_createtrigger.html
+  Doc/Extra/lang_createview.html
+  Doc/Extra/lang_createvtab.html
+  Doc/Extra/lang_datetime.html
+  Doc/Extra/lang_delete.html
+  Doc/Extra/lang_detach.html
+  Doc/Extra/lang_dropindex.html
+  Doc/Extra/lang_droptable.html
+  Doc/Extra/lang_droptrigger.html
+  Doc/Extra/lang_dropview.html
+  Doc/Extra/lang_explain.html
+  Doc/Extra/lang_expr.html
+  Doc/Extra/lang_insert.html
+  Doc/Extra/lang_reindex.html
+  Doc/Extra/lang_replace.html
+  Doc/Extra/lang_select.html
+  Doc/Extra/lang_transaction.html
+  Doc/Extra/lang_types.html
+  Doc/Extra/lang_update.html
+  Doc/Extra/lang_vacuum.html
+  Doc/Extra/limitations.html
+  Doc/Extra/ndoc.css
+  Doc/Extra/optimizing.html
+  Doc/Extra/pragma.html
+  Doc/Extra/syntax.html
+  Doc/Extra/version.html
+  Doc/Extra/welcome.html
+  Doc/SQLite.NET.chm
+  Doc/SQLite.NET.hhc
+  Doc/SQLite.NET.hhp
+  Doc/SQLite.NET.ndoc
+  exclude_bin.txt
+  exclude_src.txt
+  Externals/
+  Externals/Eagle/
+  Externals/Eagle/bin/
+  Externals/Eagle/bin/EagleShell.exe.config
+  Externals/Eagle/bin/EagleShell.exe.mda.config
+  Externals/Eagle/lib/
+  Externals/Eagle/lib/Eagle1.0/
+  Externals/Eagle/lib/Eagle1.0/vendor.eagle
+  Externals/Eagle/lib/Test1.0/
+  install.ps1
+  readme.htm
+  Setup/
+  Setup/archive.bat
+  Setup/bake.bat
+  Setup/bake_all.bat
+  Setup/build.bat
+  Setup/build_all.bat
+  Setup/build_ce_200x.bat
+  Setup/build_ce_2013.bat
+  Setup/CheckForNetFx.pas
+  Setup/clean.bat
+  Setup/deployAndTestCe.eagle
+  Setup/InitializeSetup.pas
+  Setup/release.bat
+  Setup/release_all.bat
+  Setup/release_ce_200x.bat
+  Setup/release_ce_2013.bat
+  Setup/release_static.bat
+  Setup/set_2005.bat
+  Setup/set_2008.bat
+  Setup/set_2010.bat
+  Setup/set_2012.bat
+  Setup/set_2013.bat
+  Setup/set_common.bat
+  Setup/set_netFx20.bat
+  Setup/set_netFx35.bat
+  Setup/set_netFx40.bat
+  Setup/set_netFx45.bat
+  Setup/set_netFx451.bat
+  Setup/set_Release.bat
+  Setup/set_ReleaseNativeOnly.bat
+  "Setup/set_ReleaseNativeOnly_CEPC DevPlatform.bat"
+  "Setup/set_ReleaseNativeOnly_Pocket PC 2003 (ARMV4).bat"
+  "Setup/set_ReleaseNativeOnly_ARMV7.bat"
+  Setup/set_ReleaseNativeOnly_Win32.bat
+  Setup/set_ReleaseNativeOnly_x64.bat
+  Setup/set_ReleaseNativeOnly_x64_2005.bat
+  Setup/set_ReleaseNativeOnly_x64_2008.bat
+  Setup/set_ReleaseNativeOnly_x64_2010.bat
+  Setup/set_ReleaseNativeOnly_x64_2012.bat
+  Setup/set_ReleaseNativeOnly_x64_2013.bat
+  Setup/set_ReleaseNativeOnly_x86_2005.bat
+  Setup/set_ReleaseNativeOnly_x86_2008.bat
+  Setup/set_ReleaseNativeOnly_x86_2010.bat
+  Setup/set_ReleaseNativeOnly_x86_2012.bat
+  Setup/set_ReleaseNativeOnly_x86_2013.bat
+  "Setup/set_Release_CEPC DevPlatform.bat"
+  "Setup/set_Release_Pocket PC 2003 (ARMV4).bat"
+  "Setup/set_Release_ARMV7.bat"
+  Setup/set_Release_Win32.bat
+  Setup/set_Release_x64.bat
+  Setup/set_Release_x64_2005.bat
+  Setup/set_Release_x64_2008.bat
+  Setup/set_Release_x64_2010.bat
+  Setup/set_Release_x64_2012.bat
+  Setup/set_Release_x64_2013.bat
+  Setup/set_Release_x86_2005.bat
+  Setup/set_Release_x86_2008.bat
+  Setup/set_Release_x86_2010.bat
+  Setup/set_Release_x86_2012.bat
+  Setup/set_Release_x86_2013.bat
+  Setup/set_x64_2005.bat
+  Setup/set_x64_2008.bat
+  Setup/set_x64_2010.bat
+  Setup/set_x64_2012.bat
+  Setup/set_x64_2013.bat
+  Setup/set_x86_2005.bat
+  Setup/set_x86_2008.bat
+  Setup/set_x86_2010.bat
+  Setup/set_x86_2012.bat
+  Setup/set_x86_2013.bat
+  Setup/sourceTag.eagle
+  Setup/SQLite.iss
+  Setup/test.bat
+  Setup/test_all.bat
+  Setup/test_ce_200x.bat
+  Setup/updateFileInfo.tcl
+  Setup/verify.eagle
+  Setup/verify.lst
+  Setup/vsSp.bat
+  SQLite.Beta.nuspec
+  SQLite.Designer/
+  SQLite.Designer/AssemblyInfo.cs
+  SQLite.Designer/ChangePasswordDialog.cs
+  SQLite.Designer/ChangePasswordDialog.Designer.cs
+  SQLite.Designer/ChangePasswordDialog.resx
+  SQLite.Designer/ChangeScriptDialog.cs
+  SQLite.Designer/ChangeScriptDialog.Designer.cs
+  SQLite.Designer/ChangeScriptDialog.resx
+  SQLite.Designer/CtcComponents/
+  SQLite.Designer/CtcComponents/Guids.h
+  SQLite.Designer/CtcComponents/PkgCmd.ctc
+  SQLite.Designer/CtcComponents/PkgCmdID.h
+  SQLite.Designer/Design/
+  SQLite.Designer/Design/Check.cs
+  SQLite.Designer/Design/Column.cs
+  SQLite.Designer/Design/ForeignKey.cs
+  SQLite.Designer/Design/Index.cs
+  SQLite.Designer/Design/PrimaryKey.cs
+  SQLite.Designer/Design/SimpleTokenizer.cs
+  SQLite.Designer/Design/Table.cs
+  SQLite.Designer/Design/Trigger.cs
+  SQLite.Designer/Design/Unique.cs
+  SQLite.Designer/Design/View.cs
+  SQLite.Designer/Editors/
+  SQLite.Designer/Editors/AutoCompleteColumn.cs
+  SQLite.Designer/Editors/TableDesignerDoc.cs
+  SQLite.Designer/Editors/TableDesignerDoc.Designer.cs
+  SQLite.Designer/Editors/TableDesignerDoc.resx
+  SQLite.Designer/Editors/ViewDesignerDoc.cs
+  SQLite.Designer/Editors/ViewDesignerDoc.Designer.cs
+  SQLite.Designer/Editors/ViewDesignerDoc.resx
+  SQLite.Designer/Pkgcmd.h
+  SQLite.Designer/PkgCmd.vsct
+  SQLite.Designer/plk.txt
+  SQLite.Designer/Resources/
+  SQLite.Designer/Resources/info.png
+  SQLite.Designer/Resources/ToolboxItems.txt
+  SQLite.Designer/source.extension.vsixmanifest
+  SQLite.Designer/SQLite.Designer.2005.csproj
+  SQLite.Designer/SQLite.Designer.2008.csproj
+  SQLite.Designer/SQLite.Designer.2010.csproj
+  SQLite.Designer/SQLite.Designer.2012.csproj
+  SQLite.Designer/SQLite.Designer.2013.csproj
+  SQLite.Designer/SQLiteAdapterDesigner.cs
+  SQLite.Designer/SQLiteCommandDesigner.cs
+  SQLite.Designer/SQLiteCommandHandler.cs
+  SQLite.Designer/SQLiteConnectionProperties.cs
+  SQLite.Designer/SQLiteConnectionStringEditor.cs
+  SQLite.Designer/SQLiteConnectionUIControl.cs
+  SQLite.Designer/SQLiteConnectionUIControl.Designer.cs
+  SQLite.Designer/SQLiteConnectionUIControl.resx
+  SQLite.Designer/SQLiteDataAdapterToolboxItem.cs
+  SQLite.Designer/SQLiteDataConnectionSupport.cs
+  SQLite.Designer/SQLiteDataObjectIdentifierResolver.cs
+  SQLite.Designer/SQLiteDataObjectSupport.cs
+  SQLite.Designer/SQLiteDataObjectSupport2005.xml
+  SQLite.Designer/SQLiteDataObjectSupport2008.xml
+  SQLite.Designer/SQLiteDataObjectSupport2010.xml
+  SQLite.Designer/SQLiteDataObjectSupport2012.xml
+  SQLite.Designer/SQLiteDataObjectSupport2013.xml
+  SQLite.Designer/SQLiteDataSourceInformation.cs
+  SQLite.Designer/SQLiteDataViewSupport.cs
+  SQLite.Designer/SQLiteDataViewSupport2005.xml
+  SQLite.Designer/SQLiteDataViewSupport2008.xml
+  SQLite.Designer/SQLiteDataViewSupport2010.xml
+  SQLite.Designer/SQLiteDataViewSupport2012.xml
+  SQLite.Designer/SQLiteDataViewSupport2013.xml
+  SQLite.Designer/SQLitePackage.cs
+  SQLite.Designer/SQLiteProviderObjectFactory.cs
+  SQLite.Designer/TableNameDialog.cs
+  SQLite.Designer/TableNameDialog.Designer.cs
+  SQLite.Designer/TableNameDialog.resx
+  SQLite.Designer/VSPackage.Designer.cs
+  SQLite.Designer/VSPackage.resx
+  SQLite.Interop/
+  SQLite.Interop/props/
+  SQLite.Interop/props/empty.vsprops
+  SQLite.Interop/props/include.vsprops
+  SQLite.Interop/props/SQLite.Interop.2005.vsprops
+  SQLite.Interop/props/SQLite.Interop.2008.vsprops
+  SQLite.Interop/props/SQLite.Interop.2010.props
+  SQLite.Interop/props/SQLite.Interop.2012.props
+  SQLite.Interop/props/SQLite.Interop.2013.props
+  SQLite.Interop/props/sqlite3.props
+  SQLite.Interop/props/sqlite3.vsprops
+  SQLite.Interop/SQLite.Interop.2005.vcproj
+  SQLite.Interop/SQLite.Interop.2008.vcproj
+  SQLite.Interop/SQLite.Interop.2010.vcxproj
+  SQLite.Interop/SQLite.Interop.2010.vcxproj.filters
+  SQLite.Interop/SQLite.Interop.2012.vcxproj
+  SQLite.Interop/SQLite.Interop.2012.vcxproj.filters
+  SQLite.Interop/SQLite.Interop.2013.vcxproj
+  SQLite.Interop/SQLite.Interop.2013.vcxproj.filters
+  SQLite.Interop/SQLite.Interop.CE.2005.vcproj
+  SQLite.Interop/SQLite.Interop.CE.2008.vcproj
+  SQLite.Interop/SQLite.Interop.CE.2012.vcxproj
+  SQLite.Interop/SQLite.Interop.CE.2012.vcxproj.filters
+  SQLite.Interop/SQLite.Interop.Static.2005.vcproj
+  SQLite.Interop/SQLite.Interop.Static.2008.vcproj
+  SQLite.Interop/SQLite.Interop.Static.2010.vcxproj
+  SQLite.Interop/SQLite.Interop.Static.2010.vcxproj.filters
+  SQLite.Interop/SQLite.Interop.Static.2012.vcxproj
+  SQLite.Interop/SQLite.Interop.Static.2012.vcxproj.filters
+  SQLite.Interop/SQLite.Interop.Static.2013.vcxproj
+  SQLite.Interop/SQLite.Interop.Static.2013.vcxproj.filters
+  SQLite.Interop/src/
+  SQLite.Interop/src/contrib/
+  SQLite.Interop/src/contrib/extension-functions.c
+  SQLite.Interop/src/core/
+  SQLite.Interop/src/core/sqlite3.c
+  SQLite.Interop/src/core/sqlite3.h
+  SQLite.Interop/src/core/sqlite3ext.h
+  SQLite.Interop/src/ext/
+  SQLite.Interop/src/ext/percentile.c
+  SQLite.Interop/src/ext/regexp.c
+  SQLite.Interop/src/ext/totype.c
+  SQLite.Interop/src/ext/vtshim.c
+  SQLite.Interop/src/win/
+  SQLite.Interop/src/win/AssemblyInfo.cpp
+  SQLite.Interop/src/win/crypt.c
+  SQLite.Interop/src/win/interop.c
+  SQLite.Interop/src/win/interop.h
+  SQLite.Interop/src/win/SQLite.Interop.rc
+  SQLite.MSIL.nuspec
+  SQLite.NET.2005.MSBuild.sln
+  SQLite.NET.2005.sln
+  SQLite.NET.2008.MSBuild.sln
+  SQLite.NET.2008.sln
+  SQLite.NET.2010.MSBuild.sln
+  SQLite.NET.2010.sln
+  SQLite.NET.2012.Compact.sln
+  SQLite.NET.2012.MSBuild.sln
+  SQLite.NET.2012.sln
+  SQLite.NET.2013.MSBuild.sln
+  SQLite.NET.2013.sln
+  SQLite.NET.Settings.targets
+  SQLite.NET.Settings.targets.netFx35
+  SQLite.NET.targets
+  SQLite.nuspec
+  SQLite.x64.nuspec
+  SQLite.x86.nuspec
+  System.Data.SQLite/
+  System.Data.SQLite/AssemblyInfo.cs
+  System.Data.SQLite/AssemblySourceIdAttribute.cs
+  System.Data.SQLite/AssemblySourceTimeStampAttribute.cs
+  System.Data.SQLite/DataTypes.xml
+  System.Data.SQLite/LINQ/
+  System.Data.SQLite/LINQ/SQLiteConnection_Linq.cs
+  System.Data.SQLite/LINQ/SQLiteFactory_Linq.cs
+  System.Data.SQLite/MetaDataCollections.xml
+  System.Data.SQLite/SQLite3.cs
+  System.Data.SQLite/SQLite3_UTF16.cs
+  System.Data.SQLite/SQLiteBackup.cs
+  System.Data.SQLite/SQLiteBase.cs
+  System.Data.SQLite/SQLiteCommand.bmp
+  System.Data.SQLite/SQLiteCommand.cs
+  System.Data.SQLite/SQLiteCommandBuilder.cs
+  System.Data.SQLite/SQLiteConnection.bmp
+  System.Data.SQLite/SQLiteConnection.cs
+  System.Data.SQLite/SQLiteConnectionPool.cs
+  System.Data.SQLite/SQLiteConnectionStringBuilder.cs
+  System.Data.SQLite/SQLiteConvert.cs
+  System.Data.SQLite/SQLiteDataAdapter.bmp
+  System.Data.SQLite/SQLiteDataAdapter.cs
+  System.Data.SQLite/SQLiteDataReader.cs
+  System.Data.SQLite/SQLiteDefineConstants.cs
+  System.Data.SQLite/SQLiteEnlistment.cs
+  System.Data.SQLite/SQLiteException.cs
+  System.Data.SQLite/SQLiteFactory.cs
+  System.Data.SQLite/SQLiteFunction.cs
+  System.Data.SQLite/SQLiteFunctionAttribute.cs
+  System.Data.SQLite/SQLiteKeyReader.cs
+  System.Data.SQLite/SQLiteLog.cs
+  System.Data.SQLite/SQLiteMetaDataCollectionNames.cs
+  System.Data.SQLite/SQLiteModule.cs
+  System.Data.SQLite/SQLiteModuleEnumerable.cs
+  System.Data.SQLite/SQLiteModuleNoop.cs
+  System.Data.SQLite/SQLiteParameter.cs
+  System.Data.SQLite/SQLiteParameterCollection.cs
+  System.Data.SQLite/SQLitePatchLevel.cs
+  System.Data.SQLite/SQLiteStatement.cs
+  System.Data.SQLite/SQLiteTransaction.cs
+  System.Data.SQLite/SR.Designer.cs
+  System.Data.SQLite/SR.resx
+  System.Data.SQLite/System.Data.SQLite.2005.csproj
+  System.Data.SQLite/System.Data.SQLite.2008.csproj
+  System.Data.SQLite/System.Data.SQLite.2010.csproj
+  System.Data.SQLite/System.Data.SQLite.2012.csproj
+  System.Data.SQLite/System.Data.SQLite.2013.csproj
+  System.Data.SQLite/System.Data.SQLite.CF.snk
+  System.Data.SQLite/System.Data.SQLite.Compact.2005.csproj
+  System.Data.SQLite/System.Data.SQLite.Compact.2008.csproj
+  System.Data.SQLite/System.Data.SQLite.Compact.2012.csproj
+  System.Data.SQLite/System.Data.SQLite.Files.targets
+  System.Data.SQLite/System.Data.SQLite.Module.2005.csproj
+  System.Data.SQLite/System.Data.SQLite.Module.2008.csproj
+  System.Data.SQLite/System.Data.SQLite.Module.2010.csproj
+  System.Data.SQLite/System.Data.SQLite.Module.2012.csproj
+  System.Data.SQLite/System.Data.SQLite.Module.2013.csproj
+  System.Data.SQLite/System.Data.SQLite.Properties.targets
+  System.Data.SQLite/System.Data.SQLite.References.targets
+  System.Data.SQLite/System.Data.SQLite.snk
+  System.Data.SQLite/UnsafeNativeMethods.cs
+  System.Data.SQLite.Linq/
+  System.Data.SQLite.Linq/AssemblyInfo.cs
+  System.Data.SQLite.Linq/Properties/
+  System.Data.SQLite.Linq/Properties/Resources.Designer.cs
+  System.Data.SQLite.Linq/Properties/Resources.resx
+  System.Data.SQLite.Linq/Resources/
+  System.Data.SQLite.Linq/Resources/Common.ConceptualSchemaDefinition.csdl
+  System.Data.SQLite.Linq/Resources/Common.ProviderManifest.xsd
+  System.Data.SQLite.Linq/Resources/SQLiteProviderServices.ProviderManifest.xml
+  System.Data.SQLite.Linq/Resources/SQLiteProviderServices.StoreSchemaDefinition.ssdl
+  System.Data.SQLite.Linq/Resources/SQLiteProviderServices.StoreSchemaMapping.msl
+  System.Data.SQLite.Linq/Resources/System.Data.Resources.CodeGenerationSchema.xsd
+  System.Data.SQLite.Linq/Resources/System.Data.Resources.CSDLSchema.xsd
+  System.Data.SQLite.Linq/Resources/System.Data.Resources.CSMSL.xsd
+  System.Data.SQLite.Linq/Resources/System.Data.Resources.EntityStoreSchemaGenerator.xsd
+  System.Data.SQLite.Linq/Resources/System.Data.Resources.SSDLSchema.xsd
+  "System.Data.SQLite.Linq/SQL Generation/"
+  "System.Data.SQLite.Linq/SQL Generation/DmlSqlGenerator.cs"
+  "System.Data.SQLite.Linq/SQL Generation/InternalBase.cs"
+  "System.Data.SQLite.Linq/SQL Generation/ISqlFragment.cs"
+  "System.Data.SQLite.Linq/SQL Generation/JoinSymbol.cs"
+  "System.Data.SQLite.Linq/SQL Generation/KeyToListMap.cs"
+  "System.Data.SQLite.Linq/SQL Generation/License.txt"
+  "System.Data.SQLite.Linq/SQL Generation/MetadataHelpers.cs"
+  "System.Data.SQLite.Linq/SQL Generation/SkipClause.cs"
+  "System.Data.SQLite.Linq/SQL Generation/SqlBuilder.cs"
+  "System.Data.SQLite.Linq/SQL Generation/SqlChecker.cs"
+  "System.Data.SQLite.Linq/SQL Generation/SqlGenerator.cs"
+  "System.Data.SQLite.Linq/SQL Generation/SqlSelectStatement.cs"
+  "System.Data.SQLite.Linq/SQL Generation/SqlWriter.cs"
+  "System.Data.SQLite.Linq/SQL Generation/StringUtil.cs"
+  "System.Data.SQLite.Linq/SQL Generation/Symbol.cs"
+  "System.Data.SQLite.Linq/SQL Generation/SymbolPair.cs"
+  "System.Data.SQLite.Linq/SQL Generation/SymbolTable.cs"
+  "System.Data.SQLite.Linq/SQL Generation/TopClause.cs"
+  System.Data.SQLite.Linq/SQLiteProviderManifest.cs
+  System.Data.SQLite.Linq/SQLiteProviderServices.cs
+  System.Data.SQLite.Linq/System.Data.SQLite.Linq.2008.csproj
+  System.Data.SQLite.Linq/System.Data.SQLite.Linq.2010.csproj
+  System.Data.SQLite.Linq/System.Data.SQLite.Linq.2012.csproj
+  System.Data.SQLite.Linq/System.Data.SQLite.Linq.2013.csproj
+  test/
+  test/app.config
+  test/AssemblyInfo.cs
+  test/Program.cs
+  test/Properties/
+  test/Properties/Resources.Designer.cs
+  test/Properties/Resources.resx
+  test/test.2005.csproj
+  test/test.2008.csproj
+  test/test.2010.csproj
+  test/test.2012.csproj
+  test/test.2013.csproj
+  test/TestCases.cs
+  test/TestCasesDialog.cs
+  test/TestCasesDialog.Designer.cs
+  test/TestCasesDialog.resx
+  testce/
+  testce/AssemblyInfo.cs
+  testce/Form1.cs
+  testce/Form1.Designer.cs
+  testce/Form1.resx
+  testce/Program.cs
+  testce/TestCases.cs
+  testce/test.cfg
+  testce/test.sql
+  testce/testce.2005.csproj
+  testce/testce.2008.csproj
+  testce/testce.2012.csproj
+  testlinq/
+  testlinq/2008/
+  testlinq/2008/App.config
+  testlinq/2010/
+  testlinq/2010/App.config
+  testlinq/2012/
+  testlinq/2012/App.config
+  testlinq/2013/
+  testlinq/2013/App.config
+  testlinq/northwindEF.db
+  testlinq/NorthwindModel2008.Designer.cs
+  testlinq/NorthwindModel2008.edmx
+  testlinq/NorthwindModel2010.Designer.cs
+  testlinq/NorthwindModel2010.edmx
+  testlinq/NorthwindModel2012.Designer.cs
+  testlinq/NorthwindModel2012.edmx
+  testlinq/NorthwindModel2013.Designer.cs
+  testlinq/NorthwindModel2013.edmx
+  testlinq/Program.cs
+  testlinq/Properties/
+  testlinq/Properties/AssemblyInfo.cs
+  testlinq/testlinq.2008.csproj
+  testlinq/testlinq.2010.csproj
+  testlinq/testlinq.2012.csproj
+  testlinq/testlinq.2013.csproj
+  Tests/
+  Tests/all.eagle
+  Tests/authorizer.eagle
+  Tests/backup.eagle
+  Tests/basic.eagle
+  Tests/common.eagle
+  Tests/empty.eagle
+  Tests/installer.eagle
+  Tests/Installer_Test_Vs2005.log
+  Tests/Installer_Test_Vs2008.log
+  Tests/Installer_Test_Vs2010.log
+  Tests/Installer_Test_Vs2012.log
+  Tests/Installer_Test_Vs2013.log
+  Tests/nonWal.db
+  Tests/pkgIndex.eagle
+  Tests/stress.eagle
+  Tests/testlinq.out
+  Tests/thread.eagle
+  Tests/tkt-00f86f9739.eagle
+  Tests/tkt-0d5b1ef362.eagle
+  Tests/tkt-17045010df.eagle
+  Tests/tkt-1c456ae75f.eagle
+  Tests/tkt-201128cc88.eagle
+  Tests/tkt-2c630bffa7.eagle
+  Tests/tkt-2ce0870fad.eagle
+  Tests/tkt-3113734605.eagle
+  Tests/tkt-343d392b51.eagle
+  Tests/tkt-3567020edf.eagle
+  Tests/tkt-393d954be0.eagle
+  Tests/tkt-3aa50d8413.eagle
+  Tests/tkt-448d663d11.eagle
+  Tests/tkt-47f4bac575.eagle
+  Tests/tkt-48a6b8e4ca.eagle
+  Tests/tkt-4a791e70ab.eagle
+  Tests/tkt-544dba0a2f.eagle
+  Tests/tkt-56b42d99c1.eagle
+  Tests/tkt-59edc1018b.eagle
+  Tests/tkt-6434e23a0f.eagle
+  Tests/tkt-6c6ecccc5f.eagle
+  Tests/tkt-72905c9a77.eagle
+  Tests/tkt-7e3fa93744.eagle
+  Tests/tkt-84718e79fa.eagle
+  Tests/tkt-8554170e09.eagle
+  Tests/tkt-8b7d179c3c.eagle
+  Tests/tkt-8c3bee31c8.eagle
+  Tests/tkt-996d13cd87.eagle
+  Tests/tkt-9ba9346f75.eagle
+  Tests/tkt-aba4549801.eagle
+  Tests/tkt-ac47dd230a.eagle
+  Tests/tkt-ae5267b863.eagle
+  Tests/tkt-b4a7ddc83f.eagle
+  Tests/tkt-bb4b04d457.eagle
+  Tests/tkt-c010fa6584.eagle
+  Tests/tkt-ccfa69fc32.eagle
+  Tests/tkt-e06c4caff3.eagle
+  Tests/tkt-e1b2e0f769.eagle
+  Tests/tkt-e30b820248.eagle
+  Tests/tkt-e47b3d8346.eagle
+  Tests/tkt-ef2216192d.eagle
+  Tests/tkt-f2c47a01eb.eagle
+  Tests/tkt-f8dbab8baf.eagle
+  Tests/tkt-fe50b8c2e8.eagle
+  Tests/Uninstaller_Test_Vs2005.log
+  Tests/Uninstaller_Test_Vs2008.log
+  Tests/Uninstaller_Test_Vs2010.log
+  Tests/Uninstaller_Test_Vs2012.log
+  Tests/Uninstaller_Test_Vs2013.log
+  Tests/version.eagle
+  Tests/vtab.eagle
+  Tests/wal.db
+  tools/
+  tools/install/
+  tools/install/Installer.2005.csproj
+  tools/install/Installer.2008.csproj
+  tools/install/Installer.2010.csproj
+  tools/install/Installer.2012.csproj
+  tools/install/Installer.2013.csproj
+  tools/install/Installer.cs
+  tools/install/Properties/
+  tools/install/Properties/AssemblyInfo.cs
+  tools/install/Resources/
+  tools/install/Resources/manifest.xml
+}
+
+###############################################################################
+#
+# NOTE: This is the list of core files that should be present in all binary
+#       archives that support the desktop versions of the .NET Framework.
+#
+set sds_manifests(binaryCore) {
+  System.Data.SQLite.dll
+  System.Data.SQLite.pdb
+  System.Data.SQLite.xml
+}
+
+###############################################################################
+#
+# NOTE: This is the list of extra files that should be present in all binary
+#       archives that support LINQ (i.e. available with the desktop .NET
+#       Framework 3.5 and later).
+#
+set sds_manifests(binaryLinq) {
+  System.Data.SQLite.Linq.dll
+  System.Data.SQLite.Linq.pdb
+  System.Data.SQLite.Linq.xml
+  northwindEF.db
+  testlinq.exe
+  testlinq.exe.config
+  testlinq.pdb
+}
+
+###############################################################################
+#
+# NOTE: This is the list of extra files that should be present in all binary
+#       archives that support the desktop versions of the .NET Framework.
+#
+set sds_manifests(binaryExtra) {
+  Installer.exe
+  Installer.pdb
+  SQLite.Designer.dll
+  SQLite.Designer.pdb
+  SQLite.Designer.xml
+  test.exe
+  test.exe.config
+  test.pdb
+}
+
+###############################################################################
+#
+# NOTE: This is the list of core interop files that should be present in the
+#       standard binary archives (i.e. those not containing the mixed-mode
+#       assembly).
+#
+set sds_manifests(binaryInterop) {
+  SQLite.Interop.dll
+  SQLite.Interop.pdb
+}
+
+###############################################################################
+#
+# NOTE: This is the list of interop and other files that should be present in
+#       the standard "PocketPC" / "WinCE" binary archives (i.e. for the .NET
+#       Compact Framework).
+#
+set sds_manifests(binaryCompact) {
+  [appendArgs SQLite.Interop. [format %03d $build] .dll]
+  [appendArgs SQLite.Interop. [format %03d $build] .pdb]
+  test.cfg
+  test.sql
+  testce.exe
+  testce.pdb
+}
+
+###############################################################################
+#
+# NOTE: This is the list of core files that should be present in all setup
+#       archives supporting the desktop versions of the .NET Framework.
+#
+set sds_manifests(setupCore) {
+  {{app}\readme.htm}
+  {{app}\bin\System.Data.SQLite.pdb}
+  {{app}\doc\SQLite.NET.chm}
+  {{app}\bin\SQLite.Designer.dll}
+  {{app}\bin\SQLite.Designer.pdb}
+  {{app}\bin\Installer.exe}
+  {{app}\bin\Installer.pdb}
+  {{app}\bin\test.exe}
+  {{app}\bin\test.pdb}
+  {{app}\bin\test.exe.config}
+  install_script.iss
+}
+
+###############################################################################
+#
+# NOTE: This is the list of core files that should be present in all setup
+#       archives that support LINQ (i.e. available with the desktop .NET
+#       Framework 3.5 and later).
+#
+set sds_manifests(setupLinqCore) {
+  {{app}\bin\System.Data.SQLite.Linq.pdb}
+  {{app}\bin\testlinq.exe}
+  {{app}\bin\testlinq.pdb}
+  {{app}\bin\testlinq.exe.config}
+  {{app}\bin\northwindEF.db}
+}
+
+###############################################################################
+#
+# NOTE: This is the list of core interop files that should be present in the
+#       standard setup archives (i.e. those not containing the mixed-mode
+#       assembly) that support the desktop versions of the .NET Framework.
+#
+set sds_manifests(setupInterop) {
+  {{app}\bin\System.Data.SQLite.dll}
+  {{app}\bin\SQLite.Interop.dll}
+  {{app}\bin\SQLite.Interop.pdb}
+}
+
+###############################################################################
+#
+# NOTE: This is the list of core files that should be present in the bundled
+#       setup archives (i.e. those containing the mixed-mode assembly) that
+#       support the desktop versions of the .NET Framework.
+#
+set sds_manifests(setupBundle) {
+  {{app}\GAC\System.Data.SQLite.dll}
+}
+
+###############################################################################
+#
+# NOTE: This is the list of core interop files that should be present in the
+#       standard setup archives (i.e. those not containing the mixed-mode
+#       assembly) that support LINQ (i.e. available with the desktop .NET
+#       Framework 3.5 and later).
+#
+set sds_manifests(setupLinqInterop) {
+  {{app}\bin\System.Data.SQLite.Linq.dll}
+}
+
+###############################################################################
+#
+# NOTE: This is the list of core files that should be present in the bundled
+#       setup archives (i.e. those containing the mixed-mode assembly) that
+#       support LINQ (i.e. available with the desktop .NET Framework 3.5 and
+#       later).
+#
+set sds_manifests(setupLinqBundle) {
+  {{app}\GAC\System.Data.SQLite.Linq.dll}
+}
+
+###############################################################################
+#
+# NOTE: This is the list of files that should be present in all setup archives
+#       supporting the .NET Framework 2.0 for x86.
+#
+set sds_manifests(setupX86Vs2005) {
+  {{tmp}\vcredist_x86_2005_SP1_MFC.exe}
+}
+
+###############################################################################
+#
+# NOTE: This is the list of files that should be present in all setup archives
+#       supporting the .NET Framework 2.0 for x64.
+#
+set sds_manifests(setupX64Vs2005) {
+  {{tmp}\vcredist_x64_2005_SP1_MFC.exe}
+}
+
+###############################################################################
+#
+# NOTE: This is the list of files that should be present in all setup archives
+#       supporting the .NET Framework 3.5 for x86.
+#
+set sds_manifests(setupX86Vs2008) {
+  {{tmp}\vcredist_x86_2008_SP1_MFC.exe}
+}
+
+###############################################################################
+#
+# NOTE: This is the list of files that should be present in all setup archives
+#       supporting the .NET Framework 3.5 for x64.
+#
+set sds_manifests(setupX64Vs2008) {
+  {{tmp}\vcredist_x64_2008_SP1_MFC.exe}
+}
+
+###############################################################################
+#
+# NOTE: This is the list of files that should be present in all setup archives
+#       supporting the .NET Framework 4.0 for x86.
+#
+set sds_manifests(setupX86Vs2010) {
+  {{tmp}\vcredist_x86_2010_SP1_MFC.exe}
+}
+
+###############################################################################
+#
+# NOTE: This is the list of files that should be present in all setup archives
+#       supporting the .NET Framework 4.0 for x64.
+#
+set sds_manifests(setupX64Vs2010) {
+  {{tmp}\vcredist_x64_2010_SP1_MFC.exe}
+}
+
+###############################################################################
+#
+# NOTE: This is the list of files that should be present in all setup archives
+#       supporting the .NET Framework 4.5 for x86.
+#
+set sds_manifests(setupX86Vs2012) {
+  {{tmp}\vcredist_x86_2012_VSU3.exe}
+}
+
+###############################################################################
+#
+# NOTE: This is the list of files that should be present in all setup archives
+#       supporting the .NET Framework 4.5 for x64.
+#
+set sds_manifests(setupX64Vs2012) {
+  {{tmp}\vcredist_x64_2012_VSU3.exe}
+}
+
+###############################################################################
+#
+# NOTE: This is the list of files that should be present in all setup archives
+#       supporting the .NET Framework 4.5.1 for x86.
+#
+set sds_manifests(setupX86Vs2013) {
+  {{tmp}\vcredist_x86_2013_RTM.exe}
+}
+
+###############################################################################
+#
+# NOTE: This is the list of files that should be present in all setup archives
+#       supporting the .NET Framework 4.5.1 for x64.
+#
+set sds_manifests(setupX64Vs2013) {
+  {{tmp}\vcredist_x64_2013_RTM.exe}
+}
+
+###############################################################################
+#
+# NOTE: These are the master archive manifest groups, based on file name.  The
+#       first element in each list is the array variable name prefix used to
+#       locate another array containing the named elements referenced by the
+#       remaining elements in each list.  Here is an example:
+#
+#       1. First, the archive file name has the patch level removed from it.
+#          Next, it is mapped to the name of the array containing the file
+#          lists via the first element of the corresponding list.
+#
+#       [lindex $manifests(EagleCore.exe) 0] ==> eagle ==> eagle_manifests
+#
+#       2. Next, the remaining elements are used to query the named file lists
+#          from the array discovered in the previous step.
+#
+#       [lrange $manifests(EagleCore.exe) 1 end] ==> core library
+#
+#       3. Finally, the final list of files for this archive file name is built
+#          by combining all the file names in the file lists discovered in the
+#          previous step.  Duplicate file names, if any, should be harmless.
+#
+#       $result == $eagle_manifests(core) UNION $eagle_manifests(library)
+#
+###############################################################################
+################################# Source Code #################################
+###############################################################################
+
+set manifests(sqlite-netFx-source-.zip) [list sds \
+    source]
+
+###############################################################################
+################### Visual Studio 2005 / .NET Framework 2.0 ###################
+###############################################################################
+
+set manifests(sqlite-netFx20-binary-Win32-2005-.zip) [list sds \
+    binaryCore binaryExtra binaryInterop]
+
+###############################################################################
+
+set manifests(sqlite-netFx20-binary-x64-2005-.zip) [list sds \
+    binaryCore binaryExtra binaryInterop]
+
+###############################################################################
+
+set manifests(sqlite-netFx20-binary-bundle-Win32-2005-.zip) [list sds \
+    binaryCore binaryExtra]
+
+###############################################################################
+
+set manifests(sqlite-netFx20-binary-bundle-x64-2005-.zip) [list sds \
+    binaryCore binaryExtra]
+
+###############################################################################
+
+set manifests(sqlite-netFx20-static-binary-Win32-2005-.zip) [list sds \
+    binaryCore binaryExtra binaryInterop]
+
+###############################################################################
+
+set manifests(sqlite-netFx20-static-binary-x64-2005-.zip) [list sds \
+    binaryCore binaryExtra binaryInterop]
+
+###############################################################################
+
+set manifests(sqlite-netFx20-static-binary-bundle-Win32-2005-.zip) [list sds \
+    binaryCore binaryExtra]
+
+###############################################################################
+
+set manifests(sqlite-netFx20-static-binary-bundle-x64-2005-.zip) [list sds \
+    binaryCore binaryExtra]
+
+###############################################################################
+
+set manifests(sqlite-netFx20-setup-x86-2005-.exe) [list sds \
+    setupCore setupInterop setupX86Vs2005]
+
+###############################################################################
+
+set manifests(sqlite-netFx20-setup-x64-2005-.exe) [list sds \
+    setupCore setupInterop setupX64Vs2005]
+
+###############################################################################
+
+set manifests(sqlite-netFx20-setup-bundle-x86-2005-.exe) [list sds \
+    setupCore setupBundle setupX86Vs2005]
+
+###############################################################################
+
+set manifests(sqlite-netFx20-setup-bundle-x64-2005-.exe) [list sds \
+    setupCore setupBundle setupX64Vs2005]
+
+###############################################################################
+################### Visual Studio 2008 / .NET Framework 3.5 ###################
+###############################################################################
+
+set manifests(sqlite-netFx35-binary-Win32-2008-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra binaryInterop]
+
+###############################################################################
+
+set manifests(sqlite-netFx35-binary-x64-2008-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra binaryInterop]
+
+###############################################################################
+
+set manifests(sqlite-netFx35-binary-bundle-Win32-2008-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra]
+
+###############################################################################
+
+set manifests(sqlite-netFx35-binary-bundle-x64-2008-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra]
+
+###############################################################################
+
+set manifests(sqlite-netFx35-static-binary-Win32-2008-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra binaryInterop]
+
+###############################################################################
+
+set manifests(sqlite-netFx35-static-binary-x64-2008-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra binaryInterop]
+
+###############################################################################
+
+set manifests(sqlite-netFx35-static-binary-bundle-Win32-2008-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra]
+
+###############################################################################
+
+set manifests(sqlite-netFx35-static-binary-bundle-x64-2008-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra]
+
+###############################################################################
+
+set manifests(sqlite-netFx35-setup-x86-2008-.exe) [list sds \
+    setupCore setupLinqCore setupInterop setupLinqInterop setupX86Vs2008]
+
+###############################################################################
+
+set manifests(sqlite-netFx35-setup-x64-2008-.exe) [list sds \
+    setupCore setupLinqCore setupInterop setupLinqInterop setupX64Vs2008]
+
+###############################################################################
+
+set manifests(sqlite-netFx35-setup-bundle-x86-2008-.exe) [list sds \
+    setupCore setupLinqCore setupBundle setupLinqBundle setupX86Vs2008]
+
+###############################################################################
+
+set manifests(sqlite-netFx35-setup-bundle-x64-2008-.exe) [list sds \
+    setupCore setupLinqCore setupBundle setupLinqBundle setupX64Vs2008]
+
+###############################################################################
+############### Visual Studio 2008 / .NET Compact Framework 3.5 ###############
+###############################################################################
+
+set manifests(sqlite-netFx35-binary-PocketPC-ARM-2008-.zip) [list sds \
+    binaryCore binaryCompact]
+
+set manifests(sqlite-netFx35-binary-PocketPC-ARM-2008-.zip,subst) ""; # dynamic
+
+###############################################################################
+################### Visual Studio 2010 / .NET Framework 4.0 ###################
+###############################################################################
+
+set manifests(sqlite-netFx40-binary-Win32-2010-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra binaryInterop]
+
+###############################################################################
+
+set manifests(sqlite-netFx40-binary-x64-2010-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra binaryInterop]
+
+###############################################################################
+
+set manifests(sqlite-netFx40-binary-bundle-Win32-2010-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra]
+
+###############################################################################
+
+set manifests(sqlite-netFx40-binary-bundle-x64-2010-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra]
+
+###############################################################################
+
+set manifests(sqlite-netFx40-static-binary-Win32-2010-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra binaryInterop]
+
+###############################################################################
+
+set manifests(sqlite-netFx40-static-binary-x64-2010-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra binaryInterop]
+
+###############################################################################
+
+set manifests(sqlite-netFx40-static-binary-bundle-Win32-2010-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra]
+
+###############################################################################
+
+set manifests(sqlite-netFx40-static-binary-bundle-x64-2010-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra]
+
+###############################################################################
+
+set manifests(sqlite-netFx40-setup-x86-2010-.exe) [list sds \
+    setupCore setupInterop setupLinqCore setupLinqInterop setupX86Vs2010]
+
+###############################################################################
+
+set manifests(sqlite-netFx40-setup-x64-2010-.exe) [list sds \
+    setupCore setupInterop setupLinqCore setupLinqInterop setupX64Vs2010]
+
+###############################################################################
+
+set manifests(sqlite-netFx40-setup-bundle-x86-2010-.exe) [list sds \
+    setupCore setupBundle setupLinqCore setupLinqBundle setupX86Vs2010]
+
+###############################################################################
+
+set manifests(sqlite-netFx40-setup-bundle-x64-2010-.exe) [list sds \
+    setupCore setupBundle setupLinqCore setupLinqBundle setupX64Vs2010]
+
+###############################################################################
+################### Visual Studio 2012 / .NET Framework 4.5 ###################
+###############################################################################
+
+set manifests(sqlite-netFx45-binary-Win32-2012-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra binaryInterop]
+
+###############################################################################
+
+set manifests(sqlite-netFx45-binary-x64-2012-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra binaryInterop]
+
+###############################################################################
+
+set manifests(sqlite-netFx45-binary-bundle-Win32-2012-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra]
+
+###############################################################################
+
+set manifests(sqlite-netFx45-binary-bundle-x64-2012-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra]
+
+###############################################################################
+
+set manifests(sqlite-netFx45-static-binary-Win32-2012-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra binaryInterop]
+
+###############################################################################
+
+set manifests(sqlite-netFx45-static-binary-x64-2012-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra binaryInterop]
+
+###############################################################################
+
+set manifests(sqlite-netFx45-static-binary-bundle-Win32-2012-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra]
+
+###############################################################################
+
+set manifests(sqlite-netFx45-static-binary-bundle-x64-2012-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra]
+
+###############################################################################
+
+set manifests(sqlite-netFx45-setup-x86-2012-.exe) [list sds \
+    setupCore setupInterop setupLinqCore setupLinqInterop setupX86Vs2012]
+
+###############################################################################
+
+set manifests(sqlite-netFx45-setup-x64-2012-.exe) [list sds \
+    setupCore setupInterop setupLinqCore setupLinqInterop setupX64Vs2012]
+
+###############################################################################
+
+set manifests(sqlite-netFx45-setup-bundle-x86-2012-.exe) [list sds \
+    setupCore setupBundle setupLinqCore setupLinqBundle setupX86Vs2012]
+
+###############################################################################
+
+set manifests(sqlite-netFx45-setup-bundle-x64-2012-.exe) [list sds \
+    setupCore setupBundle setupLinqCore setupLinqBundle setupX64Vs2012]
+
+###############################################################################
+############### Visual Studio 2012 / .NET Compact Framework 3.9 ###############
+###############################################################################
+
+set manifests(sqlite-netFx39-binary-WinCE-ARM-2012-.zip) [list sds \
+    binaryCore binaryCompact]
+
+set manifests(sqlite-netFx39-binary-WinCE-ARM-2012-.zip,subst) ""; # dynamic
+
+###############################################################################
+
+set manifests(sqlite-netFx39-binary-WinCE-x86-2012-.zip) [list sds \
+    binaryCore binaryCompact]
+
+set manifests(sqlite-netFx39-binary-WinCE-x86-2012-.zip,subst) ""; # dynamic
+
+###############################################################################
+################## Visual Studio 2013 / .NET Framework 4.5.1 ##################
+###############################################################################
+
+set manifests(sqlite-netFx451-binary-Win32-2013-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra binaryInterop]
+
+###############################################################################
+
+set manifests(sqlite-netFx451-binary-x64-2013-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra binaryInterop]
+
+###############################################################################
+
+set manifests(sqlite-netFx451-binary-bundle-Win32-2013-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra]
+
+###############################################################################
+
+set manifests(sqlite-netFx451-binary-bundle-x64-2013-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra]
+
+###############################################################################
+
+set manifests(sqlite-netFx451-static-binary-Win32-2013-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra binaryInterop]
+
+###############################################################################
+
+set manifests(sqlite-netFx451-static-binary-x64-2013-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra binaryInterop]
+
+###############################################################################
+
+set manifests(sqlite-netFx451-static-binary-bundle-Win32-2013-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra]
+
+###############################################################################
+
+set manifests(sqlite-netFx451-static-binary-bundle-x64-2013-.zip) [list sds \
+    binaryCore binaryLinq binaryExtra]
+
+###############################################################################
+
+set manifests(sqlite-netFx451-setup-x86-2013-.exe) [list sds \
+    setupCore setupInterop setupLinqCore setupLinqInterop setupX86Vs2013]
+
+###############################################################################
+
+set manifests(sqlite-netFx451-setup-x64-2013-.exe) [list sds \
+    setupCore setupInterop setupLinqCore setupLinqInterop setupX64Vs2013]
+
+###############################################################################
+
+set manifests(sqlite-netFx451-setup-bundle-x86-2013-.exe) [list sds \
+    setupCore setupBundle setupLinqCore setupLinqBundle setupX86Vs2013]
+
+###############################################################################
+
+set manifests(sqlite-netFx451-setup-bundle-x64-2013-.exe) [list sds \
+    setupCore setupBundle setupLinqCore setupLinqBundle setupX64Vs2013]
+
+###############################################################################
+# end of file

@@ -1,0 +1,1446 @@
+###############################################################################
+#
+# stress.eagle --
+#
+# Written by Joe Mistachkin.
+# Released to the public domain, use at your own risk!
+#
+###############################################################################
+
+package require Eagle
+package require Eagle.Library
+package require Eagle.Test
+
+runTestPrologue
+
+###############################################################################
+
+package require System.Data.SQLite.Test
+runSQLiteTestPrologue
+
+###############################################################################
+
+#
+# NOTE: Report before test, before shutdown.
+#
+checkForSQLiteDirectories $test_channel
+getSQLiteHandleCounts $test_channel
+reportSQLiteResources $test_channel
+
+###############################################################################
+
+#
+# NOTE: Make sure that SQLite core library is completely shutdown prior to
+#       starting any of the tests in this file.
+#
+shutdownSQLite $test_channel
+
+###############################################################################
+
+#
+# NOTE: Report before test, after shutdown.
+#
+checkForSQLiteDirectories $test_channel
+getSQLiteHandleCounts $test_channel
+reportSQLiteResources $test_channel
+
+###############################################################################
+
+runTest {test stress-1.1 {multithreaded stress testing} -setup {
+  unset -nocomplain result thread index workload priority noWorkload \
+      priorities srcDb db fileName compiled options count times logFileName \
+      logListener event timeout connection indicators iterations exitOnFail \
+      coTaskMem noTrace failures status
+
+  #############################################################################
+
+  proc setupWorkloadMemDb { fileName {varName db} } {
+    #
+    # NOTE: This should be an in-memory database; therefore, skip attempting
+    #       to delete the underlying database file as that would not make any
+    #       sense.  Also, disable use of "PRAGMA temp_store_directory" when
+    #       setting up the new connection because it is not thread-safe.
+    #
+    uplevel 1 [list setupDb $fileName "" "" "" "" "" false false true false \
+        $varName]
+  }
+
+  #############################################################################
+
+  proc setupWorkloadFileDb { fileName {varName db} } {
+    #
+    # NOTE: Skip attempting to delete the underlying database file.  Also,
+    #       disable use of "PRAGMA temp_store_directory" when setting up
+    #       the new connection because it is not thread-safe.
+    #
+    uplevel 1 [list setupDb $fileName "" "" "" "" "" true false false false \
+        $varName]
+  }
+
+  #############################################################################
+
+  proc formatWorkloadResult { index } {
+    set result [appendArgs "---- iterations for workload (" $index "): "]
+
+    append result [expr {[info exists ::iterations($index,total)] ? \
+        $::iterations($index,total) : 0}] " total, "
+
+    append result [expr {[info exists ::iterations($index,ok)] ? \
+        $::iterations($index,ok) : 0}] " ok, "
+
+    append result [expr {[info exists ::iterations($index,error)] ? \
+        $::iterations($index,error) : 0}] " error, "
+
+    #
+    # NOTE: Translate the workload index to the corresponding iteration
+    #       error indicator so that we can easily lookup the number of
+    #       failures (i.e. "unexpected errors") for the workload.
+    #
+    set indicator [string character [expr {[string ordinal a 0] + $index - 1}]]
+
+    append result [expr {[info exists ::failures($indicator)] ? \
+        $::failures($indicator) : 0}] " failed\n"
+
+    return $result
+  }
+
+  #############################################################################
+
+  proc formatWorkloadTime { index } {
+    if {[info exists ::times($index)]} then {
+      set length [llength $::times($index)]
+
+      if {$length > 0} then {
+        set sum [expr [join $::times($index) +]]
+
+        return [appendArgs "---- average time for workload (" $index \
+            ") is about " [expr {int($sum / $length / 1000.0)}] \
+            " milliseconds (" [expr {int($sum / ([info exists \
+            ::iterations($index,total)] ? $::iterations($index,total) : \
+            $length) / 1000.0)}] " milliseconds per iteration)\n"]
+      }
+    }
+
+    return [appendArgs "---- no times for workload (" $index )\n]
+  }
+
+  #############################################################################
+
+  proc isExpectedError { error } {
+    return [expr {[regexp -- {\sno such table: t1\s} $error] || \
+        [regexp -- {\sdatabase is locked\s} $error] || \
+        [regexp -- {\sdatabase table is locked\s} $error]}]
+  }
+
+  #############################################################################
+
+  proc initTest { indicator } {
+    set ::eagle_tests(constraints) $::test_constraints
+  }
+
+  #############################################################################
+
+  proc delayTest { {extra 0} } {
+    after [expr {int((rand() * 1000) + $extra)}]
+  }
+
+  #############################################################################
+
+  proc waitTest { indicator } {
+    if {![$::event WaitOne $::timeout]} then {
+      error [appendArgs "timeout while starting workload #" \
+          [expr {[string ordinal $indicator 0] - [string ordinal A 0] + 1}]]
+    }
+  }
+
+  #############################################################################
+
+  proc showTest { indicator } {
+    tputs $::test_channel $indicator
+    append ::indicators $indicator
+    delayTest $::count(2)
+  }
+
+  #############################################################################
+
+  proc doneTest { {indicator ""} } {
+    if {[string length $indicator] > 0} then {
+      lappend ::status(done) $indicator
+    }
+    if {[info exists ::status(done)]} then {
+      host title $::status(done)
+    } else {
+      host title ""
+    }
+  }
+
+  #############################################################################
+
+  proc failTest { indicator error } {
+    #
+    # NOTE: Halt all testing and exit the process now
+    #       -OR- just record the failure and continue?
+    #
+    set level [expr {[info level] - 1}]
+
+    if {$::exitOnFail} then {
+      tputs $::test_channel [appendArgs \
+          \n [info level $level] ": " \n\t $error \n]
+
+      exit failure
+    } else {
+      tlog [appendArgs \
+          "\n---- BEGIN TEST FAILURE OUTPUT\n" \
+          \n [info level $level] ": " \n\t $error \n \
+          "\n---- END TEST FAILURE OUTPUT\n"]
+
+      tputs $::test_channel $indicator
+
+      if {![info exists ::failures($indicator)]} then {
+        set ::failures($indicator) 0
+      }
+
+      incr ::failures($indicator)
+      delayTest $::count(2)
+    }
+  }
+
+  #############################################################################
+
+  proc allocMem { size } {
+    if {$::coTaskMem} then {
+      return [object invoke -create \
+          System.Runtime.InteropServices.Marshal \
+          AllocCoTaskMem $size]; # throw
+    } else {
+      set ptr [object invoke -create -flags +NonPublic \
+          System.Data.SQLite.UnsafeNativeMethods \
+          sqlite3_malloc $size]
+
+      if {[object invoke $ptr ToInt64] != 0} then {
+        return $ptr
+      } else {
+        error [appendArgs "sqlite3_malloc(" $size ") failed"]
+      }
+    }
+  }
+
+  #############################################################################
+
+  proc useMem { ptr size } {
+    if {![isMono]} then {
+      #
+      # HACK: The type signature of the ZeroMemory method changed as of the
+      #       .NET Framework 4.5.  The second argument went from being of
+      #       type UInt to type UIntPtr.
+      #
+      if {[haveConstraint dotNet40] && \
+          [haveConstraint dotNet45OrHigher]} then {
+        set newSize [object create UIntPtr $size]
+      } else {
+        set newSize $size
+      }
+
+      object invoke -flags +NonPublic Microsoft.Win32.Win32Native \
+          ZeroMemory $ptr $newSize
+    }
+  }
+
+  #############################################################################
+
+  proc freeMem { ptr } {
+    if {$::coTaskMem} then {
+      object invoke System.Runtime.InteropServices.Marshal \
+          FreeCoTaskMem $ptr
+    } else {
+      object invoke -flags +NonPublic \
+          System.Data.SQLite.UnsafeNativeMethods \
+          sqlite3_free $ptr
+    }
+
+    #
+    # NOTE: Free extra opaque object handle reference added by the
+    #       [return] command in [allocMem].
+    #
+    object dispose $ptr
+  }
+
+  #############################################################################
+
+  proc setupLogging { fileName } {
+    if {![info exists ::logListener]} then {
+      set ::logListener [object create -alias \
+          System.Diagnostics.TextWriterTraceListener $fileName]
+    }
+
+    object invoke System.Diagnostics.Trace.Listeners Add $::logListener
+    object invoke System.Data.SQLite.SQLiteLog Initialize
+
+    tputs $::test_channel [appendArgs \
+        "---- enabled SQLite trace logging to file \"" $fileName \"\n]
+  }
+
+  #############################################################################
+
+  proc cleanupLogging { fileName } {
+    if {[info exists ::logListener]} then {
+      object invoke System.Diagnostics.Trace.Listeners Remove $::logListener
+      $::logListener Close
+    }
+
+    #
+    # NOTE: Copy the trace listener log file to the main test log file.
+    #
+    tlog "---- BEGIN TRACE LISTENER OUTPUT\n"
+    tlog [readFile $fileName]
+    tlog "\n---- END TRACE LISTENER OUTPUT\n"
+
+    #
+    # NOTE: Delete the trace listener log file because its contents have
+    #       been copied to the main test log file.
+    #
+    cleanupFile $fileName
+
+    tputs $::test_channel [appendArgs \
+        "---- disabled SQLite trace logging to file \"" $fileName \"\n]
+  }
+
+  #############################################################################
+
+  #
+  # NOTE: Setup the default values for the tunable workload parameters.  Any,
+  #       all, or none of these may be overriden via the command line.
+  #
+  set count(0) 3;         # Workload repeat count (i.e. total full runs).
+  set count(1) 5;         # Workload iteration count (i.e. within a run).
+  set count(2) 200;       # Workload iteration delay, in milliseconds.
+  set count(3) 57;        # Workload "small" data chunk size, in bytes.
+  set count(4) 10000;     # Workload "big" data chunk size, in bytes.
+  set count(5) 209715200; # Maximum heap memory to exclude at one time.
+  set noWorkload [list];  # Workloads to be omitted from the run, by index.
+  set priorities [list];  # Dictionary of workload thread priorities.
+  set exitOnFail false;   # Halt testing and exit process on test failure?
+  set coTaskMem true;     # Use AllocCoTaskMem/FreeCoTaskMem for memory?
+  set noTrace false;      # Disable SQLite trace logging to a file?
+
+  #############################################################################
+
+  #
+  # NOTE: If command line arguments to the test suite are available, process
+  #       them for any options that are applicable to this test (i.e. any of
+  #       the tunable workload parameters listed above).
+  #
+  if {[info exists argv] && [llength $argv] > 0} then {
+    parse options -flags \
+        {-StopOnUnknownOption +IgnoreOnUnknownOption SkipOnUnknownOption} -- \
+        [list [list null MustHaveIntegerValue -1 -1 -count0 $count(0)] \
+        [list null MustHaveIntegerValue -1 -1 -count1 $count(1)] \
+        [list null MustHaveIntegerValue -1 -1 -count2 $count(2)] \
+        [list null MustHaveIntegerValue -1 -1 -count3 $count(3)] \
+        [list null MustHaveIntegerValue -1 -1 -count4 $count(4)] \
+        [list null MustHaveIntegerValue -1 -1 -count5 $count(5)] \
+        [list null MustHaveListValue -1 -1 -noWorkload $noWorkload] \
+        [list null MustHaveListValue -1 -1 -priorities $priorities] \
+        [list null MustHaveBooleanValue -1 -1 -exitOnFail $exitOnFail] \
+        [list null MustHaveBooleanValue -1 -1 -coTaskMem $coTaskMem] \
+        [list null MustHaveBooleanValue -1 -1 -noTrace $noTrace]] $argv
+
+    set count(0) $options(-count0,value)
+    set count(1) $options(-count1,value)
+    set count(2) $options(-count2,value)
+    set count(3) $options(-count3,value)
+    set count(4) $options(-count4,value)
+    set count(5) $options(-count5,value)
+    set noWorkload $options(-noWorkload,value)
+    set priorities $options(-priorities,value)
+    set exitOnFail $options(-exitOnFail,value)
+    set coTaskMem $options(-coTaskMem,value)
+    set noTrace $options(-noTrace,value)
+  }
+
+  #############################################################################
+
+  #
+  # NOTE: Load custom per-user and/or per-host test settings.  Currently, this
+  #       is done after processing the command line options.  The settings file
+  #       should take into account the existing workload parameters and avoid
+  #       changing any that may have already been overridden.
+  #
+  loadSQLiteTestSettings $test_channel .stress
+
+  #############################################################################
+
+  #
+  # NOTE: The trace listener used with the SQLiteLog class to capture output
+  #       from the core SQLite library requires its own log file because the
+  #       TextWriterTraceListener class opens and locks the log file it uses
+  #       as the basis of the output stream.  Before this test is complete,
+  #       the entire contents of this trace log file will be copied into the
+  #       main test log file and then deleted.
+  #
+  if {!$noTrace} then {
+    set logFileName [appendArgs [file rootname $test_log] .trace.log]
+    setupLogging $logFileName
+  }
+
+  #############################################################################
+
+  tputs $test_channel [appendArgs \
+      "---- workloads will repeat " $count(0) " time(s)\n"]
+
+  tputs $test_channel [appendArgs \
+      "---- workloads will have " $count(1) " iteration(s)\n"]
+
+  tputs $test_channel [appendArgs \
+      "---- workloads will wait at least " $count(2) \
+      " millisecond(s) after each iteration\n"]
+
+  tputs $test_channel [appendArgs \
+      "---- small chunk size is " $count(3) " byte(s)\n"]
+
+  tputs $test_channel [appendArgs \
+      "---- big chunk size is " $count(4) " byte(s)\n"]
+
+  tputs $test_channel [appendArgs \
+      "---- maximum excluded heap memory is " $count(5) " byte(s)\n"]
+
+  tputs $test_channel [appendArgs \
+      "---- workloads to be skipped... " \
+      [expr {[llength $noWorkload] > 0 ? $noWorkload : "none"}] \n]
+
+  tputs $test_channel [appendArgs \
+      "---- workloads priority overrides... " \
+      [expr {[llength $priorities] > 0 ? $priorities : "none"}] \n]
+
+  tputs $test_channel [appendArgs \
+      "---- unexpected errors " \
+      [expr {$exitOnFail ? "will" : "will not"}] \
+      " halt testing and exit the process\n"]
+
+  tputs $test_channel [appendArgs \
+      "---- the " [expr {$coTaskMem ? "CoTaskMem" : "SQLite"}] \
+      " allocator will be used to exclude heap memory\n"]
+
+  tputs $test_channel [appendArgs \
+      "---- trace logging to a file is " \
+      [expr {$noTrace ? "disabled" : "enabled"}] \n]
+
+  #############################################################################
+
+  #
+  # NOTE: Create the workload priority array based on the priority list seen
+  #       on the command line, if any.
+  #
+  array set priority $priorities
+
+  #############################################################################
+
+  #
+  # NOTE: Workloads #12 and #13 contain C# code that should be compiled, but
+  #       only once.  These variables keep track of that state information.
+  #       An integer value in one of these variables means the compilation was
+  #       completed and the resulting compiled method may be invoked using the
+  #       following command (where ${id} is the value of the variable):
+  #
+  #           object invoke _Dynamic${id}.Test${id} BackupAndGetData
+  #
+  set compiled(12) ""
+  set compiled(13) ""
+
+  #############################################################################
+
+  #
+  # NOTE: This is an in-memory database with shared cache enabled.
+  #
+  set fileName(1) file::memory:?cache=shared
+
+  #############################################################################
+
+  #
+  # NOTE: This is a normal on-disk database.
+  #
+  set fileName(2) [file join [getDatabaseDirectory] [appendArgs \
+      stress- [pid] - [string trim [clock seconds] -] .db]]
+
+  #############################################################################
+
+  setupWorkloadMemDb $fileName(1) srcDb
+  setupWorkloadFileDb $fileName(2)
+
+  #############################################################################
+
+  #
+  # NOTE: This serves two purposes.  First, it allows us to verify the trace
+  #       logging subsystem is working properly.  Second, it places the file
+  #       name for the associated database file into the trace log file.
+  #
+  set connection [getDbConnection]
+
+  $connection LogMessage 0 [appendArgs \
+      "starting stress test using database \"" $fileName(2) \"...]
+
+  #############################################################################
+
+  set timeout [object invoke -flags +NonPublic \
+      Eagle._Components.Private.ThreadOps DefaultJoinTimeout]
+
+  tputs $test_channel [appendArgs \
+      "---- workloads will start before or timeout after " $timeout \
+      " millisecond(s)\n"]
+
+  #############################################################################
+
+  set event [object create -alias \
+      System.Threading.EventWaitHandle false ManualReset]
+
+  #############################################################################
+  #                              WORKLOAD #1 (A)                              #
+  #############################################################################
+
+  set workload(1) [list \
+      [list srcFileName dstFileName table count1 count2 count3] {
+    #
+    # NOTE: Workload #1, CREATE TABLE statements.
+    #
+    waitTest A
+    lappend ::times(1) [lindex [time {
+      initTest A
+      setupWorkloadFileDb $dstFileName
+      for {set index 2} {$index <= $count1} {incr index} {
+        if {[catch {
+          sql execute $db [appendArgs \
+              "CREATE TABLE IF NOT EXISTS t" \
+              $index "(x PRIMARY KEY, y, z);"]
+          showTest A
+        } error]} then {
+          if {[isExpectedError $error]} then {
+            showTest a
+          } else {
+            failTest a $error
+          }
+        }
+      }
+      cleanupDb $dstFileName db false true false
+      doneTest A
+    }] 0]
+  }]
+
+  #############################################################################
+  #                              WORKLOAD #2 (B)                              #
+  #############################################################################
+
+  set workload(2) [list \
+      [list srcFileName dstFileName table count1 count2 count3] {
+    #
+    # NOTE: Workload #2, DROP TABLE statements.
+    #
+    waitTest B
+    lappend ::times(2) [lindex [time {
+      initTest B
+      setupWorkloadFileDb $dstFileName
+      for {set index 2} {$index <= $count1} {incr index} {
+        if {[catch {
+          sql execute $db [appendArgs \
+              "DROP TABLE IF EXISTS t" $index \;]
+          showTest B
+        } error]} then {
+          if {[isExpectedError $error]} then {
+            showTest b
+          } else {
+            failTest b $error
+          }
+        }
+      }
+      cleanupDb $dstFileName db false true false
+      doneTest B
+    }] 0]
+  }]
+
+  #############################################################################
+  #                              WORKLOAD #3 (C)                              #
+  #############################################################################
+
+  set workload(3) [list \
+      [list srcFileName dstFileName table count1 count2 count3] {
+    #
+    # NOTE: Workload #3, "small" SELECT statements.
+    #
+    waitTest C
+    lappend ::times(3) [lindex [time {
+      initTest C
+      setupWorkloadFileDb $dstFileName
+      for {set index 1} {$index <= $count1} {incr index} {
+        if {[catch {
+          set reader [sql execute -execute reader \
+              -format dataReader -alias $db [appendArgs \
+              "SELECT x, y FROM " $table " WHERE z = 'small';"]]
+          while {[$reader Read]} {
+            #
+            # NOTE: Do nothing.
+            #
+          }
+          unset -nocomplain reader
+          showTest C
+        } error]} then {
+          if {[isExpectedError $error]} then {
+            showTest c
+          } else {
+            failTest c $error
+          }
+        }
+      }
+      cleanupDb $dstFileName db false true false
+      doneTest C
+    }] 0]
+  }]
+
+  #############################################################################
+  #                              WORKLOAD #4 (D)                              #
+  #############################################################################
+
+  set workload(4) [list \
+      [list srcFileName dstFileName table count1 count2 count3] {
+    #
+    # NOTE: Workload #4, "big" SELECT statements.
+    #
+    waitTest D
+    lappend ::times(4) [lindex [time {
+      initTest D
+      setupWorkloadFileDb $dstFileName
+      for {set index 1} {$index <= $count1} {incr index} {
+        if {[catch {
+          set reader [sql execute -execute reader \
+              -format dataReader -alias $db [appendArgs \
+              "SELECT x, y FROM " $table " WHERE z = 'big';"]]
+          while {[$reader Read]} {
+            #
+            # NOTE: Do nothing.
+            #
+          }
+          unset -nocomplain reader
+          showTest D
+        } error]} then {
+          if {[isExpectedError $error]} then {
+            showTest d
+          } else {
+            failTest d $error
+          }
+        }
+      }
+      cleanupDb $dstFileName db false true false
+      doneTest D
+    }] 0]
+  }]
+
+  #############################################################################
+  #                              WORKLOAD #5 (E)                              #
+  #############################################################################
+
+  set workload(5) [list \
+      [list srcFileName dstFileName table count1 count2 count3] {
+    #
+    # NOTE: Workload #5, "small" INSERT statements.
+    #
+    waitTest E
+    lappend ::times(5) [lindex [time {
+      initTest E
+      setupWorkloadFileDb $dstFileName
+      for {set index 1} {$index <= $count1} {incr index} {
+        if {[catch {
+          sql execute $db [appendArgs "INSERT INTO " $table \
+              "(x, y, z) VALUES('" [format %lX [expr {random()}]] \
+              "', '" [base64 encode -- [expr {randstr($count2)}]] \
+              "', 'small');"]
+          showTest E
+        } error]} then {
+          if {[isExpectedError $error]} then {
+            showTest e
+          } else {
+            failTest e $error
+          }
+        }
+      }
+      cleanupDb $dstFileName db false true false
+      doneTest E
+    }] 0]
+  }]
+
+  #############################################################################
+  #                              WORKLOAD #6 (F)                              #
+  #############################################################################
+
+  set workload(6) [list \
+      [list srcFileName dstFileName table count1 count2 count3] {
+    #
+    # NOTE: Workload #6, "big" INSERT statements.
+    #
+    waitTest F
+    lappend ::times(6) [lindex [time {
+      initTest F
+      setupWorkloadFileDb $dstFileName
+      for {set index 1} {$index <= $count1} {incr index} {
+        if {[catch {
+          sql execute $db [appendArgs "INSERT INTO " $table \
+              "(x, y, z) VALUES('" [format %lX [expr {random()}]] \
+              "', RANDOMBLOB(" $count3 "), 'big');"]
+          showTest F
+        } error]} then {
+          if {[isExpectedError $error]} then {
+            showTest f
+          } else {
+            failTest f $error
+          }
+        }
+      }
+      cleanupDb $dstFileName db false true false
+      doneTest F
+    }] 0]
+  }]
+
+  #############################################################################
+  #                              WORKLOAD #7 (G)                              #
+  #############################################################################
+
+  set workload(7) [list \
+      [list srcFileName dstFileName table count1 count2 count3] {
+    #
+    # NOTE: Workload #7, "small" UPDATE statements.
+    #
+    waitTest G
+    lappend ::times(7) [lindex [time {
+      initTest G
+      setupWorkloadFileDb $dstFileName
+      for {set index 1} {$index <= $count1} {incr index} {
+        if {[catch {
+          sql execute $db [appendArgs "UPDATE " $table \
+              " SET y = '" [base64 encode -- [expr {randstr($count2)}]] \
+              "' WHERE x LIKE '" [format %X $index] "%' AND z = 'small';"]
+          showTest G
+        } error]} then {
+          if {[isExpectedError $error]} then {
+            showTest g
+          } else {
+            failTest g $error
+          }
+        }
+      }
+      cleanupDb $dstFileName db false true false
+      doneTest G
+    }] 0]
+  }]
+
+  #############################################################################
+  #                              WORKLOAD #8 (H)                              #
+  #############################################################################
+
+  set workload(8) [list \
+      [list srcFileName dstFileName table count1 count2 count3] {
+    #
+    # NOTE: Workload #8, "big" UPDATE statements.
+    #
+    waitTest H
+    lappend ::times(8) [lindex [time {
+      initTest H
+      setupWorkloadFileDb $dstFileName
+      for {set index 1} {$index <= $count1} {incr index} {
+        if {[catch {
+          sql execute $db [appendArgs "UPDATE " $table \
+              " SET y = RANDOMBLOB(" $count3 ") WHERE x LIKE '" \
+              [format %X $index] "%' AND z = 'big';"]
+          showTest H
+        } error]} then {
+          if {[isExpectedError $error]} then {
+            showTest h
+          } else {
+            failTest h $error
+          }
+        }
+      }
+      cleanupDb $dstFileName db false true false
+      doneTest H
+    }] 0]
+  }]
+
+  #############################################################################
+  #                              WORKLOAD #9 (I)                              #
+  #############################################################################
+
+  set workload(9) [list \
+      [list srcFileName dstFileName table count1 count2 count3] {
+    #
+    # NOTE: Workload #9, "small" DELETE statements.
+    #
+    waitTest I
+    lappend ::times(9) [lindex [time {
+      initTest I
+      setupWorkloadFileDb $dstFileName
+      for {set index 1} {$index <= $count1} {incr index} {
+        if {[catch {
+          sql execute $db [appendArgs "DELETE FROM " $table \
+              " WHERE x LIKE '" [format %X $index] "%' AND z = 'small';"]
+          showTest I
+        } error]} then {
+          if {[isExpectedError $error]} then {
+            showTest i
+          } else {
+            failTest i $error
+          }
+        }
+      }
+      cleanupDb $dstFileName db false true false
+      doneTest I
+    }] 0]
+  }]
+
+  #############################################################################
+  #                              WORKLOAD #10 (J)                             #
+  #############################################################################
+
+  set workload(10) [list \
+      [list srcFileName dstFileName table count1 count2 count3] {
+    #
+    # NOTE: Workload #10, "big" DELETE statements.
+    #
+    waitTest J
+    lappend ::times(10) [lindex [time {
+      initTest J
+      setupWorkloadFileDb $dstFileName
+      for {set index 1} {$index <= $count1} {incr index} {
+        if {[catch {
+          sql execute $db [appendArgs "DELETE FROM " $table \
+              " WHERE x LIKE '" [format %X $index] "%' AND z = 'big';"]
+          showTest J
+        } error]} then {
+          if {[isExpectedError $error]} then {
+            showTest j
+          } else {
+            failTest j $error
+          }
+        }
+      }
+      cleanupDb $dstFileName db false true false
+      doneTest J
+    }] 0]
+  }]
+
+  #############################################################################
+  #                              WORKLOAD #11 (K)                             #
+  #############################################################################
+
+  set workload(11) [list \
+      [list srcFileName dstFileName table count1 count2 count3] {
+    #
+    # NOTE: Workload #11, VACUUM statement.
+    #
+    waitTest K
+    lappend ::times(11) [lindex [time {
+      initTest K
+      setupWorkloadFileDb $dstFileName
+      for {set index 1} {$index <= $count1} {incr index} {
+        if {[catch {
+          sql execute $db "VACUUM;"
+          showTest K
+        } error]} then {
+          if {[isExpectedError $error]} then {
+            showTest k
+          } else {
+            failTest k $error
+          }
+        }
+      }
+      cleanupDb $dstFileName db false true false
+      doneTest K
+    }] 0]
+  }]
+
+  #############################################################################
+  #                              WORKLOAD #12 (L)                             #
+  #############################################################################
+
+  set workload(12) [list \
+      [list srcFileName dstFileName table count1 count2 count3] {
+    #
+    # NOTE: Workload #12, backup to in-memory database.
+    #
+    waitTest L
+    lappend ::times(12) [lindex [time {
+      initTest L
+      for {set index 1} {$index <= $count1} {incr index} {
+        if {[string is integer -strict $::compiled(12)]} then {
+          set id $::compiled(12); # NOTE: Already compiled.
+          if {[catch {
+            object invoke _Dynamic${id}.Test${id} BackupAndGetData
+            showTest L
+          } error]} then {
+            if {[isExpectedError $error]} then {
+              showTest l
+            } else {
+              failTest l $error
+            }
+          }
+        } else {
+          set id [object invoke Interpreter.GetActive NextId]
+          set code [compileCSharpWith [subst {
+            using System.Data.SQLite;
+
+            namespace _Dynamic${id}
+            {
+              public static class Test${id}
+              {
+                public static void BackupAndGetData()
+                {
+                  using (SQLiteConnection source = new SQLiteConnection(
+                      "FullUri=${dstFileName};"))
+                  {
+                    source.Open();
+
+                    using (SQLiteConnection destination = new SQLiteConnection(
+                        "FullUri=${srcFileName};"))
+                    {
+                      destination.Open();
+
+                      source.BackupDatabase(
+                          destination, "main", "main", -1, null, 0);
+                    }
+                  }
+                }
+
+                ///////////////////////////////////////////////////////////////
+
+                public static void Main()
+                {
+                  // do nothing.
+                }
+              }
+            }
+          }] true true true results errors System.Data.SQLite.dll]
+          if {$code eq "Ok"} then {
+            set ::compiled(12) $id; # NOTE: Compiled OK.
+            if {[catch {
+              object invoke _Dynamic${id}.Test${id} BackupAndGetData
+              showTest L
+            } error]} then {
+              if {[isExpectedError $error]} then {
+                showTest l
+              } else {
+                failTest l $error
+              }
+            }
+          } else {
+            error $errors
+          }
+        }
+      }
+      doneTest L
+    }] 0]
+  }]
+
+  #############################################################################
+  #                              WORKLOAD #13 (M)                             #
+  #############################################################################
+
+  set workload(13) [list \
+      [list srcFileName dstFileName table count1 count2 count3] {
+    #
+    # NOTE: Workload #13, backup from an in-memory database.
+    #
+    waitTest M
+    lappend ::times(13) [lindex [time {
+      initTest M
+      for {set index 1} {$index <= $count1} {incr index} {
+        if {[string is integer -strict $::compiled(13)]} then {
+          set id $::compiled(13); # NOTE: Already compiled.
+          if {[catch {
+            object invoke _Dynamic${id}.Test${id} BackupAndGetData
+            showTest M
+          } error]} then {
+            if {[isExpectedError $error]} then {
+              showTest m
+            } else {
+              failTest m $error
+            }
+          }
+        } else {
+          set id [object invoke Interpreter.GetActive NextId]
+          set code [compileCSharpWith [subst {
+            using System.Data.SQLite;
+
+            namespace _Dynamic${id}
+            {
+              public static class Test${id}
+              {
+                public static void BackupAndGetData()
+                {
+                  using (SQLiteConnection source = new SQLiteConnection(
+                      "FullUri=${srcFileName};"))
+                  {
+                    source.Open();
+
+                    using (SQLiteConnection destination = new SQLiteConnection(
+                        "FullUri=${dstFileName};"))
+                    {
+                      destination.Open();
+
+                      source.BackupDatabase(
+                          destination, "main", "main", -1, null, 0);
+                    }
+                  }
+                }
+
+                ///////////////////////////////////////////////////////////////
+
+                public static void Main()
+                {
+                  // do nothing.
+                }
+              }
+            }
+          }] true true true results errors System.Data.SQLite.dll]
+          if {$code eq "Ok"} then {
+            set ::compiled(13) $id; # NOTE: Compiled OK.
+            if {[catch {
+              object invoke _Dynamic${id}.Test${id} BackupAndGetData
+              showTest M
+            } error]} then {
+              if {[isExpectedError $error]} then {
+                showTest m
+              } else {
+                failTest m $error
+              }
+            }
+          } else {
+            error $errors
+          }
+        }
+      }
+      doneTest M
+    }] 0]
+  }]
+
+  #############################################################################
+  #                              WORKLOAD #14 (N)                             #
+  #############################################################################
+
+  set workload(14) [list \
+      [list srcFileName dstFileName table count1 count2 count3] {
+    #
+    # NOTE: Workload #14, PRAGMA integrity check statement.
+    #
+    waitTest N
+    lappend ::times(14) [lindex [time {
+      initTest N
+      setupWorkloadFileDb $dstFileName
+      for {set index 1} {$index <= $count1} {incr index} {
+        if {[catch {
+          set result [sql execute -execute scalar $db \
+              "PRAGMA integrity_check;"]
+          if {$result ne "ok"} then {
+            error [appendArgs "integrity check failed: " $result]
+          }
+          showTest N
+        } error]} then {
+          if {[isExpectedError $error]} then {
+            showTest n
+          } else {
+            failTest n $error
+          }
+        }
+      }
+      cleanupDb $dstFileName db false true false
+      doneTest N
+    }] 0]
+  }]
+
+  #############################################################################
+  #                              WORKLOAD #15 (O)                             #
+  #############################################################################
+
+  set workload(15) [list \
+      [list srcFileName dstFileName table count1 count2 count3] {
+    #
+    # NOTE: Workload #15, force managed garbage collection
+    #
+    waitTest O
+    lappend ::times(15) [lindex [time {
+      initTest O
+      for {set index 1} {$index <= $count1} {incr index} {
+        if {[catch {
+          collectGarbage $::test_channel
+          showTest O
+        } error]} then {
+          if {[isExpectedError $error]} then {
+            showTest o
+          } else {
+            failTest o $error
+          }
+        }
+      }
+      doneTest O
+    }] 0]
+  }]
+
+  #############################################################################
+  #                              WORKLOAD #16 (P)                             #
+  #############################################################################
+
+  set workload(16) [list \
+      [list srcFileName dstFileName table count1 count2 count3] {
+    #
+    # NOTE: Workload #16, allocate (exclude) some native heap memory
+    #
+    waitTest P
+    lappend ::times(16) [lindex [time {
+      initTest P
+      set maxSize $::count(5)
+      object invoke GC AddMemoryPressure $maxSize
+      try {
+        for {set index 1} {$index <= $count1} {incr index} {
+          if {[catch {
+            set size [expr {int(min($maxSize, abs($count3 * $index * 5.0)))}]
+            set ptr [allocMem $size]; # throw
+            useMem $ptr $size; delayTest $count2
+            freeMem $ptr; unset -nocomplain ptr
+            showTest P
+          } error]} then {
+            if {[isExpectedError $error]} then {
+              showTest p
+            } else {
+              failTest p $error
+            }
+          }
+        }
+      } finally {
+        if {[info exists ptr]} then {
+          freeMem $ptr; unset -nocomplain ptr
+        }
+        object invoke GC RemoveMemoryPressure $maxSize
+      }
+      doneTest P
+    }] 0]
+  }]
+
+  #############################################################################
+  #                              WORKLOAD #17 (Q)                             #
+  #############################################################################
+
+  set workload(17) [list \
+      [list srcFileName dstFileName table count1 count2 count3] {
+    #
+    # NOTE: Workload #17, change the database journal mode
+    #
+    waitTest Q
+    lappend ::times(17) [lindex [time {
+      initTest Q
+      setupWorkloadFileDb $dstFileName
+      for {set index 1} {$index <= $count1} {incr index} {
+        if {[catch {
+          sql execute $db [appendArgs "PRAGMA journal_mode = \"" \
+              [expr {$index % 2 == 0 ? "delete" : "wal"}] \"\;]
+          showTest Q
+        } error]} then {
+          if {[isExpectedError $error]} then {
+            showTest q
+          } else {
+            failTest q $error
+          }
+        }
+      }
+      cleanupDb $dstFileName db false true false
+      doneTest Q
+    }] 0]
+  }]
+
+  #############################################################################
+  #                              WORKLOAD #18 (R)                             #
+  #############################################################################
+
+  set workload(18) [list \
+      [list srcFileName dstFileName table count1 count2 count3] {
+    #
+    # NOTE: Workload #18, execute queries against the in-memory database
+    #
+    waitTest R
+    lappend ::times(18) [lindex [time {
+      initTest R
+      setupWorkloadMemDb $srcFileName
+      for {set index 1} {$index <= $count1} {incr index} {
+        if {[catch {
+          #
+          # NOTE: Workload #18.3, "small" SELECT statements.
+          #
+          set reader [sql execute -execute reader \
+              -format dataReader -alias $db [appendArgs \
+              "SELECT x, y FROM " $table " WHERE z = 'small';"]]
+          while {[$reader Read]} {
+            #
+            # NOTE: Do nothing.
+            #
+          }
+          unset -nocomplain reader
+          #
+          # NOTE: Workload #18.4, "big" SELECT statements.
+          #
+          set reader [sql execute -execute reader \
+              -format dataReader -alias $db [appendArgs \
+              "SELECT x, y FROM " $table " WHERE z = 'big';"]]
+          while {[$reader Read]} {
+            #
+            # NOTE: Do nothing.
+            #
+          }
+          unset -nocomplain reader
+          #
+          # NOTE: Workload #18.5, "small" INSERT statements.
+          #
+          sql execute $db [appendArgs "INSERT INTO " $table \
+              "(x, y, z) VALUES('" [format %lX [expr {random()}]] \
+              "', '" [base64 encode -- [expr {randstr($count2)}]] \
+              "', 'small');"]
+          #
+          # NOTE: Workload #18.6, "big" INSERT statements.
+          #
+          sql execute $db [appendArgs "INSERT INTO " $table \
+              "(x, y, z) VALUES('" [format %lX [expr {random()}]] \
+              "', RANDOMBLOB(" $count3 "), 'big');"]
+          #
+          # NOTE: Workload #18.7, "small" UPDATE statements.
+          #
+          sql execute $db [appendArgs "UPDATE " $table \
+              " SET y = '" [base64 encode -- [expr {randstr($count2)}]] \
+              "' WHERE x LIKE '" [format %X $index] "%' AND z = 'small';"]
+          #
+          # NOTE: Workload #18.8, "big" UPDATE statements.
+          #
+          sql execute $db [appendArgs "UPDATE " $table \
+              " SET y = RANDOMBLOB(" $count3 ") WHERE x LIKE '" \
+              [format %X $index] "%' AND z = 'big';"]
+          #
+          # NOTE: Workload #18.9, "small" DELETE statements.
+          #
+          sql execute $db [appendArgs "DELETE FROM " $table \
+              " WHERE x LIKE '" [format %X $index] "%' AND z = 'small';"]
+          #
+          # NOTE: Workload #18.10, "big" DELETE statements.
+          #
+          sql execute $db [appendArgs "DELETE FROM " $table \
+              " WHERE x LIKE '" [format %X $index] "%' AND z = 'big';"]
+          #
+          # NOTE: Workload #18.11, VACUUM statement.
+          #
+          sql execute $db "VACUUM;"
+          #
+          # NOTE: Workload #18.14, PRAGMA integrity check statement.
+          #
+          set result [sql execute -execute scalar $db \
+              "PRAGMA integrity_check;"]
+          if {$result ne "ok"} then {
+            error [appendArgs "integrity check failed: " $result]
+          }
+          showTest R
+        } error]} then {
+          if {[isExpectedError $error]} then {
+            showTest r
+          } else {
+            failTest r $error
+          }
+        }
+      }
+      cleanupDb $srcFileName db false true false
+      doneTest R
+    }] 0]
+  }]
+} -body {
+  tputs $test_channel [appendArgs \
+      "==== WARNING: this stress test may take several minutes...\n"]
+
+  for {set index(0) 1} {$index(0) <= $count(0)} {incr index(0)} {
+    if {$index(0) > 1} then {
+      #
+      # NOTE: Advance output to the next line due to the workload
+      #       iteration progress indicators from the previous run.
+      #
+      tputs $test_channel \n
+    }
+
+    tputs $test_channel [appendArgs \
+        "---- starting workload run #" $index(0) ...\n]
+
+    unset -nocomplain thread status; doneTest
+
+    sql execute $srcDb "CREATE TABLE IF NOT EXISTS t1(x PRIMARY KEY, y, z);"
+    sql execute $db "CREATE TABLE IF NOT EXISTS t1(x PRIMARY KEY, y, z);"
+
+    foreach index(1) [lsort -integer [array names workload]] {
+      if {[lsearch -exact $noWorkload $index(1)] == -1} then {
+        set thread($index(1)) [object create -alias System.Threading.Thread \
+            [list apply $workload($index(1)) $fileName(1) $fileName(2) t1 \
+            $count(1) $count(3) $count(4)] 1048576]
+
+        $thread($index(1)) Name [appendArgs \
+            [file rootname [file tail $fileName(2)]] " #" $index(1)]
+
+        if {[info exists priority($index(1))]} then {
+          $thread($index(1)) Priority $priority($index(1))
+        }
+      }
+    }
+
+    foreach index(1) [array names thread] {
+      $thread($index(1)) Start
+    }
+
+    $event Set; # GO
+
+    foreach index(1) [array names thread] {
+      $thread($index(1)) Join
+    }
+
+    foreach index(1) [array names thread] {
+      if {[info exists thread($index(1))] && \
+          [cleanupThread $thread($index(1))]} then {
+        unset -nocomplain thread($index(1))
+      }
+    }
+
+    unset -nocomplain thread status; doneTest
+  }
+
+  #############################################################################
+
+  foreach index(0) [split $indicators ""] {
+    #
+    # NOTE: See if this workload iteration raised an error.  If so, the
+    #       indicator letter will be in lower case; otherwise, it will
+    #       be in upper case.
+    #
+    set index(1) [string is upper -strict $index(0)]
+
+    set index(2) [expr {[string ordinal $index(0) 0] - \
+        [string ordinal [expr {$index(1) ? "A" : "a"}] 0] + 1}]
+
+    set index(3) [expr {$index(1) ? "ok" : "error"}]
+
+    if {![info exists iterations($index(2),$index(3))]} then {
+      set iterations($index(2),$index(3)) 0
+    }
+
+    if {![info exists iterations($index(2),total)]} then {
+      set iterations($index(2),total) 0
+    }
+
+    incr iterations($index(2),$index(3))
+    incr iterations($index(2),total)
+  }
+
+  #############################################################################
+
+  #
+  # NOTE: Advance output to the next line due to the workload
+  #       iteration progress indicators from the final run.
+  #
+  tputs $test_channel \n
+
+  #############################################################################
+
+  foreach index(0) [lsort -integer [array names workload]] {
+    if {[lsearch -exact $noWorkload $index(0)] == -1} then {
+      tputs $test_channel [formatWorkloadResult $index(0)]
+    }
+  }
+
+  #############################################################################
+
+  foreach index(0) [lsort -integer [array names times]] {
+    tputs $test_channel [formatWorkloadTime $index(0)]
+  }
+
+  #############################################################################
+
+  set result [sql execute -execute scalar $srcDb "PRAGMA integrity_check;"]
+
+  if {$result eq "ok"} then {
+    tputs $test_channel "---- integrity check ok (srcDb)\n"
+  } else {
+    error [appendArgs "integrity check failed (srcDb): " $result]
+  }
+
+  #############################################################################
+
+  set result [sql execute -execute scalar $db "PRAGMA integrity_check;"]
+
+  if {$result eq "ok"} then {
+    tputs $test_channel "---- integrity check ok (db)\n"
+  } else {
+    error [appendArgs "integrity check failed (db): " $result]
+  }
+
+  #############################################################################
+
+  #
+  # NOTE: The overall test result is the total number of failures (i.e.
+  #       "unexpected errors") encountered during a workload iteration.
+  #
+  expr {[array size failures] > 0 ? \
+      [expr [join [array values failures] +]] : 0}
+} -cleanup {
+  foreach index(0) [array names thread] {
+    if {[info exists thread($index(0))] && \
+        [cleanupThread $thread($index(0))]} then {
+      unset -nocomplain thread($index(0))
+    }
+  }
+
+  rename freeMem ""
+  rename useMem ""
+  rename allocMem ""
+  rename failTest ""
+  rename doneTest ""
+  rename showTest ""
+  rename waitTest ""
+  rename delayTest ""
+  rename initTest ""
+  rename isExpectedError ""
+  rename formatWorkloadTime ""
+  rename formatWorkloadResult ""
+  rename setupWorkloadFileDb ""
+  rename setupWorkloadMemDb ""
+
+  cleanupDb $fileName(2)
+  cleanupDb $fileName(1) srcDb
+
+  foreach index(0) [array names workload] {
+    catch {
+      object removecallback [list apply $workload($index(0)) $fileName(1) \
+          $fileName(2) t1 $count(1) $count(3) $count(4)]
+    }
+  }
+
+  freeDbConnection
+
+  if {!$noTrace} then {
+    cleanupLogging $logFileName
+  }
+
+  rename cleanupLogging ""
+  rename setupLogging ""
+
+  unset -nocomplain result thread index workload priority noWorkload \
+      priorities srcDb db fileName compiled options count times logFileName \
+      logListener event timeout connection indicators iterations exitOnFail \
+      coTaskMem noTrace failures status
+} -time true -constraints {eagle monoBug28 command.sql compile.DATA SQLite\
+System.Data.SQLite compileCSharp} -result {0}}
+
+###############################################################################
+
+#
+# NOTE: Report after test.
+#
+checkForSQLiteDirectories $test_channel
+getSQLiteHandleCounts $test_channel
+reportSQLiteResources $test_channel
+
+###############################################################################
+
+runSQLiteTestEpilogue
+runTestEpilogue

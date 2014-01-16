@@ -1,0 +1,71 @@
+/*
+ * SQLite.Interop.rc -
+ *
+ * Written by Joe Mistachkin.
+ * Released to the public domain, use at your own risk!
+ */
+
+#if !defined(_WIN32_WCE)
+#include "winresrc.h"
+#else
+#include "windows.h"
+#endif /* !defined(_WIN32_WCE) */
+
+#if !defined(VS_FF_NONE)
+#  define VS_FF_NONE            0x00000000L
+#endif /* !defined(VS_FF_NONE) */
+
+#include "..\core\sqlite3.h"
+#include "interop.h"
+
+/*
+** English (U.S.) resources
+*/
+
+#if defined(_WIN32)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif /* defined(_WIN32) */
+
+/*
+** Version
+*/
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION INTEROP_RC_VERSION
+ PRODUCTVERSION INTEROP_RC_VERSION
+ FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
+#if defined(_DEBUG)
+ FILEFLAGS VS_FF_DEBUG
+#else
+ FILEFLAGS VS_FF_NONE
+#endif /* defined(_DEBUG) */
+ FILEOS VOS__WINDOWS32
+ FILETYPE VFT_DLL
+ FILESUBTYPE VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", "Robert Simpson, et al."
+            VALUE "FileDescription", "System.Data.SQLite Interop Assembly"
+            VALUE "FileVersion", INTEROP_VERSION
+            VALUE "InternalName", "SQLite.Interop"
+            VALUE "LegalCopyright", "Public Domain"
+            VALUE "OriginalFilename", "SQLite.Interop.dll"
+            VALUE "ProductName", "System.Data.SQLite"
+            VALUE "ProductVersion", INTEROP_VERSION
+            VALUE "SourceId", INTEROP_SOURCE_ID " " INTEROP_SOURCE_TIMESTAMP
+            VALUE "SQLiteCompanyName", "D. Richard Hipp, et al."
+            VALUE "SQLiteDescription", "SQLite Database Engine"
+            VALUE "SQLiteCopyright", "http://www.sqlite.org/copyright.html"
+            VALUE "SQLiteVersion", SQLITE_VERSION
+            VALUE "SQLiteSourceId", SQLITE_SOURCE_ID
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 0x4b0
+    END
+END

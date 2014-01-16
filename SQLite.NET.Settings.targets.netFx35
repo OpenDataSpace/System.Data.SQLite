@@ -1,0 +1,23 @@
+<!--
+ *
+ * SQLite.NET.Settings.targets.netFx35 -
+ *
+ * Written by Joe Mistachkin.
+ * Released to the public domain, use at your own risk!
+ *
+-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition="'$(ConfigurationYear)' != '' And
+                            '$(ConfigurationYear)' != '2005' And
+                            '$(ConfigurationYear)' != '2008'">
+    <NetFx20>true</NetFx20>
+    <NetFx35>true</NetFx35>
+    <NetFx40>false</NetFx40>
+    <NetFx45>false</NetFx45>
+    <NetFx451>false</NetFx451>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkProfile></TargetFrameworkProfile>
+    <Prefer32Bit>false</Prefer32Bit>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+</Project>

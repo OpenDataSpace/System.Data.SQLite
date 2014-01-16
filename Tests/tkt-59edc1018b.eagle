@@ -1,0 +1,99 @@
+###############################################################################
+#
+# tkt-59edc1018b.eagle --
+#
+# Written by Joe Mistachkin.
+# Released to the public domain, use at your own risk!
+#
+###############################################################################
+
+package require Eagle
+package require Eagle.Library
+package require Eagle.Test
+
+runTestPrologue
+
+###############################################################################
+
+package require System.Data.SQLite.Test
+runSQLiteTestPrologue
+
+###############################################################################
+
+#
+# NOTE: Setup the variables that refer to the various files required by the
+#       tests in this file.
+#
+set systemDataSQLiteDllFile [getBuildFileName System.Data.SQLite.dll]
+set systemDataSQLiteLinqDllFile [getBuildFileName System.Data.SQLite.Linq.dll]
+set testLinqExeFile [getBuildFileName testlinq.exe]
+set northwindEfDbFile [file nativename [file join [file dirname $path] \
+    testlinq northwindEF.db]]
+
+#
+# NOTE: Setup the test constraints specific to the tests in this file.
+#
+if {![haveConstraint [appendArgs file_ \
+    [file tail $systemDataSQLiteDllFile]]]} then {
+  checkForFile $test_channel $systemDataSQLiteDllFile
+}
+
+if {![haveConstraint [appendArgs file_ \
+    [file tail $systemDataSQLiteLinqDllFile]]]} then {
+  checkForFile $test_channel $systemDataSQLiteLinqDllFile
+}
+
+if {![haveConstraint [appendArgs file_ [file tail $testLinqExeFile]]]} then {
+  checkForFile $test_channel $testLinqExeFile
+}
+
+if {![haveConstraint [appendArgs file_ [file tail $northwindEfDbFile]]]} then {
+  checkForFile $test_channel $northwindEfDbFile
+}
+
+###############################################################################
+
+runTest {test tkt-59edc1018b-1.1 {LINQ with EndsWith} -body {
+  set result [list]
+
+  foreach value [list "" a b z 1+1 don notthere] {
+    set output ""
+
+    set code [catch {
+      testClrExec $testLinqExeFile [list -eventflags Wait -directory \
+          [file dirname $testLinqExeFile] -nocarriagereturns -stdout output \
+          -success 0] -endsWith $value
+    } error]
+
+    tlog "---- BEGIN STDOUT OUTPUT\n"
+    tlog $output
+    tlog "\n---- END STDOUT OUTPUT\n"
+
+    lappend result $code
+
+    if {$code == 0} then {
+      lappend result [string trim $output]
+    } else {
+      lappend result [string trim $error]
+    }
+  }
+
+  set result
+} -cleanup {
+  unset -nocomplain code output error result value
+} -constraints \
+{eagle monoToDo defineConstant.System.Data.SQLite.USE_INTEROP_DLL\
+defineConstant.System.Data.SQLite.INTEROP_EXTENSION_FUNCTIONS SQLite testExec\
+file_System.Data.SQLite.dll file_System.Data.SQLite.Linq.dll file_testlinq.exe\
+file_northwindEF.db} -result {0 {} 0 {FURIB GALED GODOS LAZYK LINOD PRINI REGGC\
+WOLZA} 0 {} 0 ERNSH 0 {} 0 {AROUT BSBEV CONSH EASTC NORTS SEVES} 0 {}}}
+
+###############################################################################
+
+unset -nocomplain systemDataSQLiteDllFile systemDataSQLiteLinqDllFile \
+    testLinqExeFile northwindEfDbFile
+
+###############################################################################
+
+runSQLiteTestEpilogue
+runTestEpilogue

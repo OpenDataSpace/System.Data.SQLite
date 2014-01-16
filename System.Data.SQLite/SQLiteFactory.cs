@@ -1,4 +1,4 @@
-﻿/********************************************************
+/********************************************************
  * ADO.NET 2.0 Data Provider for SQLite Version 3.X
  * Written by Robert Simpson (robert@blackcastlesoft.com)
  * 
@@ -12,78 +12,150 @@ namespace System.Data.SQLite
 
 #if !PLATFORM_COMPACTFRAMEWORK
   /// <summary>
-  /// SQLite implementation of DbProviderFactory.
+  /// SQLite implementation of <see cref="DbProviderFactory" />.
   /// </summary>
-  public sealed class SQLiteFactory : DbProviderFactory
+  public sealed partial class SQLiteFactory : DbProviderFactory, IDisposable
   {
     /// <summary>
-    /// Static instance member which returns an instanced SQLiteFactory class.
+    /// Constructs a new instance.
+    /// </summary>
+    public SQLiteFactory()
+    {
+        //
+        // NOTE: Do nothing here now.  All the logging setup related code has
+        //       been moved to the new SQLiteLog static class.
+        //
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    #region IDisposable Members
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+    #endregion
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    #region IDisposable "Pattern" Members
+    private bool disposed;
+    private void CheckDisposed() /* throw */
+    {
+#if THROW_ON_DISPOSED
+        if (disposed)
+            throw new ObjectDisposedException(typeof(SQLiteFactory).Name);
+#endif
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    private void Dispose(bool disposing)
+    {
+        if (!disposed)
+        {
+            //if (disposing)
+            //{
+            //    ////////////////////////////////////
+            //    // dispose managed resources here...
+            //    ////////////////////////////////////
+            //}
+
+            //////////////////////////////////////
+            // release unmanaged resources here...
+            //////////////////////////////////////
+
+            disposed = true;
+        }
+    }
+    #endregion
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    #region Destructor
+    ~SQLiteFactory()
+    {
+        Dispose(false);
+    }
+    #endregion
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    /// <summary>
+    /// This event is raised whenever SQLite raises a logging event.
+    /// Note that this should be set as one of the first things in the
+    /// application.  This event is provided for backward compatibility only.
+    /// New code should use the <see cref="SQLiteLog" /> class instead.
+    /// </summary>
+    public event SQLiteLogEventHandler Log
+    {
+      add { CheckDisposed(); SQLiteLog.Log += value; }
+      remove { CheckDisposed(); SQLiteLog.Log -= value; }
+    }
+
+    /// <summary>
+    /// Static instance member which returns an instanced <see cref="SQLiteFactory" /> class.
     /// </summary>
     public static readonly SQLiteFactory Instance = new SQLiteFactory();
 
     /// <summary>
-    /// Returns the types of classes this factory supports
+    /// Creates and returns a new <see cref="SQLiteCommand" /> object.
     /// </summary>
-    [Obsolete]
-    public override DbProviderSupportedClasses SupportedClasses
-    {
-      get
-      {
-        return (DbProviderSupportedClasses)0x3F;
-      }
-    }
-
-    /// <summary>
-    /// Returns a new SQLiteCommand object.
-    /// </summary>
-    /// <returns>A SQLiteCommand object.</returns>
+    /// <returns>The new object.</returns>
     public override DbCommand CreateCommand()
     {
+      CheckDisposed();
       return new SQLiteCommand();
     }
 
     /// <summary>
-    /// Returns a new SQLiteCommandBuilder object.
+    /// Creates and returns a new <see cref="SQLiteCommandBuilder" /> object.
     /// </summary>
-    /// <returns>A SQLiteCommandBuilder object.</returns>
+    /// <returns>The new object.</returns>
     public override DbCommandBuilder CreateCommandBuilder()
     {
+      CheckDisposed();
       return new SQLiteCommandBuilder();
     }
 
     /// <summary>
-    /// Creates a new SQLiteConnection.
+    /// Creates and returns a new <see cref="SQLiteConnection" /> object.
     /// </summary>
-    /// <returns>A SQLiteConnection object.</returns>
+    /// <returns>The new object.</returns>
     public override DbConnection CreateConnection()
     {
+      CheckDisposed();
       return new SQLiteConnection();
     }
 
     /// <summary>
-    /// Creates a new SQLiteConnectionStringBuilder.
+    /// Creates and returns a new <see cref="SQLiteConnectionStringBuilder" /> object.
     /// </summary>
-    /// <returns>A SQLiteConnectionStringBuilder object.</returns>
+    /// <returns>The new object.</returns>
     public override DbConnectionStringBuilder CreateConnectionStringBuilder()
     {
+      CheckDisposed();
       return new SQLiteConnectionStringBuilder();
     }
 
     /// <summary>
-    /// Creates a new SQLiteDataAdapter.
+    /// Creates and returns a new <see cref="SQLiteDataAdapter" /> object.
     /// </summary>
-    /// <returns>A SQLiteDataAdapter object.</returns>
+    /// <returns>The new object.</returns>
     public override DbDataAdapter CreateDataAdapter()
     {
+      CheckDisposed();
       return new SQLiteDataAdapter();
     }
 
     /// <summary>
-    /// Creates a new SQLiteParameter.
+    /// Creates and returns a new <see cref="SQLiteParameter" /> object.
     /// </summary>
-    /// <returns>A SQLiteParameter object.</returns>
+    /// <returns>The new object.</returns>
     public override DbParameter CreateParameter()
     {
+      CheckDisposed();
       return new SQLiteParameter();
     }
   }

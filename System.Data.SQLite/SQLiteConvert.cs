@@ -1,70 +1,22 @@
-﻿/********************************************************
+/********************************************************
  * ADO.NET 2.0 Data Provider for SQLite Version 3.X
  * Written by Robert Simpson (robert@blackcastlesoft.com)
- * 
+ *
  * Released to the public domain, use at your own risk!
  ********************************************************/
 
 namespace System.Data.SQLite
 {
   using System;
+
+#if !NET_COMPACT_20 && TRACE_WARNING
+  using System.Diagnostics;
+#endif
+
   using System.Runtime.InteropServices;
   using System.Collections.Generic;
-
-  /// <summary>
-  /// SQLite has very limited types, and is inherently text-based.  The first 5 types below represent the sum of all types SQLite
-  /// understands.  The DateTime extension to the spec is for internal use only.
-  /// </summary>
-  public enum TypeAffinity
-  {
-    /// <summary>
-    /// All integers in SQLite default to Int64
-    /// </summary>
-    Int64 = 1,
-    /// <summary>
-    /// All floating point numbers in SQLite default to double
-    /// </summary>
-    Double = 2,
-    /// <summary>
-    /// The default data type of SQLite is text
-    /// </summary>
-    Text = 3,
-    /// <summary>
-    /// Typically blob types are only seen when returned from a function
-    /// </summary>
-    Blob = 4,
-    /// <summary>
-    /// Null types can be returned from functions
-    /// </summary>
-    Null = 5,
-    /// <summary>
-    /// Used internally by this provider
-    /// </summary>
-    DateTime = 128,
-    /// <summary>
-    /// Used internally by this provider
-    /// </summary>
-    None=256,
-  }
-
-  /// <summary>
-  /// This implementation of SQLite for ADO.NET can process date/time fields in databases in only one of two formats.  Ticks and ISO8601.
-  /// Ticks is inherently more accurate, but less compatible with 3rd party tools that query the database, and renders the DateTime field
-  /// unreadable without post-processing.
-  /// ISO8601 is more compatible, readable, fully-processable, but less accurate as it doesn't provide time down to fractions of a second.
-  /// </summary>
-  public enum DateTimeFormat
-  {
-    /// <summary>
-    /// Using ticks is more accurate but less compatible with other viewers and utilities that access your database.
-    /// </summary>
-    Ticks = 0,
-    /// <summary>
-    /// The default format for this provider.  More compatible with SQLite's intended usage of datetimes, but overall less accurate than Ticks as it doesn't
-    /// natively support times down to fractions of a second.
-    /// </summary>
-    ISO8601 = 1,
-  }
+  using System.Globalization;
+  using System.Text;
 
   /// <summary>
   /// This base class provides datatype conversion services for the SQLite provider.
@@ -72,57 +24,119 @@ namespace System.Data.SQLite
   public abstract class SQLiteConvert
   {
     /// <summary>
-    /// An array of ISO8601 datetime formats we support conversion from
+    /// The value for the Unix epoch (e.g. January 1, 1970 at midnight, in UTC).
     /// </summary>
-    private static string[] _datetimeFormats;
+    protected static readonly DateTime UnixEpoch =
+        new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
     /// <summary>
-    /// An UTF-8 Encoding instance, so we can convert strings to and from UTF8
+    /// The value of the OLE Automation epoch represented as a Julian day.
     /// </summary>
-    private Text.UTF8Encoding _utf8;
-    /// <summary>
-    /// The default DateTime format for this instance
-    /// </summary>
-    private DateTimeFormat _datetimeFormat;
+    private static readonly double OleAutomationEpochAsJulianDay = 2415018.5;
 
     /// <summary>
-    /// Static constructor, initializes the supported ISO8601 date time formats
+    /// The format string for DateTime values when using the InvariantCulture or CurrentCulture formats.
     /// </summary>
-    static SQLiteConvert()
-    {
-      _datetimeFormats = new string[] {"yyyy-MM-dd HH:mm:ss",
-																	  "yyyyMMddHHmmss",
-																	  "yyyyMMddTHHmmssfffffff",
-																	  "yyyy-MM-dd",
-																	  "yy-MM-dd",
-																	  "yyyyMMdd",
-																	  "HH:mm:ss",
-																	  "THHmmss"
-															 };
-    }
+    private const string FullFormat = "yyyy-MM-ddTHH:mm:ss.fffffffK";
 
-    internal SQLiteConvert(DateTimeFormat fmt)
+    /// <summary>
+    /// An array of ISO-8601 DateTime formats that we support parsing.
+    /// </summary>
+    private static string[] _datetimeFormats = new string[] {
+      "THHmmssK",
+      "THHmmK",
+      "HH:mm:ss.FFFFFFFK",
+      "HH:mm:ssK",
+      "HH:mmK",
+      "yyyy-MM-dd HH:mm:ss.FFFFFFFK", /* NOTE: UTC default (5). */
+      "yyyy-MM-dd HH:mm:ssK",
+      "yyyy-MM-dd HH:mmK",
+      "yyyy-MM-ddTHH:mm:ss.FFFFFFFK",
+      "yyyy-MM-ddTHH:mmK",
+      "yyyy-MM-ddTHH:mm:ssK",
+      "yyyyMMddHHmmssK",
+      "yyyyMMddHHmmK",
+      "yyyyMMddTHHmmssFFFFFFFK",
+      "THHmmss",
+      "THHmm",
+      "HH:mm:ss.FFFFFFF",
+      "HH:mm:ss",
+      "HH:mm",
+      "yyyy-MM-dd HH:mm:ss.FFFFFFF", /* NOTE: Non-UTC default (19). */
+      "yyyy-MM-dd HH:mm:ss",
+      "yyyy-MM-dd HH:mm",
+      "yyyy-MM-ddTHH:mm:ss.FFFFFFF",
+      "yyyy-MM-ddTHH:mm",
+      "yyyy-MM-ddTHH:mm:ss",
+      "yyyyMMddHHmmss",
+      "yyyyMMddHHmm",
+      "yyyyMMddTHHmmssFFFFFFF",
+      "yyyy-MM-dd",
+      "yyyyMMdd",
+      "yy-MM-dd"
+    };
+
+    /// <summary>
+    /// The internal default format for UTC DateTime values when converting
+    /// to a string.
+    /// </summary>
+    private static readonly string _datetimeFormatUtc = _datetimeFormats[5];
+
+    /// <summary>
+    /// The internal default format for local DateTime values when converting
+    /// to a string.
+    /// </summary>
+    private static readonly string _datetimeFormatLocal = _datetimeFormats[19];
+
+    /// <summary>
+    /// An UTF-8 Encoding instance, so we can convert strings to and from UTF-8
+    /// </summary>
+    private static Encoding _utf8 = new UTF8Encoding();
+    /// <summary>
+    /// The default DateTime format for this instance.
+    /// </summary>
+    internal SQLiteDateFormats _datetimeFormat;
+    /// <summary>
+    /// The default DateTimeKind for this instance.
+    /// </summary>
+    internal DateTimeKind _datetimeKind;
+    /// <summary>
+    /// The default DateTime format string for this instance.
+    /// </summary>
+    internal string _datetimeFormatString = null;
+    /// <summary>
+    /// Initializes the conversion class
+    /// </summary>
+    /// <param name="fmt">The default date/time format to use for this instance</param>
+    /// <param name="kind">The DateTimeKind to use.</param>
+    /// <param name="fmtString">The DateTime format string to use.</param>
+    internal SQLiteConvert(
+        SQLiteDateFormats fmt,
+        DateTimeKind kind,
+        string fmtString
+        )
     {
       _datetimeFormat = fmt;
-      _utf8 = new System.Text.UTF8Encoding();
+      _datetimeKind = kind;
+      _datetimeFormatString = fmtString;
     }
 
     #region UTF-8 Conversion Functions
     /// <summary>
     /// Converts a string to a UTF-8 encoded byte array sized to include a null-terminating character.
     /// </summary>
-    /// <param name="strSrc">The string to convert to UTF-8</param>
+    /// <param name="sourceText">The string to convert to UTF-8</param>
     /// <returns>A byte array containing the converted string plus an extra 0 terminating byte at the end of the array.</returns>
-    public byte[] ToUTF8(string strSrc)
+    public static byte[] ToUTF8(string sourceText)
     {
-      Byte[] b;
-      int nlen = _utf8.GetByteCount(strSrc) + 1;
+      Byte[] byteArray;
+      int nlen = _utf8.GetByteCount(sourceText) + 1;
 
-      b = new byte[nlen];
-      nlen = _utf8.GetBytes(strSrc, 0, strSrc.Length, b, 0);
-      b[nlen] = 0;
+      byteArray = new byte[nlen];
+      nlen = _utf8.GetBytes(sourceText, 0, sourceText.Length, byteArray, 0);
+      byteArray[nlen] = 0;
 
-      return b;
+      return byteArray;
     }
 
     /// <summary>
@@ -132,103 +146,369 @@ namespace System.Data.SQLite
     /// This function is a convenience function, which first calls ToString() on the DateTime, and then calls ToUTF8() with the
     /// string result.
     /// </remarks>
-    /// <param name="dtSrc">The DateTime to convert.</param>
+    /// <param name="dateTimeValue">The DateTime to convert.</param>
     /// <returns>The UTF-8 encoded string, including a 0 terminating byte at the end of the array.</returns>
-    public byte[] ToUTF8(DateTime dtSrc)
+    public byte[] ToUTF8(DateTime dateTimeValue)
     {
-      return ToUTF8(ToString(dtSrc));
+      return ToUTF8(ToString(dateTimeValue));
     }
 
     /// <summary>
     /// Converts a UTF-8 encoded IntPtr of the specified length into a .NET string
     /// </summary>
-    /// <param name="b">The pointer to the memory where the UTF-8 string is encoded</param>
-    /// <param name="nlen">The number of bytes to decode</param>
+    /// <param name="nativestring">The pointer to the memory where the UTF-8 string is encoded</param>
+    /// <param name="nativestringlen">The number of bytes to decode</param>
     /// <returns>A string containing the translated character(s)</returns>
-    public virtual string ToString(IntPtr b, int nlen)
+    public virtual string ToString(IntPtr nativestring, int nativestringlen)
     {
-      if (nlen == 0) return "";
-
-      byte[] byt;
-
-      byt = new byte[nlen];
-      Marshal.Copy(b, byt, 0, nlen);
-
-      return _utf8.GetString(byt, 0, nlen);
+      return UTF8ToString(nativestring, nativestringlen);
     }
+
+    /// <summary>
+    /// Converts a UTF-8 encoded IntPtr of the specified length into a .NET string
+    /// </summary>
+    /// <param name="nativestring">The pointer to the memory where the UTF-8 string is encoded</param>
+    /// <param name="nativestringlen">The number of bytes to decode</param>
+    /// <returns>A string containing the translated character(s)</returns>
+    public static string UTF8ToString(IntPtr nativestring, int nativestringlen)
+    {
+      if (nativestring == IntPtr.Zero || nativestringlen == 0) return String.Empty;
+      if (nativestringlen < 0)
+      {
+        nativestringlen = 0;
+
+        while (Marshal.ReadByte(nativestring, nativestringlen) != 0)
+          nativestringlen++;
+
+        if (nativestringlen == 0) return String.Empty;
+      }
+
+      byte[] byteArray = new byte[nativestringlen];
+
+      Marshal.Copy(nativestring, byteArray, 0, nativestringlen);
+
+      return _utf8.GetString(byteArray, 0, nativestringlen);
+    }
+
 
     #endregion
 
     #region DateTime Conversion Functions
     /// <summary>
-    /// Converts a string into a DateTime, using the current DateTimeFormat specified for the connection when it was opened.
+    /// Converts a string into a DateTime, using the DateTimeFormat, DateTimeKind,
+    /// and DateTimeFormatString specified for the connection when it was opened.
     /// </summary>
     /// <remarks>
     /// Acceptable ISO8601 DateTime formats are:
-    ///   yyyy-MM-dd HH:mm:ss
-    ///   yyyyMMddHHmmss
-    ///   yyyyMMddTHHmmssfffffff
-    ///   yyyy-MM-dd
-    ///   yy-MM-dd
-    ///   yyyyMMdd
-    ///   HH:mm:ss
-    ///   THHmmss
+    /// <list type="bullet">
+    /// <item><description>THHmmssK</description></item>
+    /// <item><description>THHmmK</description></item>
+    /// <item><description>HH:mm:ss.FFFFFFFK</description></item>
+    /// <item><description>HH:mm:ssK</description></item>
+    /// <item><description>HH:mmK</description></item>
+    /// <item><description>yyyy-MM-dd HH:mm:ss.FFFFFFFK</description></item>
+    /// <item><description>yyyy-MM-dd HH:mm:ssK</description></item>
+    /// <item><description>yyyy-MM-dd HH:mmK</description></item>
+    /// <item><description>yyyy-MM-ddTHH:mm:ss.FFFFFFFK</description></item>
+    /// <item><description>yyyy-MM-ddTHH:mmK</description></item>
+    /// <item><description>yyyy-MM-ddTHH:mm:ssK</description></item>
+    /// <item><description>yyyyMMddHHmmssK</description></item>
+    /// <item><description>yyyyMMddHHmmK</description></item>
+    /// <item><description>yyyyMMddTHHmmssFFFFFFFK</description></item>
+    /// <item><description>THHmmss</description></item>
+    /// <item><description>THHmm</description></item>
+    /// <item><description>HH:mm:ss.FFFFFFF</description></item>
+    /// <item><description>HH:mm:ss</description></item>
+    /// <item><description>HH:mm</description></item>
+    /// <item><description>yyyy-MM-dd HH:mm:ss.FFFFFFF</description></item>
+    /// <item><description>yyyy-MM-dd HH:mm:ss</description></item>
+    /// <item><description>yyyy-MM-dd HH:mm</description></item>
+    /// <item><description>yyyy-MM-ddTHH:mm:ss.FFFFFFF</description></item>
+    /// <item><description>yyyy-MM-ddTHH:mm</description></item>
+    /// <item><description>yyyy-MM-ddTHH:mm:ss</description></item>
+    /// <item><description>yyyyMMddHHmmss</description></item>
+    /// <item><description>yyyyMMddHHmm</description></item>
+    /// <item><description>yyyyMMddTHHmmssFFFFFFF</description></item>
+    /// <item><description>yyyy-MM-dd</description></item>
+    /// <item><description>yyyyMMdd</description></item>
+    /// <item><description>yy-MM-dd</description></item>
+    /// </list>
+    /// If the string cannot be matched to one of the above formats -OR-
+    /// the DateTimeFormatString if one was provided, an exception will
+    /// be thrown.
     /// </remarks>
-    /// <param name="strSrc">The string containing either a Tick value or an ISO8601-format string</param>
+    /// <param name="dateText">The string containing either a long integer number of 100-nanosecond units since
+    /// System.DateTime.MinValue, a Julian day double, an integer number of seconds since the Unix epoch, a
+    /// culture-independent formatted date and time string, a formatted date and time string in the current
+    /// culture, or an ISO8601-format string.</param>
     /// <returns>A DateTime value</returns>
-    public DateTime ToDateTime(string strSrc)
+    public DateTime ToDateTime(string dateText)
     {
-      switch (_datetimeFormat)
-      {
-        case DateTimeFormat.Ticks:
-          return new DateTime(Convert.ToInt64(strSrc));
-        default:
-          return DateTime.ParseExact(strSrc, _datetimeFormats, System.Globalization.DateTimeFormatInfo.InvariantInfo, System.Globalization.DateTimeStyles.None);
-      }
+      return ToDateTime(dateText, _datetimeFormat, _datetimeKind, _datetimeFormatString);
     }
 
     /// <summary>
-    /// Attempt to convert the specified string to a datetime value.
+    /// Converts a string into a DateTime, using the specified DateTimeFormat,
+    /// DateTimeKind and DateTimeFormatString.
     /// </summary>
-    /// <param name="strSrc">The string to parse into a datetime</param>
-    /// <param name="result">If successful, a valid datetime structure</param>
-    /// <returns>Returns true if the string was a valid ISO8601 datetime, false otherwise.</returns>
-    public bool TryToDateTime(string strSrc, out DateTime result)
+    /// <remarks>
+    /// Acceptable ISO8601 DateTime formats are:
+    /// <list type="bullet">
+    /// <item><description>THHmmssK</description></item>
+    /// <item><description>THHmmK</description></item>
+    /// <item><description>HH:mm:ss.FFFFFFFK</description></item>
+    /// <item><description>HH:mm:ssK</description></item>
+    /// <item><description>HH:mmK</description></item>
+    /// <item><description>yyyy-MM-dd HH:mm:ss.FFFFFFFK</description></item>
+    /// <item><description>yyyy-MM-dd HH:mm:ssK</description></item>
+    /// <item><description>yyyy-MM-dd HH:mmK</description></item>
+    /// <item><description>yyyy-MM-ddTHH:mm:ss.FFFFFFFK</description></item>
+    /// <item><description>yyyy-MM-ddTHH:mmK</description></item>
+    /// <item><description>yyyy-MM-ddTHH:mm:ssK</description></item>
+    /// <item><description>yyyyMMddHHmmssK</description></item>
+    /// <item><description>yyyyMMddHHmmK</description></item>
+    /// <item><description>yyyyMMddTHHmmssFFFFFFFK</description></item>
+    /// <item><description>THHmmss</description></item>
+    /// <item><description>THHmm</description></item>
+    /// <item><description>HH:mm:ss.FFFFFFF</description></item>
+    /// <item><description>HH:mm:ss</description></item>
+    /// <item><description>HH:mm</description></item>
+    /// <item><description>yyyy-MM-dd HH:mm:ss.FFFFFFF</description></item>
+    /// <item><description>yyyy-MM-dd HH:mm:ss</description></item>
+    /// <item><description>yyyy-MM-dd HH:mm</description></item>
+    /// <item><description>yyyy-MM-ddTHH:mm:ss.FFFFFFF</description></item>
+    /// <item><description>yyyy-MM-ddTHH:mm</description></item>
+    /// <item><description>yyyy-MM-ddTHH:mm:ss</description></item>
+    /// <item><description>yyyyMMddHHmmss</description></item>
+    /// <item><description>yyyyMMddHHmm</description></item>
+    /// <item><description>yyyyMMddTHHmmssFFFFFFF</description></item>
+    /// <item><description>yyyy-MM-dd</description></item>
+    /// <item><description>yyyyMMdd</description></item>
+    /// <item><description>yy-MM-dd</description></item>
+    /// </list>
+    /// If the string cannot be matched to one of the above formats -OR-
+    /// the DateTimeFormatString if one was provided, an exception will
+    /// be thrown.
+    /// </remarks>
+    /// <param name="dateText">The string containing either a long integer number of 100-nanosecond units since
+    /// System.DateTime.MinValue, a Julian day double, an integer number of seconds since the Unix epoch, a
+    /// culture-independent formatted date and time string, a formatted date and time string in the current
+    /// culture, or an ISO8601-format string.</param>
+    /// <param name="format">The SQLiteDateFormats to use.</param>
+    /// <param name="kind">The DateTimeKind to use.</param>
+    /// <param name="formatString">The DateTime format string to use.</param>
+    /// <returns>A DateTime value</returns>
+    public static DateTime ToDateTime(
+        string dateText,
+        SQLiteDateFormats format,
+        DateTimeKind kind,
+        string formatString
+        )
     {
-      switch (_datetimeFormat)
-      {
-        case DateTimeFormat.ISO8601:
-          return DateTime.TryParseExact(strSrc, _datetimeFormats, System.Globalization.DateTimeFormatInfo.InvariantInfo, System.Globalization.DateTimeStyles.None, out result);
-        case DateTimeFormat.Ticks:
-          {
-            long n;
-            if (long.TryParse(strSrc, out n) == true)
-            {
-              result = new DateTime(n);
-              return true;
-            }
-          }
-          break;
-      }
-
-      result = DateTime.Now;
-      return false;
+        switch (format)
+        {
+            case SQLiteDateFormats.Ticks:
+                {
+                    return ToDateTime(Convert.ToInt64(
+                        dateText, CultureInfo.InvariantCulture), kind);
+                }
+            case SQLiteDateFormats.JulianDay:
+                {
+                    return ToDateTime(Convert.ToDouble(
+                        dateText, CultureInfo.InvariantCulture), kind);
+                }
+            case SQLiteDateFormats.UnixEpoch:
+                {
+                    return ToDateTime(Convert.ToInt32(
+                        dateText, CultureInfo.InvariantCulture), kind);
+                }
+            case SQLiteDateFormats.InvariantCulture:
+                {
+                    if (formatString != null)
+                        return DateTime.SpecifyKind(DateTime.ParseExact(
+                            dateText, formatString,
+                            DateTimeFormatInfo.InvariantInfo,
+                            kind == DateTimeKind.Utc ?
+                                DateTimeStyles.AdjustToUniversal :
+                                DateTimeStyles.None),
+                            kind);
+                    else
+                        return DateTime.SpecifyKind(DateTime.Parse(
+                            dateText, DateTimeFormatInfo.InvariantInfo,
+                            kind == DateTimeKind.Utc ?
+                                DateTimeStyles.AdjustToUniversal :
+                                DateTimeStyles.None),
+                            kind);
+                }
+            case SQLiteDateFormats.CurrentCulture:
+                {
+                    if (formatString != null)
+                        return DateTime.SpecifyKind(DateTime.ParseExact(
+                            dateText, formatString,
+                            DateTimeFormatInfo.CurrentInfo,
+                            kind == DateTimeKind.Utc ?
+                                DateTimeStyles.AdjustToUniversal :
+                                DateTimeStyles.None),
+                            kind);
+                    else
+                        return DateTime.SpecifyKind(DateTime.Parse(
+                            dateText, DateTimeFormatInfo.CurrentInfo,
+                            kind == DateTimeKind.Utc ?
+                                DateTimeStyles.AdjustToUniversal :
+                                DateTimeStyles.None),
+                            kind);
+                }
+            default: /* ISO-8601 */
+                {
+                    if (formatString != null)
+                        return DateTime.SpecifyKind(DateTime.ParseExact(
+                            dateText, formatString,
+                            DateTimeFormatInfo.InvariantInfo,
+                            kind == DateTimeKind.Utc ?
+                                DateTimeStyles.AdjustToUniversal :
+                                DateTimeStyles.None),
+                            kind);
+                    else
+                        return DateTime.SpecifyKind(DateTime.ParseExact(
+                            dateText, _datetimeFormats,
+                            DateTimeFormatInfo.InvariantInfo,
+                            kind == DateTimeKind.Utc ?
+                                DateTimeStyles.AdjustToUniversal :
+                                DateTimeStyles.None),
+                            kind);
+                }
+        }
     }
 
     /// <summary>
-    /// Converts a DateTime to a string value, using the current DateTimeFormat specified for the connection when it was opened.
+    /// Converts a julianday value into a DateTime
     /// </summary>
-    /// <param name="dtSrc">The DateTime value to convert</param>
-    /// <returns>Either a string consisting of the tick count for DateTimeFormat.Ticks, or a date/time in ISO8601 format.</returns>
-    public string ToString(DateTime dtSrc)
+    /// <param name="julianDay">The value to convert</param>
+    /// <returns>A .NET DateTime</returns>
+    public DateTime ToDateTime(double julianDay)
     {
-      switch (_datetimeFormat)
-      {
-        case DateTimeFormat.Ticks:
-          return dtSrc.Ticks.ToString();
-        default:
-          return dtSrc.ToString(_datetimeFormats[0]);
-      }
+      return ToDateTime(julianDay, _datetimeKind);
+    }
+
+    /// <summary>
+    /// Converts a julianday value into a DateTime
+    /// </summary>
+    /// <param name="julianDay">The value to convert</param>
+    /// <param name="kind">The DateTimeKind to use.</param>
+    /// <returns>A .NET DateTime</returns>
+    public static DateTime ToDateTime(double julianDay, DateTimeKind kind)
+    {
+        return DateTime.SpecifyKind(
+            DateTime.FromOADate(julianDay - OleAutomationEpochAsJulianDay), kind);
+    }
+
+    /// <summary>
+    /// Converts the specified number of seconds from the Unix epoch into a
+    /// <see cref="DateTime" /> value.
+    /// </summary>
+    /// <param name="seconds">
+    /// The number of whole seconds since the Unix epoch.
+    /// </param>
+    /// <param name="kind">
+    /// Either Utc or Local time.
+    /// </param>
+    /// <returns>
+    /// The new <see cref="DateTime" /> value.
+    /// </returns>
+    internal static DateTime ToDateTime(int seconds, DateTimeKind kind)
+    {
+        return DateTime.SpecifyKind(UnixEpoch.AddSeconds(seconds), kind);
+    }
+
+    /// <summary>
+    /// Converts the specified number of ticks since the epoch into a
+    /// <see cref="DateTime" /> value.
+    /// </summary>
+    /// <param name="ticks">
+    /// The number of whole ticks since the epoch.
+    /// </param>
+    /// <param name="kind">
+    /// Either Utc or Local time.
+    /// </param>
+    /// <returns>
+    /// The new <see cref="DateTime" /> value.
+    /// </returns>
+    internal static DateTime ToDateTime(long ticks, DateTimeKind kind)
+    {
+        return new DateTime(ticks, kind);
+    }
+
+    /// <summary>
+    /// Converts a DateTime struct to a JulianDay double
+    /// </summary>
+    /// <param name="value">The DateTime to convert</param>
+    /// <returns>The JulianDay value the Datetime represents</returns>
+    public static double ToJulianDay(DateTime value)
+    {
+      return value.ToOADate() + OleAutomationEpochAsJulianDay;
+    }
+
+    /// <summary>
+    /// Converts a DateTime struct to the whole number of seconds since the
+    /// Unix epoch.
+    /// </summary>
+    /// <param name="value">The DateTime to convert</param>
+    /// <returns>The whole number of seconds since the Unix epoch</returns>
+    public static long ToUnixEpoch(DateTime value)
+    {
+        return (value.Subtract(UnixEpoch).Ticks / TimeSpan.TicksPerSecond);
+    }
+
+    /// <summary>
+    /// Returns the DateTime format string to use for the specified DateTimeKind.
+    /// If <paramref name="formatString" /> is not null, it will be returned verbatim.
+    /// </summary>
+    /// <param name="kind">The DateTimeKind to use.</param>
+    /// <param name="formatString">The DateTime format string to use.</param>
+    /// <returns>
+    /// The DateTime format string to use for the specified DateTimeKind.
+    /// </returns>
+    private static string GetDateTimeKindFormat(
+        DateTimeKind kind,
+        string formatString
+        )
+    {
+        if (formatString != null) return formatString;
+        return (kind == DateTimeKind.Utc) ? _datetimeFormatUtc : _datetimeFormatLocal;
+    }
+
+    /// <summary>
+    /// Converts a string into a DateTime, using the DateTimeFormat, DateTimeKind,
+    /// and DateTimeFormatString specified for the connection when it was opened.
+    /// </summary>
+    /// <param name="dateValue">The DateTime value to convert</param>
+    /// <returns>Either a string containing the long integer number of 100-nanosecond units since System.DateTime.MinValue, a
+    /// Julian day double, an integer number of seconds since the Unix epoch, a culture-independent formatted date and time
+    /// string, a formatted date and time string in the current culture, or an ISO8601-format date/time string.</returns>
+    public string ToString(DateTime dateValue)
+    {
+        switch (_datetimeFormat)
+        {
+            case SQLiteDateFormats.Ticks:
+                return dateValue.Ticks.ToString(CultureInfo.InvariantCulture);
+            case SQLiteDateFormats.JulianDay:
+                return ToJulianDay(dateValue).ToString(CultureInfo.InvariantCulture);
+            case SQLiteDateFormats.UnixEpoch:
+                return ((long)(dateValue.Subtract(UnixEpoch).Ticks / TimeSpan.TicksPerSecond)).ToString();
+            case SQLiteDateFormats.InvariantCulture:
+                return dateValue.ToString((_datetimeFormatString != null) ?
+                    _datetimeFormatString : FullFormat, CultureInfo.InvariantCulture);
+            case SQLiteDateFormats.CurrentCulture:
+                return dateValue.ToString((_datetimeFormatString != null) ?
+                    _datetimeFormatString : FullFormat, CultureInfo.CurrentCulture);
+            default:
+                return (dateValue.Kind == DateTimeKind.Unspecified) ?
+                    DateTime.SpecifyKind(dateValue, _datetimeKind).ToString(
+                        GetDateTimeKindFormat(_datetimeKind, _datetimeFormatString),
+                            CultureInfo.InvariantCulture) : dateValue.ToString(
+                        GetDateTimeKindFormat(dateValue.Kind, _datetimeFormatString),
+                            CultureInfo.InvariantCulture);
+        }
     }
 
     /// <summary>
@@ -268,41 +548,51 @@ namespace System.Data.SQLite
     /// <br/>
     /// Note that the leading and trailing spaces were removed from each item during the split.
     /// </remarks>
-    /// <param name="src">Source string to split apart</param>
-    /// <param name="sep">Separator character</param>
+    /// <param name="source">Source string to split apart</param>
+    /// <param name="separator">Separator character</param>
     /// <returns>A string array of the split up elements</returns>
-    public static string[] Split(string src, char sep)
+    public static string[] Split(string source, char separator)
     {
-      char[] toks = new char[2] { '\"', sep };
+      char[] toks = new char[2] { '\"', separator };
       char[] quot = new char[1] { '\"' };
       int n = 0;
       List<string> ls = new List<string>();
       string s;
 
-      while (src.Length > 0)
+      while (source.Length > 0)
       {
-        n = src.IndexOfAny(toks, n);
+        n = source.IndexOfAny(toks, n);
         if (n == -1) break;
-        if (src[n] == toks[0])
+        if (source[n] == toks[0])
         {
-          src = src.Remove(n, 1);
-          n = src.IndexOfAny(quot, n);
+          //source = source.Remove(n, 1);
+          n = source.IndexOfAny(quot, n + 1);
           if (n == -1)
           {
-            src = "\"" + src;
+            //source = "\"" + source;
             break;
           }
-          src = src.Remove(n, 1);
+          n++;
+          //source = source.Remove(n, 1);
         }
         else
         {
-          s = src.Substring(0, n).Trim();
-          src = src.Substring(n + 1).Trim();
+          s = source.Substring(0, n).Trim();
+          if (s.Length > 1 && s[0] == quot[0] && s[s.Length - 1] == s[0])
+            s = s.Substring(1, s.Length - 2);
+
+          source = source.Substring(n + 1).Trim();
           if (s.Length > 0) ls.Add(s);
           n = 0;
         }
       }
-      if (src.Length > 0) ls.Add(src);
+      if (source.Length > 0)
+      {
+        s = source.Trim();
+        if (s.Length > 1 && s[0] == quot[0] && s[s.Length - 1] == s[0])
+          s = s.Substring(1, s.Length - 2);
+        ls.Add(s);
+      }
 
       string[] ar = new string[ls.Count];
       ls.CopyTo(ar, 0);
@@ -310,7 +600,209 @@ namespace System.Data.SQLite
       return ar;
     }
 
+    /// <summary>
+    /// Splits the specified string into multiple strings based on a separator
+    /// and returns the result as an array of strings.
+    /// </summary>
+    /// <param name="value">
+    /// The string to split into pieces based on the separator character.  If
+    /// this string is null, null will always be returned.  If this string is
+    /// empty, an array of zero strings will always be returned.
+    /// </param>
+    /// <param name="separator">
+    /// The character used to divide the original string into sub-strings.
+    /// This character cannot be a backslash or a double-quote; otherwise, no
+    /// work will be performed and null will be returned.
+    /// </param>
+    /// <param name="keepQuote">
+    /// If this parameter is non-zero, all double-quote characters will be
+    /// retained in the returned list of strings; otherwise, they will be
+    /// dropped.
+    /// </param>
+    /// <param name="error">
+    /// Upon failure, this parameter will be modified to contain an appropriate
+    /// error message.
+    /// </param>
+    /// <returns>
+    /// The new array of strings or null if the input string is null -OR- the
+    /// separator character is a backslash or a double-quote -OR- the string
+    /// contains an unbalanced backslash or double-quote character.
+    /// </returns>
+    internal static string[] NewSplit(
+        string value,
+        char separator,
+        bool keepQuote,
+        ref string error
+        )
+    {
+        const char EscapeChar = '\\';
+        const char QuoteChar = '\"';
+
+        //
+        // NOTE: It is illegal for the separator character to be either a
+        //       backslash or a double-quote because both of those characters
+        //       are used for escaping other characters (e.g. the separator
+        //       character).
+        //
+        if ((separator == EscapeChar) || (separator == QuoteChar))
+        {
+            error = "separator character cannot be the escape or quote characters";
+            return null;
+        }
+
+        if (value == null)
+        {
+            error = "string value to split cannot be null";
+            return null;
+        }
+
+        int length = value.Length;
+
+        if (length == 0)
+            return new string[0];
+
+        List<string> list = new List<string>();
+        StringBuilder element = new StringBuilder();
+        int index = 0;
+        bool escape = false;
+        bool quote = false;
+
+        while (index < length)
+        {
+            char character = value[index++];
+
+            if (escape)
+            {
+                //
+                // HACK: Only consider the escape character to be an actual
+                //       "escape" if it is followed by a reserved character;
+                //       otherwise, emit the original escape character and
+                //       the current character in an effort to help preserve
+                //       the original string content.
+                //
+                if ((character != EscapeChar) &&
+                    (character != QuoteChar) &&
+                    (character != separator))
+                {
+                    element.Append(EscapeChar);
+                }
+
+                element.Append(character);
+                escape = false;
+            }
+            else if (character == EscapeChar)
+            {
+                escape = true;
+            }
+            else if (character == QuoteChar)
+            {
+                if (keepQuote)
+                    element.Append(character);
+
+                quote = !quote;
+            }
+            else if (character == separator)
+            {
+                if (quote)
+                {
+                    element.Append(character);
+                }
+                else
+                {
+                    list.Add(element.ToString());
+                    element.Length = 0;
+                }
+            }
+            else
+            {
+                element.Append(character);
+            }
+        }
+
+        //
+        // NOTE: An unbalanced escape or quote character in the string is
+        //       considered to be a fatal error; therefore, return null.
+        //
+        if (escape || quote)
+        {
+            error = "unbalanced escape or quote character found";
+            return null;
+        }
+
+        if (element.Length > 0)
+            list.Add(element.ToString());
+
+        return list.ToArray();
+    }
+
+    /// <summary>
+    /// Convert a value to true or false.
+    /// </summary>
+    /// <param name="source">A string or number representing true or false</param>
+    /// <returns></returns>
+    public static bool ToBoolean(object source)
+    {
+      if (source is bool) return (bool)source;
+
+      return ToBoolean(source.ToString());
+    }
+
+    /// <summary>
+    /// Convert a string to true or false.
+    /// </summary>
+    /// <param name="source">A string representing true or false</param>
+    /// <returns></returns>
+    /// <remarks>
+    /// "yes", "no", "y", "n", "0", "1", "on", "off" as well as Boolean.FalseString and Boolean.TrueString will all be
+    /// converted to a proper boolean value.
+    /// </remarks>
+    public static bool ToBoolean(string source)
+    {
+      if (String.Compare(source, bool.TrueString, StringComparison.OrdinalIgnoreCase) == 0) return true;
+      else if (String.Compare(source, bool.FalseString, StringComparison.OrdinalIgnoreCase) == 0) return false;
+
+      switch(source.ToLower(CultureInfo.InvariantCulture))
+      {
+        case "yes":
+        case "y":
+        case "1":
+        case "on":
+          return true;
+        case "no":
+        case "n":
+        case "0":
+        case "off":
+          return false;
+        default:
+          throw new ArgumentException("source");
+      }
+    }
+
     #region Type Conversions
+    /// <summary>
+    /// Converts a SQLiteType to a .NET Type object
+    /// </summary>
+    /// <param name="t">The SQLiteType to convert</param>
+    /// <returns>Returns a .NET Type object</returns>
+    internal static Type SQLiteTypeToType(SQLiteType t)
+    {
+      if (t.Type == DbType.Object)
+        return _affinitytotype[(int)t.Affinity];
+      else
+        return SQLiteConvert.DbTypeToType(t.Type);
+    }
+
+    private static Type[] _affinitytotype = {
+      typeof(object),   // Uninitialized (0)
+      typeof(Int64),    // Int64 (1)
+      typeof(Double),   // Double (2)
+      typeof(string),   // Text (3)
+      typeof(byte[]),   // Blob (4)
+      typeof(object),   // Null (5)
+      typeof(DateTime), // DateTime (10)
+      typeof(object)    // None (11)
+    };
+
     /// <summary>
     /// For a given intrinsic type, return a DbType
     /// </summary>
@@ -318,42 +810,177 @@ namespace System.Data.SQLite
     /// <returns>The corresponding (closest match) DbType</returns>
     internal static DbType TypeToDbType(Type typ)
     {
-      switch (Type.GetTypeCode(typ))
+      TypeCode tc = Type.GetTypeCode(typ);
+      if (tc == TypeCode.Object)
       {
-        case TypeCode.Int16:
-          return DbType.Int16;
-        case TypeCode.Int32:
-          return DbType.Int32;
-        case TypeCode.Int64:
-          return DbType.Int64;
-        case TypeCode.UInt16:
-          return DbType.UInt16;
-        case TypeCode.UInt32:
-          return DbType.UInt32;
-        case TypeCode.UInt64:
-          return DbType.UInt64;
-        case TypeCode.Double:
-          return DbType.Double;
-        case TypeCode.Single:
-          return DbType.Single;
-        case TypeCode.Decimal:
-          return DbType.Decimal;
-        case TypeCode.Boolean:
-          return DbType.Boolean;
-        case TypeCode.SByte:
-        case TypeCode.Char:
-          return DbType.SByte;
-        case TypeCode.DateTime:
-          return DbType.DateTime;
-        case TypeCode.String:
-          return DbType.String;
-        case TypeCode.Object:
-          if (typ == typeof(byte[])) return DbType.Binary;
-          if (typ == typeof(Guid)) return DbType.Guid;
-          return DbType.String;
+        if (typ == typeof(byte[])) return DbType.Binary;
+        if (typ == typeof(Guid)) return DbType.Guid;
+        return DbType.String;
       }
+      return _typetodbtype[(int)tc];
+    }
 
-      return DbType.String;
+    private static DbType[] _typetodbtype = {
+      DbType.Object,   // Empty (0)
+      DbType.Binary,   // Object (1)
+      DbType.Object,   // DBNull (2)
+      DbType.Boolean,  // Boolean (3)
+      DbType.SByte,    // Char (4)
+      DbType.SByte,    // SByte (5)
+      DbType.Byte,     // Byte (6)
+      DbType.Int16,    // Int16 (7)
+      DbType.UInt16,   // UInt16 (8)
+      DbType.Int32,    // Int32 (9)
+      DbType.UInt32,   // UInt32 (10)
+      DbType.Int64,    // Int64 (11)
+      DbType.UInt64,   // UInt64 (12)
+      DbType.Single,   // Single (13)
+      DbType.Double,   // Double (14)
+      DbType.Decimal,  // Decimal (15)
+      DbType.DateTime, // DateTime (16)
+      DbType.Object,   // ?? (17)
+      DbType.String    // String (18)
+    };
+
+    /// <summary>
+    /// Returns the ColumnSize for the given DbType
+    /// </summary>
+    /// <param name="typ">The DbType to get the size of</param>
+    /// <returns></returns>
+    internal static int DbTypeToColumnSize(DbType typ)
+    {
+      return _dbtypetocolumnsize[(int)typ];
+    }
+
+    private static int[] _dbtypetocolumnsize = {
+      int.MaxValue, // AnsiString (0)
+      int.MaxValue, // Binary (1)
+      1,            // Byte (2)
+      1,            // Boolean (3)
+      8,            // Currency (4)
+      8,            // Date (5)
+      8,            // DateTime (6)
+      8,            // Decimal (7)
+      8,            // Double (8)
+      16,           // Guid (9)
+      2,            // Int16 (10)
+      4,            // Int32 (11)
+      8,            // Int64 (12)
+      int.MaxValue, // Object (13)
+      1,            // SByte (14)
+      4,            // Single (15)
+      int.MaxValue, // String (16)
+      8,            // Time (17)
+      2,            // UInt16 (18)
+      4,            // UInt32 (19)
+      8,            // UInt64 (20)
+      8,            // VarNumeric (21)
+      int.MaxValue, // AnsiStringFixedLength (22)
+      int.MaxValue, // StringFixedLength (23)
+      int.MaxValue, // ?? (24)
+      int.MaxValue  // Xml (25)
+    };
+
+    internal static object DbTypeToNumericPrecision(DbType typ)
+    {
+      return _dbtypetonumericprecision[(int)typ];
+    }
+
+    private static object[] _dbtypetonumericprecision = {
+      DBNull.Value, // AnsiString (0)
+      DBNull.Value, // Binary (1)
+      3,            // Byte (2)
+      DBNull.Value, // Boolean (3)
+      19,           // Currency (4)
+      DBNull.Value, // Date (5)
+      DBNull.Value, // DateTime (6)
+      53,           // Decimal (7)
+      53,           // Double (8)
+      DBNull.Value, // Guid (9)
+      5,            // Int16 (10)
+      10,           // Int32 (11)
+      19,           // Int64 (12)
+      DBNull.Value, // Object (13)
+      3,            // SByte (14)
+      24,           // Single (15)
+      DBNull.Value, // String (16)
+      DBNull.Value, // Time (17)
+      5,            // UInt16 (18)
+      10,           // UInt32 (19)
+      19,           // UInt64 (20)
+      53,           // VarNumeric (21)
+      DBNull.Value, // AnsiStringFixedLength (22)
+      DBNull.Value, // StringFixedLength (23)
+      DBNull.Value, // ?? (24)
+      DBNull.Value  // Xml (25)
+    };
+
+    internal static object DbTypeToNumericScale(DbType typ)
+    {
+      return _dbtypetonumericscale[(int)typ];
+    }
+
+    private static object[] _dbtypetonumericscale = {
+      DBNull.Value, // AnsiString (0)
+      DBNull.Value, // Binary (1)
+      0,            // Byte (2)
+      DBNull.Value, // Boolean (3)
+      4,            // Currency (4)
+      DBNull.Value, // Date (5)
+      DBNull.Value, // DateTime (6)
+      DBNull.Value, // Decimal (7)
+      DBNull.Value, // Double (8)
+      DBNull.Value, // Guid (9)
+      0,            // Int16 (10)
+      0,            // Int32 (11)
+      0,            // Int64 (12)
+      DBNull.Value, // Object (13)
+      0,            // SByte (14)
+      DBNull.Value, // Single (15)
+      DBNull.Value, // String (16)
+      DBNull.Value, // Time (17)
+      0,            // UInt16 (18)
+      0,            // UInt32 (19)
+      0,            // UInt64 (20)
+      0,            // VarNumeric (21)
+      DBNull.Value, // AnsiStringFixedLength (22)
+      DBNull.Value, // StringFixedLength (23)
+      DBNull.Value, // ?? (24)
+      DBNull.Value  // Xml (25)
+    };
+
+    /// <summary>
+    /// Determines the type name for the given database value type.
+    /// </summary>
+    /// <param name="typ">The database value type.</param>
+    /// <param name="flags">The flags associated with the parent connection object.</param>
+    /// <returns>The type name or an empty string if it cannot be determined.</returns>
+    internal static string DbTypeToTypeName(DbType typ, SQLiteConnectionFlags flags)
+    {
+        lock (_syncRoot)
+        {
+            if (_typeNames == null)
+                _typeNames = GetSQLiteDbTypeMap();
+
+            SQLiteDbTypeMapping value;
+
+            if (_typeNames.TryGetValue(typ, out value))
+                return value.typeName;
+        }
+
+        string defaultTypeName = String.Empty;
+
+#if !NET_COMPACT_20 && TRACE_WARNING
+        if ((flags & SQLiteConnectionFlags.TraceWarning) == SQLiteConnectionFlags.TraceWarning)
+        {
+            Trace.WriteLine(String.Format(
+                CultureInfo.CurrentCulture,
+                "WARNING: Type mapping failed, returning default name \"{0}\" for type {1}.",
+                defaultTypeName, typ));
+        }
+#endif
+
+        return defaultTypeName;
     }
 
     /// <summary>
@@ -363,41 +990,37 @@ namespace System.Data.SQLite
     /// <returns>The closest-match .NET type</returns>
     internal static Type DbTypeToType(DbType typ)
     {
-      switch (typ)
-      {
-        case DbType.Binary:
-          return typeof(byte[]);
-        case DbType.Boolean:
-          return typeof(bool);
-        case DbType.Byte:
-          return typeof(byte);
-        case DbType.Currency:
-        case DbType.Decimal:
-          return typeof(decimal);
-        case DbType.DateTime:
-          return typeof(DateTime);
-        case DbType.Double:
-          return typeof(double);
-        case DbType.Guid:
-          return typeof(Guid);
-        case DbType.Int16:
-        case DbType.UInt16:
-          return typeof(Int16);
-        case DbType.Int32:
-        case DbType.UInt32:
-          return typeof(Int32);
-        case DbType.Int64:
-        case DbType.UInt64:
-          return typeof(Int64);
-        case DbType.String:
-          return typeof(string);
-        case DbType.SByte:
-          return typeof(char);
-        case DbType.Single:
-          return typeof(float);
-      }
-      return typeof(string);
+      return _dbtypeToType[(int)typ];
     }
+
+    private static Type[] _dbtypeToType = {
+      typeof(string),   // AnsiString (0)
+      typeof(byte[]),   // Binary (1)
+      typeof(byte),     // Byte (2)
+      typeof(bool),     // Boolean (3)
+      typeof(decimal),  // Currency (4)
+      typeof(DateTime), // Date (5)
+      typeof(DateTime), // DateTime (6)
+      typeof(decimal),  // Decimal (7)
+      typeof(double),   // Double (8)
+      typeof(Guid),     // Guid (9)
+      typeof(Int16),    // Int16 (10)
+      typeof(Int32),    // Int32 (11)
+      typeof(Int64),    // Int64 (12)
+      typeof(object),   // Object (13)
+      typeof(sbyte),    // SByte (14)
+      typeof(float),    // Single (15)
+      typeof(string),   // String (16)
+      typeof(DateTime), // Time (17)
+      typeof(UInt16),   // UInt16 (18)
+      typeof(UInt32),   // UInt32 (19)
+      typeof(UInt64),   // UInt64 (20)
+      typeof(double),   // VarNumeric (21)
+      typeof(string),   // AnsiStringFixedLength (22)
+      typeof(string),   // StringFixedLength (23)
+      typeof(string),   // ?? (24)
+      typeof(string),   // Xml (25)
+    };
 
     /// <summary>
     /// For a given type, return the closest-match SQLite TypeAffinity, which only understands a very limited subset of types.
@@ -406,84 +1029,848 @@ namespace System.Data.SQLite
     /// <returns>The SQLite type affinity for that type.</returns>
     internal static TypeAffinity TypeToAffinity(Type typ)
     {
-      switch (Type.GetTypeCode(typ))
+      TypeCode tc = Type.GetTypeCode(typ);
+      if (tc == TypeCode.Object)
       {
-        case TypeCode.DBNull:
-          return TypeAffinity.Null;
-        case TypeCode.String:
+        if (typ == typeof(byte[]) || typ == typeof(Guid))
+          return TypeAffinity.Blob;
+        else
           return TypeAffinity.Text;
-        case TypeCode.DateTime:
-          return TypeAffinity.DateTime;
-        case TypeCode.Int16:
-        case TypeCode.Int32:
-        case TypeCode.Int64:
-        case TypeCode.UInt16:
-        case TypeCode.UInt32:
-        case TypeCode.UInt64:
-        case TypeCode.Char:
-        case TypeCode.SByte:
-        case TypeCode.Byte:
-        case TypeCode.Boolean:
-          return TypeAffinity.Int64;
-        case TypeCode.Double:
-        case TypeCode.Single:
-        case TypeCode.Decimal:
-          return TypeAffinity.Double;
-        case TypeCode.Object:
-          if (typ == typeof(byte[])) return TypeAffinity.Blob;
-          else return TypeAffinity.Text;
       }
-      return TypeAffinity.Text;
+      return _typecodeAffinities[(int)tc];
+    }
+
+    private static TypeAffinity[] _typecodeAffinities = {
+      TypeAffinity.Null,     // Empty (0)
+      TypeAffinity.Blob,     // Object (1)
+      TypeAffinity.Null,     // DBNull (2)
+      TypeAffinity.Int64,    // Boolean (3)
+      TypeAffinity.Int64,    // Char (4)
+      TypeAffinity.Int64,    // SByte (5)
+      TypeAffinity.Int64,    // Byte (6)
+      TypeAffinity.Int64,    // Int16 (7)
+      TypeAffinity.Int64,    // UInt16 (8)
+      TypeAffinity.Int64,    // Int32 (9)
+      TypeAffinity.Int64,    // UInt32 (10)
+      TypeAffinity.Int64,    // Int64 (11)
+      TypeAffinity.Int64,    // UInt64 (12)
+      TypeAffinity.Double,   // Single (13)
+      TypeAffinity.Double,   // Double (14)
+      TypeAffinity.Double,   // Decimal (15)
+      TypeAffinity.DateTime, // DateTime (16)
+      TypeAffinity.Null,     // ?? (17)
+      TypeAffinity.Text      // String (18)
+    };
+
+    /// <summary>
+    /// Builds and returns a map containing the database column types
+    /// recognized by this provider.
+    /// </summary>
+    /// <returns>
+    /// A map containing the database column types recognized by this
+    /// provider.
+    /// </returns>
+    private static SQLiteDbTypeMap GetSQLiteDbTypeMap()
+    {
+        return new SQLiteDbTypeMap(new SQLiteDbTypeMapping[] {
+            new SQLiteDbTypeMapping("BIGINT", DbType.Int64, false),
+            new SQLiteDbTypeMapping("BIGUINT", DbType.UInt64, false),
+            new SQLiteDbTypeMapping("BINARY", DbType.Binary, false),
+            new SQLiteDbTypeMapping("BIT", DbType.Boolean, true),
+            new SQLiteDbTypeMapping("BLOB", DbType.Binary, true),
+            new SQLiteDbTypeMapping("BOOL", DbType.Boolean, false),
+            new SQLiteDbTypeMapping("BOOLEAN", DbType.Boolean, false),
+            new SQLiteDbTypeMapping("CHAR", DbType.AnsiStringFixedLength, true),
+            new SQLiteDbTypeMapping("CLOB", DbType.String, false),
+            new SQLiteDbTypeMapping("COUNTER", DbType.Int64, false),
+            new SQLiteDbTypeMapping("CURRENCY", DbType.Decimal, false),
+            new SQLiteDbTypeMapping("DATE", DbType.DateTime, false),
+            new SQLiteDbTypeMapping("DATETIME", DbType.DateTime, true),
+            new SQLiteDbTypeMapping("DECIMAL", DbType.Decimal, true),
+            new SQLiteDbTypeMapping("DOUBLE", DbType.Double, false),
+            new SQLiteDbTypeMapping("FLOAT", DbType.Double, false),
+            new SQLiteDbTypeMapping("GENERAL", DbType.Binary, false),
+            new SQLiteDbTypeMapping("GUID", DbType.Guid, false),
+            new SQLiteDbTypeMapping("IDENTITY", DbType.Int64, false),
+            new SQLiteDbTypeMapping("IMAGE", DbType.Binary, false),
+            new SQLiteDbTypeMapping("INT", DbType.Int32, true),
+            new SQLiteDbTypeMapping("INT8", DbType.SByte, false),
+            new SQLiteDbTypeMapping("INT16", DbType.Int16, false),
+            new SQLiteDbTypeMapping("INT32", DbType.Int32, false),
+            new SQLiteDbTypeMapping("INT64", DbType.Int64, false),
+            new SQLiteDbTypeMapping("INTEGER", DbType.Int64, true),
+            new SQLiteDbTypeMapping("INTEGER8", DbType.SByte, false),
+            new SQLiteDbTypeMapping("INTEGER16", DbType.Int16, false),
+            new SQLiteDbTypeMapping("INTEGER32", DbType.Int32, false),
+            new SQLiteDbTypeMapping("INTEGER64", DbType.Int64, false),
+            new SQLiteDbTypeMapping("LOGICAL", DbType.Boolean, false),
+            new SQLiteDbTypeMapping("LONG", DbType.Int64, false),
+            new SQLiteDbTypeMapping("LONGCHAR", DbType.String, false),
+            new SQLiteDbTypeMapping("LONGTEXT", DbType.String, false),
+            new SQLiteDbTypeMapping("LONGVARCHAR", DbType.String, false),
+            new SQLiteDbTypeMapping("MEMO", DbType.String, false),
+            new SQLiteDbTypeMapping("MONEY", DbType.Decimal, false),
+            new SQLiteDbTypeMapping("NCHAR", DbType.StringFixedLength, true),
+            new SQLiteDbTypeMapping("NOTE", DbType.String, false),
+            new SQLiteDbTypeMapping("NTEXT", DbType.String, false),
+            new SQLiteDbTypeMapping("NUMBER", DbType.Decimal, false),
+            new SQLiteDbTypeMapping("NUMERIC", DbType.Decimal, false),
+            new SQLiteDbTypeMapping("NVARCHAR", DbType.String, true),
+            new SQLiteDbTypeMapping("OLEOBJECT", DbType.Binary, false),
+            new SQLiteDbTypeMapping("RAW", DbType.Binary, false),
+            new SQLiteDbTypeMapping("REAL", DbType.Double, true),
+            new SQLiteDbTypeMapping("SINGLE", DbType.Single, true),
+            new SQLiteDbTypeMapping("SMALLDATE", DbType.DateTime, false),
+            new SQLiteDbTypeMapping("SMALLINT", DbType.Int16, true),
+            new SQLiteDbTypeMapping("SMALLUINT", DbType.UInt16, true),
+            new SQLiteDbTypeMapping("STRING", DbType.String, false),
+            new SQLiteDbTypeMapping("TEXT", DbType.String, false),
+            new SQLiteDbTypeMapping("TIME", DbType.DateTime, false),
+            new SQLiteDbTypeMapping("TIMESTAMP", DbType.DateTime, false),
+            new SQLiteDbTypeMapping("TINYINT", DbType.Byte, true),
+            new SQLiteDbTypeMapping("TINYSINT", DbType.SByte, true),
+            new SQLiteDbTypeMapping("UINT", DbType.UInt32, true),
+            new SQLiteDbTypeMapping("UINT8", DbType.Byte, false),
+            new SQLiteDbTypeMapping("UINT16", DbType.UInt16, false),
+            new SQLiteDbTypeMapping("UINT32", DbType.UInt32, false),
+            new SQLiteDbTypeMapping("UINT64", DbType.UInt64, false),
+            new SQLiteDbTypeMapping("ULONG", DbType.UInt64, false),
+            new SQLiteDbTypeMapping("UNIQUEIDENTIFIER", DbType.Guid, true),
+            new SQLiteDbTypeMapping("UNSIGNEDINTEGER", DbType.UInt64, true),
+            new SQLiteDbTypeMapping("UNSIGNEDINTEGER8", DbType.Byte, false),
+            new SQLiteDbTypeMapping("UNSIGNEDINTEGER16", DbType.UInt16, false),
+            new SQLiteDbTypeMapping("UNSIGNEDINTEGER32", DbType.UInt32, false),
+            new SQLiteDbTypeMapping("UNSIGNEDINTEGER64", DbType.UInt64, false),
+            new SQLiteDbTypeMapping("VARBINARY", DbType.Binary, false),
+            new SQLiteDbTypeMapping("VARCHAR", DbType.AnsiString, true),
+            new SQLiteDbTypeMapping("VARCHAR2", DbType.AnsiString, false),
+            new SQLiteDbTypeMapping("YESNO", DbType.Boolean, false)
+        });
     }
 
     /// <summary>
     /// For a given type name, return a closest-match .NET type
     /// </summary>
     /// <param name="Name">The name of the type to match</param>
+    /// <param name="flags">The flags associated with the parent connection object.</param>
     /// <returns>The .NET DBType the text evaluates to.</returns>
-    internal static DbType TypeNameToDbType(string Name)
+    internal static DbType TypeNameToDbType(string Name, SQLiteConnectionFlags flags)
     {
-      if (Name == null) return DbType.Object;
+        lock (_syncRoot)
+        {
+            if (_typeNames == null)
+                _typeNames = GetSQLiteDbTypeMap();
 
-      Name = Name.ToUpper();
+            if (String.IsNullOrEmpty(Name)) return DbType.Object;
 
-      if (Name.IndexOf("LONGTEXT") > -1) return DbType.String;
-      if (Name.IndexOf("LONGCHAR") > -1) return DbType.String;
-      if (Name.IndexOf("SMALLINT") > -1) return DbType.Int16;
-      if (Name.IndexOf("BIGINT") > -1) return DbType.Int64;
-      if (Name.IndexOf("COUNTER") > -1) return DbType.Int64;
-      if (Name.IndexOf("AUTOINCREMENT") > -1) return DbType.Int64;
-      if (Name.IndexOf("IDENTITY") > -1) return DbType.Int64;
-      if (Name.IndexOf("LONG") > -1) return DbType.Int64;
-      if (Name.IndexOf("TINYINT") > -1) return DbType.Byte;
-      if (Name.IndexOf("INTEGER") > -1) return DbType.Int64;
-      if (Name.IndexOf("INT") > -1) return DbType.Int32;
-      if (Name.IndexOf("TEXT") > -1) return DbType.String;
-      if (Name.IndexOf("DOUBLE") > -1) return DbType.Double;
-      if (Name.IndexOf("FLOAT") > -1) return DbType.Double;
-      if (Name.IndexOf("REAL") > -1) return DbType.Single;
-      if (Name.IndexOf("BIT") > -1) return DbType.Boolean;
-      if (Name.IndexOf("YESNO") > -1) return DbType.Boolean;
-      if (Name.IndexOf("LOGICAL") > -1) return DbType.Boolean;
-      if (Name.IndexOf("BOOL") > -1) return DbType.Boolean;
-      if (Name.IndexOf("NUMERIC") > -1) return DbType.Decimal;
-      if (Name.IndexOf("DECIMAL") > -1) return DbType.Decimal;
-      if (Name.IndexOf("MONEY") > -1) return DbType.Decimal;
-      if (Name.IndexOf("CURRENCY") > -1) return DbType.Decimal;
-      if (Name.IndexOf("TIME") > -1) return DbType.DateTime;
-      if (Name.IndexOf("DATE") > -1) return DbType.DateTime;
-      if (Name.IndexOf("BLOB") > -1) return DbType.Binary;
-      if (Name.IndexOf("BINARY") > -1) return DbType.Binary;
-      if (Name.IndexOf("IMAGE") > -1) return DbType.Binary;
-      if (Name.IndexOf("GENERAL") > -1) return DbType.Binary;
-      if (Name.IndexOf("OLEOBJECT") > -1) return DbType.Binary;
-      if (Name.IndexOf("GUID") > -1) return DbType.Guid;
-      if (Name.IndexOf("UNIQUEIDENTIFIER") > -1) return DbType.Guid;
-      if (Name.IndexOf("MEMO") > -1) return DbType.String;
-      if (Name.IndexOf("NOTE") > -1) return DbType.String;
-      if (Name.IndexOf("CHAR") > -1) return DbType.String;
+            SQLiteDbTypeMapping value;
 
-      return DbType.Object;
+            if (_typeNames.TryGetValue(Name, out value))
+            {
+                return value.dataType;
+            }
+            else
+            {
+                int index = Name.IndexOf('(');
+
+                if ((index > 0) &&
+                    _typeNames.TryGetValue(Name.Substring(0, index).TrimEnd(), out value))
+                {
+                    return value.dataType;
+                }
+            }
+        }
+
+        DbType defaultDbType = DbType.Object;
+
+#if !NET_COMPACT_20 && TRACE_WARNING
+        if ((flags & SQLiteConnectionFlags.TraceWarning) == SQLiteConnectionFlags.TraceWarning)
+        {
+            Trace.WriteLine(String.Format(
+                CultureInfo.CurrentCulture,
+                "WARNING: Type mapping failed, returning default type {0} for name \"{1}\".",
+                defaultDbType, Name));
+        }
+#endif
+
+        return defaultDbType;
+    }
+    #endregion
+
+    private static object _syncRoot = new object();
+    private static SQLiteDbTypeMap _typeNames = null;
+  }
+
+  /// <summary>
+  /// SQLite has very limited types, and is inherently text-based.  The first 5 types below represent the sum of all types SQLite
+  /// understands.  The DateTime extension to the spec is for internal use only.
+  /// </summary>
+  public enum TypeAffinity
+  {
+    /// <summary>
+    /// Not used
+    /// </summary>
+    Uninitialized = 0,
+    /// <summary>
+    /// All integers in SQLite default to Int64
+    /// </summary>
+    Int64 = 1,
+    /// <summary>
+    /// All floating point numbers in SQLite default to double
+    /// </summary>
+    Double = 2,
+    /// <summary>
+    /// The default data type of SQLite is text
+    /// </summary>
+    Text = 3,
+    /// <summary>
+    /// Typically blob types are only seen when returned from a function
+    /// </summary>
+    Blob = 4,
+    /// <summary>
+    /// Null types can be returned from functions
+    /// </summary>
+    Null = 5,
+    /// <summary>
+    /// Used internally by this provider
+    /// </summary>
+    DateTime = 10,
+    /// <summary>
+    /// Used internally by this provider
+    /// </summary>
+    None = 11,
+  }
+
+  /// <summary>
+  /// These are the event types associated with the
+  /// <see cref="SQLiteConnectionEventHandler" />
+  /// delegate (and its corresponding event) and the
+  /// <see cref="ConnectionEventArgs" /> class.
+  /// </summary>
+  public enum SQLiteConnectionEventType
+  {
+      /// <summary>
+      /// Not used.
+      /// </summary>
+      Invalid = -1,
+
+      /// <summary>
+      /// Not used.
+      /// </summary>
+      Unknown = 0,
+
+      /// <summary>
+      /// The connection is being opened.
+      /// </summary>
+      Opening = 1,
+
+      /// <summary>
+      /// The connection string has been parsed.
+      /// </summary>
+      ConnectionString = 2,
+
+      /// <summary>
+      /// The connection was opened.
+      /// </summary>
+      Opened = 3,
+
+      /// <summary>
+      /// The <see cref="ChangeDatabase" /> method was called on the
+      /// connection.
+      /// </summary>
+      ChangeDatabase = 4,
+
+      /// <summary>
+      /// A transaction was created using the connection.
+      /// </summary>
+      NewTransaction = 5,
+
+      /// <summary>
+      /// The connection was enlisted into a transaction.
+      /// </summary>
+      EnlistTransaction = 6,
+
+      /// <summary>
+      /// A command was created using the connection.
+      /// </summary>
+      NewCommand = 7,
+
+      /// <summary>
+      /// A data reader was created using the connection.
+      /// </summary>
+      NewDataReader = 8,
+
+      /// <summary>
+      /// An instance of a <see cref="CriticalHandle" /> derived class has
+      /// been created to wrap a native resource.
+      /// </summary>
+      NewCriticalHandle = 9,
+
+      /// <summary>
+      /// The connection is being closed.
+      /// </summary>
+      Closing = 10,
+
+      /// <summary>
+      /// The connection was closed.
+      /// </summary>
+      Closed = 11
+  }
+
+  /// <summary>
+  /// This implementation of SQLite for ADO.NET can process date/time fields in
+  /// databases in one of six formats.
+  /// </summary>
+  /// <remarks>
+  /// ISO8601 format is more compatible, readable, fully-processable, but less
+  /// accurate as it does not provide time down to fractions of a second.
+  /// JulianDay is the numeric format the SQLite uses internally and is arguably
+  /// the most compatible with 3rd party tools.  It is not readable as text
+  /// without post-processing.  Ticks less compatible with 3rd party tools that
+  /// query the database, and renders the DateTime field unreadable as text
+  /// without post-processing.  UnixEpoch is more compatible with Unix systems.
+  /// InvariantCulture allows the configured format for the invariant culture
+  /// format to be used and is human readable.  CurrentCulture allows the
+  /// configured format for the current culture to be used and is also human
+  /// readable.
+  ///
+  /// The preferred order of choosing a DateTime format is JulianDay, ISO8601,
+  /// and then Ticks.  Ticks is mainly present for legacy code support.
+  /// </remarks>
+  public enum SQLiteDateFormats
+  {
+    /// <summary>
+    /// Use the value of DateTime.Ticks.  This value is not recommended and is not well supported with LINQ.
+    /// </summary>
+    Ticks = 0,
+    /// <summary>
+    /// Use the ISO-8601 format.  Uses the "yyyy-MM-dd HH:mm:ss.FFFFFFFK" format for UTC DateTime values and
+    /// "yyyy-MM-dd HH:mm:ss.FFFFFFF" format for local DateTime values).
+    /// </summary>
+    ISO8601 = 1,
+    /// <summary>
+    /// The interval of time in days and fractions of a day since January 1, 4713 BC.
+    /// </summary>
+    JulianDay = 2,
+    /// <summary>
+    /// The whole number of seconds since the Unix epoch (January 1, 1970).
+    /// </summary>
+    UnixEpoch = 3,
+    /// <summary>
+    /// Any culture-independent string value that the .NET Framework can interpret as a valid DateTime.
+    /// </summary>
+    InvariantCulture = 4,
+    /// <summary>
+    /// Any string value that the .NET Framework can interpret as a valid DateTime using the current culture.
+    /// </summary>
+    CurrentCulture = 5,
+    /// <summary>
+    /// The default format for this provider.
+    /// </summary>
+    Default = ISO8601
+  }
+
+  /// <summary>
+  /// This enum determines how SQLite treats its journal file.
+  /// </summary>
+  /// <remarks>
+  /// By default SQLite will create and delete the journal file when needed during a transaction.
+  /// However, for some computers running certain filesystem monitoring tools, the rapid
+  /// creation and deletion of the journal file can cause those programs to fail, or to interfere with SQLite.
+  ///
+  /// If a program or virus scanner is interfering with SQLite's journal file, you may receive errors like "unable to open database file"
+  /// when starting a transaction.  If this is happening, you may want to change the default journal mode to Persist.
+  /// </remarks>
+  public enum SQLiteJournalModeEnum
+  {
+    /// <summary>
+    /// The default mode, this causes SQLite to use the existing journaling mode for the database.
+    /// </summary>
+    Default = -1,
+    /// <summary>
+    /// SQLite will create and destroy the journal file as-needed.
+    /// </summary>
+    Delete = 0,
+    /// <summary>
+    /// When this is set, SQLite will keep the journal file even after a transaction has completed.  It's contents will be erased,
+    /// and the journal re-used as often as needed.  If it is deleted, it will be recreated the next time it is needed.
+    /// </summary>
+    Persist = 1,
+    /// <summary>
+    /// This option disables the rollback journal entirely.  Interrupted transactions or a program crash can cause database
+    /// corruption in this mode!
+    /// </summary>
+    Off = 2,
+    /// <summary>
+    /// SQLite will truncate the journal file to zero-length instead of deleting it.
+    /// </summary>
+    Truncate = 3,
+    /// <summary>
+    /// SQLite will store the journal in volatile RAM.  This saves disk I/O but at the expense of database safety and integrity.
+    /// If the application using SQLite crashes in the middle of a transaction when the MEMORY journaling mode is set, then the
+    /// database file will very likely go corrupt.
+    /// </summary>
+    Memory = 4,
+    /// <summary>
+    /// SQLite uses a write-ahead log instead of a rollback journal to implement transactions.  The WAL journaling mode is persistent;
+    /// after being set it stays in effect across multiple database connections and after closing and reopening the database. A database
+    /// in WAL journaling mode can only be accessed by SQLite version 3.7.0 or later.
+    /// </summary>
+    Wal = 5
+  }
+
+  /// <summary>
+  /// Possible values for the "synchronous" database setting.  This setting determines
+  /// how often the database engine calls the xSync method of the VFS.
+  /// </summary>
+  internal enum SQLiteSynchronousEnum
+  {
+      /// <summary>
+      /// Use the default "synchronous" database setting.  Currently, this should be
+      /// the same as using the FULL mode.
+      /// </summary>
+      Default = -1,
+
+      /// <summary>
+      /// The database engine continues without syncing as soon as it has handed
+      /// data off to the operating system.  If the application running SQLite
+      /// crashes, the data will be safe, but the database might become corrupted
+      /// if the operating system crashes or the computer loses power before that
+      /// data has been written to the disk surface.
+      /// </summary>
+      Off = 0,
+
+      /// <summary>
+      /// The database engine will still sync at the most critical moments, but
+      /// less often than in FULL mode.  There is a very small (though non-zero)
+      /// chance that a power failure at just the wrong time could corrupt the
+      /// database in NORMAL mode.
+      /// </summary>
+      Normal = 1,
+
+      /// <summary>
+      /// The database engine will use the xSync method of the VFS to ensure that
+      /// all content is safely written to the disk surface prior to continuing.
+      /// This ensures that an operating system crash or power failure will not
+      /// corrupt the database.  FULL synchronous is very safe, but it is also
+      /// slower.
+      /// </summary>
+      Full = 2
+  }
+
+  /// <summary>
+  /// The requested command execution type.  This controls which method of the
+  /// <see cref="SQLiteCommand" /> object will be called.
+  /// </summary>
+  public enum SQLiteExecuteType
+  {
+      /// <summary>
+      /// Do nothing.  No method will be called.
+      /// </summary>
+      None = 0,
+
+      /// <summary>
+      /// The command is not expected to return a result -OR- the result is not
+      /// needed.  The <see cref="SQLiteCommand.ExecuteNonQuery()" /> or
+      /// <see cref="SQLiteCommand.ExecuteNonQuery(CommandBehavior)" />  method
+      /// will be called.
+      /// </summary>
+      NonQuery = 1,
+
+      /// <summary>
+      /// The command is expected to return a scalar result -OR- the result should
+      /// be limited to a scalar result.  The <see cref="SQLiteCommand.ExecuteScalar()" />
+      /// or <see cref="SQLiteCommand.ExecuteScalar(CommandBehavior)" /> method will
+      /// be called.
+      /// </summary>
+      Scalar = 2,
+
+      /// <summary>
+      /// The command is expected to return <see cref="SQLiteDataReader" /> result.
+      /// The <see cref="SQLiteCommand.ExecuteReader()" /> or
+      /// <see cref="SQLiteCommand.ExecuteReader(CommandBehavior)" /> method will
+      /// be called.
+      /// </summary>
+      Reader = 3,
+
+      /// <summary>
+      /// Use the default command execution type.  Using this value is the same
+      /// as using the <see cref="SQLiteExecuteType.NonQuery" /> value.
+      /// </summary>
+      Default = NonQuery /* TODO: Good default? */
+  }
+
+  /// <summary>
+  /// The action code responsible for the current call into the authorizer.
+  /// </summary>
+  public enum SQLiteAuthorizerActionCode
+  {
+      /// <summary>
+      /// No action is being performed.  This value should not be used from
+      /// external code.
+      /// </summary>
+      None = -1,
+
+      /// <summary>
+      /// No longer used.
+      /// </summary>
+      Copy = 0,
+
+      /// <summary>
+      /// An index will be created.  The action-specific arguments are the
+      /// index name and the table name.
+      /// 
+      /// </summary>
+      CreateIndex = 1,
+
+      /// <summary>
+      /// A table will be created.  The action-specific arguments are the
+      /// table name and a null value.
+      /// </summary>
+      CreateTable = 2,
+
+      /// <summary>
+      /// A temporary index will be created.  The action-specific arguments
+      /// are the index name and the table name.
+      /// </summary>
+      CreateTempIndex = 3,
+
+      /// <summary>
+      /// A temporary table will be created.  The action-specific arguments
+      /// are the table name and a null value.
+      /// </summary>
+      CreateTempTable = 4,
+
+      /// <summary>
+      /// A temporary trigger will be created.  The action-specific arguments
+      /// are the trigger name and the table name.
+      /// </summary>
+      CreateTempTrigger = 5,
+
+      /// <summary>
+      /// A temporary view will be created.  The action-specific arguments are
+      /// the view name and a null value.
+      /// </summary>
+      CreateTempView = 6,
+
+      /// <summary>
+      /// A trigger will be created.  The action-specific arguments are the
+      /// trigger name and the table name.
+      /// </summary>
+      CreateTrigger = 7,
+
+      /// <summary>
+      /// A view will be created.  The action-specific arguments are the view
+      /// name and a null value.
+      /// </summary>
+      CreateView = 8,
+
+      /// <summary>
+      /// A DELETE statement will be executed.  The action-specific arguments
+      /// are the table name and a null value.
+      /// </summary>
+      Delete = 9,
+
+      /// <summary>
+      /// An index will be dropped.  The action-specific arguments are the
+      /// index name and the table name.
+      /// </summary>
+      DropIndex = 10,
+
+      /// <summary>
+      /// A table will be dropped.  The action-specific arguments are the tables
+      /// name and a null value.
+      /// </summary>
+      DropTable = 11,
+
+      /// <summary>
+      /// A temporary index will be dropped.  The action-specific arguments are
+      /// the index name and the table name.
+      /// </summary>
+      DropTempIndex = 12,
+
+      /// <summary>
+      /// A temporary table will be dropped.  The action-specific arguments are
+      /// the table name and a null value.
+      /// </summary>
+      DropTempTable = 13,
+
+      /// <summary>
+      /// A temporary trigger will be dropped.  The action-specific arguments
+      /// are the trigger name and the table name.
+      /// </summary>
+      DropTempTrigger = 14,
+
+      /// <summary>
+      /// A temporary view will be dropped.  The action-specific arguments are
+      /// the view name and a null value.
+      /// </summary>
+      DropTempView = 15,
+
+      /// <summary>
+      /// A trigger will be dropped.  The action-specific arguments are the
+      /// trigger name and the table name.
+      /// </summary>
+      DropTrigger = 16,
+
+      /// <summary>
+      /// A view will be dropped.  The action-specific arguments are the view
+      /// name and a null value.
+      /// </summary>
+      DropView = 17,
+
+      /// <summary>
+      /// An INSERT statement will be executed.  The action-specific arguments
+      /// are the table name and a null value.
+      /// </summary>
+      Insert = 18,
+
+      /// <summary>
+      /// A PRAGMA statement will be executed.  The action-specific arguments
+      /// are the name of the PRAGMA and the new value or a null value.
+      /// </summary>
+      Pragma = 19,
+
+      /// <summary>
+      /// A table column will be read.  The action-specific arguments are the
+      /// table name and the column name.
+      /// </summary>
+      Read = 20,
+
+      /// <summary>
+      /// A SELECT statement will be executed.  The action-specific arguments
+      /// are both null values.
+      /// </summary>
+      Select = 21,
+
+      /// <summary>
+      /// A transaction will be started, committed, or rolled back.  The
+      /// action-specific arguments are the name of the operation (BEGIN,
+      /// COMMIT, or ROLLBACK) and a null value.
+      /// </summary>
+      Transaction = 22,
+
+      /// <summary>
+      /// An UPDATE statement will be executed.  The action-specific arguments
+      /// are the table name and the column name.
+      /// </summary>
+      Update = 23,
+
+      /// <summary>
+      /// A database will be attached to the connection.  The action-specific
+      /// arguments are the database file name and a null value.
+      /// </summary>
+      Attach = 24,
+
+      /// <summary>
+      /// A database will be detached from the connection.  The action-specific
+      /// arguments are the database name and a null value.
+      /// </summary>
+      Detach = 25,
+
+      /// <summary>
+      /// The schema of a table will be altered.  The action-specific arguments
+      /// are the database name and the table name.
+      /// </summary>
+      AlterTable = 26,
+
+      /// <summary>
+      /// An index will be deleted and then recreated.  The action-specific
+      /// arguments are the index name and a null value.
+      /// </summary>
+      Reindex = 27,
+
+      /// <summary>
+      /// A table will be analyzed to gathers statistics about it.  The
+      /// action-specific arguments are the table name and a null value.
+      /// </summary>
+      Analyze = 28,
+
+      /// <summary>
+      /// A virtual table will be created.  The action-specific arguments are
+      /// the table name and the module name.
+      /// </summary>
+      CreateVtable = 29,
+
+      /// <summary>
+      /// A virtual table will be dropped.  The action-specific arguments are
+      /// the table name and the module name.
+      /// </summary>
+      DropVtable = 30,
+
+      /// <summary>
+      /// A SQL function will be called.  The action-specific arguments are a
+      /// null value and the function name.
+      /// </summary>
+      Function = 31,
+
+      /// <summary>
+      /// A savepoint will be created, released, or rolled back.  The
+      /// action-specific arguments are the name of the operation (BEGIN,
+      /// RELEASE, or ROLLBACK) and the savepoint name.
+      /// </summary>
+      Savepoint = 32
+  }
+
+  /// <summary>
+  /// The return code for the current call into the authorizer.
+  /// </summary>
+  public enum SQLiteAuthorizerReturnCode
+  {
+      /// <summary>
+      /// The action will be allowed.
+      /// </summary>
+      Ok = 0,
+
+      /// <summary>
+      /// The overall action will be disallowed and an error message will be
+      /// returned from the query preparation method.
+      /// </summary>
+      Deny = 1,
+
+      /// <summary>
+      /// The specific action will be disallowed; however, the overall action
+      /// will continue.  The exact effects of this return code vary depending
+      /// on the specific action, please refer to the SQLite core library
+      /// documentation for futher details.
+      /// </summary>
+      Ignore = 2
+  }
+
+  /// <summary>
+  /// Class used internally to determine the datatype of a column in a resultset
+  /// </summary>
+  internal sealed class SQLiteType
+  {
+    /// <summary>
+    /// The DbType of the column, or DbType.Object if it cannot be determined
+    /// </summary>
+    internal DbType Type;
+    /// <summary>
+    /// The affinity of a column, used for expressions or when Type is DbType.Object
+    /// </summary>
+    internal TypeAffinity Affinity;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  internal sealed class SQLiteDbTypeMap
+      : Dictionary<string, SQLiteDbTypeMapping>
+  {
+      private Dictionary<DbType, SQLiteDbTypeMapping> reverse;
+
+      /////////////////////////////////////////////////////////////////////////
+
+      private SQLiteDbTypeMap()
+          : base(new TypeNameStringComparer())
+      {
+          reverse = new Dictionary<DbType, SQLiteDbTypeMapping>();
+      }
+
+      /////////////////////////////////////////////////////////////////////////
+
+      public SQLiteDbTypeMap(
+          IEnumerable<SQLiteDbTypeMapping> collection
+          )
+          : this()
+      {
+          Add(collection);
+      }
+
+      /////////////////////////////////////////////////////////////////////////
+
+      public void Add(
+          IEnumerable<SQLiteDbTypeMapping> collection
+          )
+      {
+          if (collection == null)
+              throw new ArgumentNullException("collection");
+
+          foreach (SQLiteDbTypeMapping item in collection)
+              Add(item);
+      }
+
+      /////////////////////////////////////////////////////////////////////////
+
+      public void Add(SQLiteDbTypeMapping item)
+      {
+          if (item == null)
+              throw new ArgumentNullException("item");
+
+          if (item.typeName == null)
+              throw new ArgumentException("item type name cannot be null");
+
+          base.Add(item.typeName, item);
+
+          if (item.primary)
+              reverse.Add(item.dataType, item);
+      }
+
+      /////////////////////////////////////////////////////////////////////////
+
+      public bool TryGetValue(DbType key, out SQLiteDbTypeMapping value)
+      {
+          if (reverse == null)
+          {
+              value = null;
+              return false;
+          }
+
+          return reverse.TryGetValue(key, out value);
+      }
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  internal sealed class SQLiteDbTypeMapping
+  {
+    internal SQLiteDbTypeMapping(
+        string newTypeName,
+        DbType newDataType,
+        bool newPrimary
+        )
+    {
+      typeName = newTypeName;
+      dataType = newDataType;
+      primary = newPrimary;
+    }
+
+    internal string typeName;
+    internal DbType dataType;
+    internal bool primary;
+  }
+
+  internal sealed class TypeNameStringComparer : IEqualityComparer<string>
+  {
+    #region IEqualityComparer<string> Members
+    public bool Equals(
+      string left,
+      string right
+      )
+    {
+      return String.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    public int GetHashCode(
+      string value
+      )
+    {
+      //
+      // NOTE: The only thing that we must guarantee here, according
+      //       to the MSDN documentation for IEqualityComparer, is
+      //       that for two given strings, if Equals return true then
+      //       the two strings must hash to the same value.
+      //
+      if (value != null)
+#if !PLATFORM_COMPACTFRAMEWORK
+        return value.ToLowerInvariant().GetHashCode();
+#else
+        return value.ToLower().GetHashCode();
+#endif
+      else
+        throw new ArgumentNullException("value");
     }
     #endregion
   }

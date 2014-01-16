@@ -1,0 +1,120 @@
+<title>Test Procedures</title>
+
+<a name="assumptions"></a>
+<h2>Test Assumptions &amp; Prerequisites</h2>
+
+<ol>
+  <li>
+    The string &quot;&lt;root&gt;&quot; represents the root directory of your
+    local source tree (i.e. the working check-out directory) for the
+    System.Data.SQLite project.
+  </li>
+
+  <li>
+    The string &quot;&lt;year&gt;&quot; represents the version of Visual Studio
+    used (e.g. &quot;2008&quot; or &quot;2010&quot;) to build the binaries being
+    tested.
+  </li>
+
+  <li>
+    The string &quot;&lt;configuration&gt;&quot; represents the build
+    configuration for the binaries being tested (e.g. &quot;Debug&quot; or
+    &quot;Release&quot;).
+  </li>
+
+  <li>
+    The string &quot;&lt;platform&gt;&quot; represents the native platform for
+    the binaries being tested (e.g. &quot;Win32&quot; or &quot;x64&quot;).
+  </li>
+
+  <li>
+    The string &quot;&lt;pid&gt;&quot; represents the process identifier for the
+    instance of EagleShell being used to run the unit tests (e.g.
+    &quot;1234&quot;).
+  </li>
+</ol>
+
+<a name="procedures"></a>
+<h2>Test Procedures</h2>
+
+<p>
+  Follow these steps to unit test the System.Data.SQLite (SDS) binaries.
+  Unless otherwise noted, all steps need to be done in the order specified.
+</p>
+
+<p>
+  First, you will need a full source check-out for the System.Data.SQLite
+  project, including the
+  &quot;<a href="/index.html/dir?name=Externals/Eagle">Externals\Eagle</a>&quot;
+  directory.
+</p>
+
+<p>
+  The binaries to test must be [./build.wiki | built] or
+  [./downloads.wiki | downloaded].  If the binaries are downloaded, they must be
+  placed according to the build output directory structure (e.g.
+  &quot;&lt;root&gt;\bin\&lt;year&gt;\&lt;configuration&gt;\bin&quot; for the
+  separate managed and interop assemblies or
+  &quot;&lt;root&gt;\bin\&lt;year&gt;\&lt;platform&gt;\&lt;configuration&gt;&quot;
+  for the mixed-mode assembly).
+</p>
+
+<p>
+  The new unit tests have been setup using <a href="http://eagle.to/">Eagle</a>
+  and its associated unit testing framework, named &quot;EagleTest&quot;.  Eagle
+  is an implementation of the <a href="http://www.tcl.tk/">Tcl</a> scripting
+  language for the Common Language Runtime (CLR).  EagleTest is the unit testing
+  framework for Eagle, packaged as a collection of Eagle scripts, based loosely
+  on the implementation of
+  <a href="http://www.tcl.tk/man/tcl8.4/TclCmd/tcltest.htm">tcltest</a>.
+</p>
+
+<a name="automated"></a>
+<h2>Automated Unit Tests</h2>
+
+<ol>
+  <li>Open a normal command prompt window with &quot;cmd.exe&quot;.</li>
+
+  <li>Change the current directory to &quot;&lt;root&gt;&quot;.</li>
+
+  <li>
+    Enter the following command to run all the unit tests against the binaries
+    built with a separate managed and interop assembly:
+    <b>Externals\Eagle\bin\EagleShell.exe&nbsp;-file&nbsp;Tests\all.eagle</b>
+  </li>
+
+  <li>
+    Enter the following command to run all the unit tests against the binaries
+    built with a mixed-mode assembly:
+    <b>Externals\Eagle\bin\EagleShell.exe&nbsp;-initialize&nbsp;-runtimeOption&nbsp;native&nbsp;-file&nbsp;Tests\all.eagle</b>
+  </li>
+
+  <li>
+    To test binaries built with MSBuild 3.5 or Visual Studio 2008 (i.e. because
+    the default is to test binaries built with MSBuild 4.0 or Visual Studio
+    2010) add the following command line argument right after
+    &quot;Externals\Eagle\bin\EagleShell.exe&quot; in either of the above
+    command lines:
+    <b>-anyInitialize&nbsp;&quot;set&nbsp;test_year&nbsp;2008&quot;</b>
+  </li>
+
+  <li>
+    To test binaries built in the &quot;Debug&quot; build configuration (i.e.
+    because the default is to test binaries built in the &quot;Release&quot;
+    build configuration) add the following command line argument right after
+    &quot;Externals\Eagle\bin\EagleShell.exe&quot; in either of the above
+    command lines:
+    <b>-anyInitialize&nbsp;&quot;set&nbsp;test_configuration&nbsp;Debug&quot;</b>
+  </li>
+
+  <li>
+    Make sure all tests pass; the log file
+    &quot;%TEMP%\EagleShell.exe.test.&lt;pid&gt;.log&quot; may be checked if any
+    errors should occur.  EagleTest should produce &quot;success&quot; messages
+    very similar to the following:<br /><br />
+    PASSED: 116<br />
+    TOTAL: 116<br />
+    PASS PERCENTAGE: 100%<br />
+    OVERALL RESULT: SUCCESS<br />
+  </li>
+</ol>

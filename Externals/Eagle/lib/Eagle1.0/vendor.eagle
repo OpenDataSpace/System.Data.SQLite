@@ -1,0 +1,237 @@
+###############################################################################
+#
+# vendor.eagle --
+#
+# Extensible Adaptable Generalized Logic Engine (Eagle)
+# Vendor Initialization File
+#
+# Copyright (c) 2007-2012 by Joe Mistachkin.  All rights reserved.
+#
+# See the file "license.terms" for information on usage and redistribution of
+# this file, and for a DISCLAIMER OF ALL WARRANTIES.
+#
+# RCS: @(#) $Id: $
+#
+###############################################################################
+
+#
+# STUB: This script file is a placeholder.  This file, when present, is always
+#       evaluated when an interpreter is initialized.  Vendors distributing
+#       Eagle can place custom application-specific, interpreter-specific
+#       initialization and/or customizations in here.  Additionally, this file
+#       may contain per-interpreter customizations required when porting to
+#       new platforms, operating systems, etc.
+#
+
+###############################################################################
+############################## BEGIN VENDOR CODE ##############################
+###############################################################################
+#
+# NOTE: Use our own namespace here because even though we do not directly
+#       support namespaces ourselves, we do not want to pollute the global
+#       namespace if this script actually ends up being evaluated in Tcl.
+#
+namespace eval ::Eagle {
+  if {[isEagle]} then {
+    proc checkForTestOverrides { channel varNames quiet } {
+      set result 0
+
+      foreach varName $varNames {
+        if {![uplevel 1 [list info exists $varName]]} then {
+          continue
+        }
+
+        incr result
+
+        if {!$quiet} then {
+          catch {
+            tqputs $channel [appendArgs \
+                "---- found vendor-specific test override \"" $varName \
+                "\" with value \"" [uplevel 1 [list set $varName]] \"\n]
+          }
+        }
+      }
+
+      #
+      # NOTE: Keep track of the list of test override variables, for later
+      #       use by the test suite.  This needs to be done after the loop
+      #       above because the variable used to keep track is listed with
+      #       the other possible test override variables.
+      #
+      if {![uplevel 1 [list info exists test_overrides]]} then {
+        uplevel 1 [list set test_overrides $varNames]
+      }
+
+      return $result
+    }
+
+    proc addTestSuiteToAutoPath { channel varName quiet } {
+      #
+      # NOTE: Start with the directory containing this file.
+      #
+      set dir [file normalize [file dirname [info script]]]
+
+      #
+      # NOTE: Keep going until the directory name is empty OR is actually the
+      #       root of the associated volume.
+      #
+      while {[string length $dir] > 0 && \
+          [lsearch -exact -nocase -- [file volumes] $dir] == -1} {
+        #
+        # NOTE: Does this directory have the necessary sub-directory that
+        #       contains a package index file?
+        #
+        if {[file exists [file join $dir Tests]] && \
+            [file isdirectory [file join $dir Tests]] && \
+            [file exists [file join $dir Tests pkgIndex.eagle]] && \
+            [file isfile [file join $dir Tests pkgIndex.eagle]]} then {
+          #
+          # NOTE: If requested, give our caller access to the name of the
+          #       directory we just found.
+          #
+          if {[string length $varName] > 0} then {
+            upvar 1 $varName dir2
+          }
+
+          #
+          # NOTE: Ok, show the directory we found.
+          #
+          set dir2 [file join $dir Tests]
+
+          #
+          # NOTE: We found the necessary directory to add to the auto-path;
+          #       However, we cannot simply add it to the auto-path directly
+          #       because the auto-path is dynamically constructed after this
+          #       script is evaluated; therefore, set the Eagle library path
+          #       environment variable and force the appropriate internal path
+          #       list to be refreshed.
+          #
+          if {![info exists ::env(EAGLELIBPATH)] || \
+              [lsearch -exact $::env(EAGLELIBPATH) $dir2] == -1} then {
+            #
+            # NOTE: If we have NOT been instructed to be quiet, report now.
+            #
+            if {!$quiet} then {
+              catch {
+                tqputs $channel [appendArgs \
+                    "---- found vendor-specific test package directory \"" \
+                    $dir2 "\", adding...\n"]
+              }
+            }
+
+            #
+            # NOTE: Append the directory to the necessary environment variable
+            #       so that it will get picked up when Eagle actually rebuilds
+            #       the auto-path list (below).
+            #
+            lappend ::env(EAGLELIBPATH) $dir2
+
+            #
+            # NOTE: Force Eagle to rebuild the auto-path list for the current
+            #       interpreter right now.
+            #
+            object invoke Utility RefreshAutoPathList true
+          }
+
+          #
+          # NOTE: We are done, return success.
+          #
+          return true
+        }
+
+        #
+        # NOTE: Keep going up the directory tree...
+        #
+        set dir [file dirname $dir]
+      }
+
+      #
+      # NOTE: If we have NOT been instructed to be quiet, report now.
+      #
+      if {!$quiet} then {
+        catch {
+          tqputs $channel \
+              "---- could not find vendor-specific test package directory\n"
+        }
+      }
+
+      #
+      # NOTE: Directory not found, return failure.
+      #
+      return false
+    }
+
+    proc setupInterpreterTestPath { channel dir quiet } {
+      set testPath [object invoke -flags +NonPublic Interpreter.GetActive \
+          TestPath]
+
+      if {$dir ne $testPath} then {
+        object invoke -flags +NonPublic Interpreter.GetActive TestPath $dir
+
+        if {!$quiet} then {
+          catch {
+            tqputs $channel [appendArgs \
+                "---- set interpreter test path to \"" $dir \"\n]
+          }
+        }
+      }
+    }
+
+    #
+    # NOTE: Check for any overridden settings that may have been specified via
+    #       the command line, etc.
+    #
+    checkForTestOverrides stdout [expr {[info exists test_overrides] ? \
+        $test_overrides : [list binary_directory build_base_directory \
+        build_directory common_directory connection_flags database_directory \
+        datetime_format release_version scratch_directory temporary_directory \
+        test_configuration test_configurations test_constraints \
+        test_machine test_overrides test_platform test_suite test_year \
+        test_years test_year_clr_v2 test_year_clr_v4 vendor_directory]}] false
+
+    #
+    # NOTE: Set the name of the running test suite, if necessary.
+    #
+    if {![info exists test_suite]} then {
+      set test_suite "System.Data.SQLite Test Suite for Eagle"
+    }
+
+    #
+    # NOTE: This variable will contain the name of the directory containing the
+    #       vendor-specific testing infrastructure.  If the variable does not
+    #       already exist, create it; otherwise, it has been overridden and the
+    #       existing value should be left intact.
+    #
+    set have_vendor_directory [info exists vendor_directory]
+
+    if {!$have_vendor_directory} then {
+      set vendor_directory ""
+    }
+
+    #
+    # NOTE: This procedure will attempt to find the vendor-specific testing
+    #       infrastructure directory and add it to the auto-path for the
+    #       current interpreter.  Normally, this will also set the variable
+    #       created above to point to the directory added to the auto-path;
+    #       however, this will not be done if the variable was not created
+    #       by us.
+    #
+    addTestSuiteToAutoPath stdout [expr {$have_vendor_directory ? "" : \
+        "vendor_directory"}] false
+
+    unset have_vendor_directory
+
+    #
+    # NOTE: If we actually found a vendor-specific testing infrastructure
+    #       directory then modify the TestPath property of the current
+    #       interpreter to point directly to it.
+    #
+    if {[string length $vendor_directory] > 0} then {
+      setupInterpreterTestPath stdout $vendor_directory false
+    }
+  }
+}
+
+###############################################################################
+############################### END VENDOR CODE ###############################
+###############################################################################

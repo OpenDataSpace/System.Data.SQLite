@@ -1,4 +1,4 @@
-﻿/********************************************************
+/********************************************************
  * ADO.NET 2.0 Data Provider for SQLite Version 3.X
  * Written by Robert Simpson (robert@blackcastlesoft.com)
  * 
@@ -10,218 +10,305 @@ namespace System.Data.SQLite
   using System;
   using System.Data;
   using System.Data.Common;
+  using System.ComponentModel;
 
   /// <summary>
   /// SQLite implementation of DbParameter.
   /// </summary>
-  public sealed class SQLiteParameter : DbParameter
+  public sealed class SQLiteParameter : DbParameter, ICloneable
   {
-    private int            _dbType;
+    /// <summary>
+    /// The data type of the parameter
+    /// </summary>
+    internal int            _dbType;
+    /// <summary>
+    /// The version information for mapping the parameter
+    /// </summary>
     private DataRowVersion _rowVersion;
+    /// <summary>
+    /// The value of the data in the parameter
+    /// </summary>
     private Object         _objValue;
+    /// <summary>
+    /// The source column for the parameter
+    /// </summary>
     private string         _sourceColumn;
-    private string         _columnName;
+    /// <summary>
+    /// The column name
+    /// </summary>
+    private string         _parameterName;
+    /// <summary>
+    /// The data size, unused by SQLite
+    /// </summary>
     private int            _dataSize;
 
+    private bool           _nullable;
+    private bool           _nullMapping;
+
     /// <summary>
-    /// 
+    /// Default constructor
     /// </summary>
-    public SQLiteParameter()
+    public SQLiteParameter() 
+      : this(null, (DbType)(-1), 0, null, DataRowVersion.Current)
     {
-      Initialize(null, -1, 0, null, DataRowVersion.Current);
     }
 
     /// <summary>
-    /// 
+    /// Constructs a named parameter given the specified parameter name
     /// </summary>
-    /// <param name="parameterName"></param>
+    /// <param name="parameterName">The parameter name</param>
     public SQLiteParameter(string parameterName)
+      : this(parameterName, (DbType)(-1), 0, null, DataRowVersion.Current)
     {
-      Initialize(parameterName, -1, 0, null, DataRowVersion.Current);
     }
 
     /// <summary>
-    /// 
+    /// Constructs a named parameter given the specified parameter name and initial value
     /// </summary>
-    /// <param name="parameterName"></param>
-    /// <param name="dbType"></param>
+    /// <param name="parameterName">The parameter name</param>
+    /// <param name="value">The initial value of the parameter</param>
+    public SQLiteParameter(string parameterName, object value)
+      : this(parameterName, (DbType)(-1), 0, null, DataRowVersion.Current)
+    {
+      Value = value;
+    }
+
+    /// <summary>
+    /// Constructs a named parameter of the specified type
+    /// </summary>
+    /// <param name="parameterName">The parameter name</param>
+    /// <param name="dbType">The datatype of the parameter</param>
     public SQLiteParameter(string parameterName, DbType dbType)
+      : this(parameterName, dbType, 0, null, DataRowVersion.Current)
     {
-      Initialize(parameterName, (int)dbType, 0, null, DataRowVersion.Current);
     }
 
     /// <summary>
-    /// 
+    /// Constructs a named parameter of the specified type and source column reference
     /// </summary>
-    /// <param name="parameterName"></param>
-    /// <param name="dbType"></param>
-    /// <param name="sourceColumn"></param>
+    /// <param name="parameterName">The parameter name</param>
+    /// <param name="dbType">The data type</param>
+    /// <param name="sourceColumn">The source column</param>
     public SQLiteParameter(string parameterName, DbType dbType, string sourceColumn)
+      : this(parameterName, dbType, 0, sourceColumn, DataRowVersion.Current)
     {
-      Initialize(parameterName, (int)dbType, 0, sourceColumn, DataRowVersion.Current);
     }
 
     /// <summary>
-    /// 
+    /// Constructs a named parameter of the specified type, source column and row version
     /// </summary>
-    /// <param name="parameterName"></param>
-    /// <param name="dbType"></param>
-    /// <param name="sourceColumn"></param>
-    /// <param name="rowVersion"></param>
+    /// <param name="parameterName">The parameter name</param>
+    /// <param name="dbType">The data type</param>
+    /// <param name="sourceColumn">The source column</param>
+    /// <param name="rowVersion">The row version information</param>
     public SQLiteParameter(string parameterName, DbType dbType, string sourceColumn, DataRowVersion rowVersion)
+      : this(parameterName, dbType, 0, sourceColumn, rowVersion)
     {
-      Initialize(parameterName, (int)dbType, 0, sourceColumn, rowVersion);
     }
 
     /// <summary>
-    /// 
+    /// Constructs an unnamed parameter of the specified data type
     /// </summary>
-    /// <param name="dbType"></param>
+    /// <param name="dbType">The datatype of the parameter</param>
     public SQLiteParameter(DbType dbType)
+      : this(null, dbType, 0, null, DataRowVersion.Current)
     {
-      Initialize(null, (int)dbType, 0, null, DataRowVersion.Current);
     }
 
     /// <summary>
-    /// 
+    /// Constructs an unnamed parameter of the specified data type and sets the initial value
     /// </summary>
-    /// <param name="dbType"></param>
-    /// <param name="sourceColumn"></param>
+    /// <param name="dbType">The datatype of the parameter</param>
+    /// <param name="value">The initial value of the parameter</param>
+    public SQLiteParameter(DbType dbType, object value)
+      : this(null, dbType, 0, null, DataRowVersion.Current)
+    {
+      Value = value;
+    }
+
+    /// <summary>
+    /// Constructs an unnamed parameter of the specified data type and source column
+    /// </summary>
+    /// <param name="dbType">The datatype of the parameter</param>
+    /// <param name="sourceColumn">The source column</param>
     public SQLiteParameter(DbType dbType, string sourceColumn)
+      : this(null, dbType, 0, sourceColumn, DataRowVersion.Current)
     {
-      Initialize(null, (int)dbType, 0, sourceColumn, DataRowVersion.Current);
     }
 
     /// <summary>
-    /// 
+    /// Constructs an unnamed parameter of the specified data type, source column and row version
     /// </summary>
-    /// <param name="dbType"></param>
-    /// <param name="sourceColumn"></param>
-    /// <param name="rowVersion"></param>
+    /// <param name="dbType">The data type</param>
+    /// <param name="sourceColumn">The source column</param>
+    /// <param name="rowVersion">The row version information</param>
     public SQLiteParameter(DbType dbType, string sourceColumn, DataRowVersion rowVersion)
+      : this(null, dbType, 0, sourceColumn, rowVersion)
     {
-      Initialize(null, (int)dbType, 0, sourceColumn, rowVersion);
     }
 
     /// <summary>
-    /// 
+    /// Constructs a named parameter of the specified type and size
     /// </summary>
-    /// <param name="parameterName"></param>
-    /// <param name="dbType"></param>
-    /// <param name="nSize"></param>
-    public SQLiteParameter(string parameterName, DbType dbType, int nSize)
+    /// <param name="parameterName">The parameter name</param>
+    /// <param name="parameterType">The data type</param>
+    /// <param name="parameterSize">The size of the parameter</param>
+    public SQLiteParameter(string parameterName, DbType parameterType, int parameterSize)
+      : this(parameterName, parameterType, parameterSize, null, DataRowVersion.Current)
     {
-      Initialize(parameterName, (int)dbType, nSize, null, DataRowVersion.Current);
     }
 
     /// <summary>
-    /// 
+    /// Constructs a named parameter of the specified type, size and source column
     /// </summary>
-    /// <param name="parameterName"></param>
-    /// <param name="dbType"></param>
-    /// <param name="nSize"></param>
-    /// <param name="sourceColumn"></param>
-    public SQLiteParameter(string parameterName, DbType dbType, int nSize, string sourceColumn)
+    /// <param name="parameterName">The name of the parameter</param>
+    /// <param name="parameterType">The data type</param>
+    /// <param name="parameterSize">The size of the parameter</param>
+    /// <param name="sourceColumn">The source column</param>
+    public SQLiteParameter(string parameterName, DbType parameterType, int parameterSize, string sourceColumn)
+      : this(parameterName, parameterType, parameterSize, sourceColumn, DataRowVersion.Current)
     {
-      Initialize(parameterName, (int)dbType, nSize, sourceColumn, DataRowVersion.Current);
     }
 
     /// <summary>
-    /// 
+    /// Constructs a named parameter of the specified type, size, source column and row version
     /// </summary>
-    /// <param name="parameterName"></param>
-    /// <param name="dbType"></param>
-    /// <param name="nSize"></param>
-    /// <param name="sourceColumn"></param>
-    /// <param name="rowVersion"></param>
-    public SQLiteParameter(string parameterName, DbType dbType, int nSize, string sourceColumn, DataRowVersion rowVersion)
+    /// <param name="parameterName">The name of the parameter</param>
+    /// <param name="parameterType">The data type</param>
+    /// <param name="parameterSize">The size of the parameter</param>
+    /// <param name="sourceColumn">The source column</param>
+    /// <param name="rowVersion">The row version information</param>
+    public SQLiteParameter(string parameterName, DbType parameterType, int parameterSize, string sourceColumn, DataRowVersion rowVersion)      
     {
-      Initialize(parameterName, (int)dbType, nSize, sourceColumn, rowVersion);
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="dbType"></param>
-    /// <param name="nSize"></param>
-    public SQLiteParameter(DbType dbType, int nSize)
-    {
-      Initialize(null, (int)dbType, nSize, null, DataRowVersion.Current);
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="dbType"></param>
-    /// <param name="nSize"></param>
-    /// <param name="sourceColumn"></param>
-    public SQLiteParameter(DbType dbType, int nSize, string sourceColumn)
-    {
-      Initialize(null, (int)dbType, nSize, sourceColumn, DataRowVersion.Current);
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="dbType"></param>
-    /// <param name="nSize"></param>
-    /// <param name="sourceColumn"></param>
-    /// <param name="rowVersion"></param>
-    public SQLiteParameter(DbType dbType, int nSize, string sourceColumn, DataRowVersion rowVersion)
-    {
-      Initialize(null, (int)dbType, nSize, sourceColumn, rowVersion);
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="parameterName"></param>
-    /// <param name="dbType"></param>
-    /// <param name="nSize"></param>
-    /// <param name="sourceColumn"></param>
-    /// <param name="rowVersion"></param>
-    private void Initialize(string parameterName, int dbType, int nSize, string sourceColumn, DataRowVersion rowVersion)
-    {
-      _columnName = parameterName;
-      _dbType = dbType;
+      _parameterName = parameterName;
+      _dbType = (int)parameterType;
       _sourceColumn = sourceColumn;
       _rowVersion = rowVersion;
-      _objValue = null;
-      _dataSize = nSize;
+      _dataSize = parameterSize;
+      _nullable = true;
+    }
+
+    private SQLiteParameter(SQLiteParameter source)
+      : this(source.ParameterName, (DbType)source._dbType, 0, source.Direction, source.IsNullable, 0, 0, source.SourceColumn, source.SourceVersion, source.Value)
+    {
+      _nullMapping = source._nullMapping;
     }
 
     /// <summary>
-    /// 
+    /// Constructs a named parameter of the specified type, size, source column and row version
+    /// </summary>
+    /// <param name="parameterName">The name of the parameter</param>
+    /// <param name="parameterType">The data type</param>
+    /// <param name="parameterSize">The size of the parameter</param>
+    /// <param name="direction">Only input parameters are supported in SQLite</param>
+    /// <param name="isNullable">Ignored</param>
+    /// <param name="precision">Ignored</param>
+    /// <param name="scale">Ignored</param>
+    /// <param name="sourceColumn">The source column</param>
+    /// <param name="rowVersion">The row version information</param>
+    /// <param name="value">The initial value to assign the parameter</param>   
+#if !PLATFORM_COMPACTFRAMEWORK
+    [EditorBrowsable(EditorBrowsableState.Advanced)]
+#endif
+    public SQLiteParameter(string parameterName, DbType parameterType, int parameterSize, ParameterDirection direction, bool isNullable, byte precision, byte scale, string sourceColumn, DataRowVersion rowVersion, object value)
+      : this(parameterName, parameterType, parameterSize, sourceColumn, rowVersion)
+    {
+      Direction = direction;
+      IsNullable = isNullable;
+      Value = value;
+    }
+
+    /// <summary>
+    /// Constructs a named parameter, yet another flavor
+    /// </summary>
+    /// <param name="parameterName">The name of the parameter</param>
+    /// <param name="parameterType">The data type</param>
+    /// <param name="parameterSize">The size of the parameter</param>
+    /// <param name="direction">Only input parameters are supported in SQLite</param>
+    /// <param name="precision">Ignored</param>
+    /// <param name="scale">Ignored</param>
+    /// <param name="sourceColumn">The source column</param>
+    /// <param name="rowVersion">The row version information</param>
+    /// <param name="sourceColumnNullMapping">Whether or not this parameter is for comparing NULL's</param>
+    /// <param name="value">The intial value to assign the parameter</param>
+#if !PLATFORM_COMPACTFRAMEWORK
+    [EditorBrowsable(EditorBrowsableState.Advanced)]
+#endif
+    public SQLiteParameter(string parameterName, DbType parameterType, int parameterSize, ParameterDirection direction, byte precision, byte scale, string sourceColumn, DataRowVersion rowVersion, bool sourceColumnNullMapping, object value)
+      : this(parameterName, parameterType, parameterSize, sourceColumn, rowVersion)
+    {
+      Direction = direction;
+      SourceColumnNullMapping = sourceColumnNullMapping;
+      Value = value;
+    }
+
+    /// <summary>
+    /// Constructs an unnamed parameter of the specified type and size
+    /// </summary>
+    /// <param name="parameterType">The data type</param>
+    /// <param name="parameterSize">The size of the parameter</param>
+    public SQLiteParameter(DbType parameterType, int parameterSize)
+      : this(null, parameterType, parameterSize, null, DataRowVersion.Current)
+    {
+    }
+
+    /// <summary>
+    /// Constructs an unnamed parameter of the specified type, size, and source column
+    /// </summary>
+    /// <param name="parameterType">The data type</param>
+    /// <param name="parameterSize">The size of the parameter</param>
+    /// <param name="sourceColumn">The source column</param>
+    public SQLiteParameter(DbType parameterType, int parameterSize, string sourceColumn)
+      : this(null, parameterType, parameterSize, sourceColumn, DataRowVersion.Current)
+    {
+    }
+
+    /// <summary>
+    /// Constructs an unnamed parameter of the specified type, size, source column and row version
+    /// </summary>
+    /// <param name="parameterType">The data type</param>
+    /// <param name="parameterSize">The size of the parameter</param>
+    /// <param name="sourceColumn">The source column</param>
+    /// <param name="rowVersion">The row version information</param>
+    public SQLiteParameter(DbType parameterType, int parameterSize, string sourceColumn, DataRowVersion rowVersion)
+      : this(null, parameterType, parameterSize, sourceColumn, rowVersion)
+    {
+    }
+
+    /// <summary>
+    /// Whether or not the parameter can contain a null value
     /// </summary>
     public override bool IsNullable
     {
       get
       {
-        return true;
+        return _nullable;
       }
       set 
       {
+        _nullable = value;
       }
     }
 
     /// <summary>
-    /// 
+    /// Returns the datatype of the parameter
     /// </summary>
-    /// <param name="destination"></param>
-    [Obsolete]
-    public override void CopyTo(DbParameter destination)
-    {
-      throw new NotImplementedException();
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
+#if !PLATFORM_COMPACTFRAMEWORK
+    [DbProviderSpecificTypeProperty(true)]
+    [RefreshProperties(RefreshProperties.All)]
+#endif
     public override DbType DbType
     {
       get
       {
-        if (_dbType == -1) return DbType.String; // Unassigned default value is String
+        if (_dbType == -1)
+        {
+          if (_objValue != null && _objValue != DBNull.Value)
+          {
+            return SQLiteConvert.TypeToDbType(_objValue.GetType());
+          }
+          return DbType.String; // Unassigned default value is String
+        }
         return (DbType)_dbType;
       }
       set
@@ -231,7 +318,7 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Supports only input parameters
     /// </summary>
     public override ParameterDirection Direction
     {
@@ -242,50 +329,39 @@ namespace System.Data.SQLite
       set
       {
         if (value != ParameterDirection.Input)
-          throw new NotImplementedException();
+          throw new NotSupportedException();
       }
     }
 
     /// <summary>
-    /// 
-    /// </summary>
-    public override int Offset
-    {
-      get
-      {
-        throw new NotImplementedException();
-      }
-      set
-      {
-      }
-    }
-
-    /// <summary>
-    /// 
+    /// Returns the parameter name
     /// </summary>
     public override string ParameterName
     {
       get
       {
-        return _columnName;
+        return _parameterName;
       }
       set
       {
-        _columnName = value;
+        _parameterName = value;
       }
     }
 
     /// <summary>
-    /// 
+    /// Resets the DbType of the parameter so it can be inferred from the value
     /// </summary>
     public override void ResetDbType()
     {
-      throw new NotImplementedException();
+      _dbType = -1;
     }
 
     /// <summary>
-    /// 
+    /// Returns the size of the parameter
     /// </summary>
+#if !PLATFORM_COMPACTFRAMEWORK
+    [DefaultValue((int)0)]
+#endif
     public override int Size
     {
       get
@@ -299,7 +375,7 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Gets/sets the source column
     /// </summary>
     public override string SourceColumn
     {
@@ -314,21 +390,22 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Used by DbCommandBuilder to determine the mapping for nullable fields
     /// </summary>
     public override bool SourceColumnNullMapping
     {
       get
       {
-        return false;
+        return _nullMapping;
       }
       set
       {
+        _nullMapping = value;
       }
     }
 
     /// <summary>
-    /// 
+    /// Gets and sets the row version
     /// </summary>
     public override DataRowVersion SourceVersion
     {
@@ -343,8 +420,11 @@ namespace System.Data.SQLite
     }
 
     /// <summary>
-    /// 
+    /// Gets and sets the parameter value.  If no datatype was specified, the datatype will assume the type from the value given.
     /// </summary>
+#if !PLATFORM_COMPACTFRAMEWORK
+    [TypeConverter(typeof(StringConverter)), RefreshProperties(RefreshProperties.All)]
+#endif
     public override object Value
     {
       get
@@ -357,6 +437,17 @@ namespace System.Data.SQLite
         if (_dbType == -1 && _objValue != null && _objValue != DBNull.Value) // If the DbType has never been assigned, try to glean one from the value's datatype 
           _dbType = (int)SQLiteConvert.TypeToDbType(_objValue.GetType());
       }
-    }    
+    }
+
+    /// <summary>
+    /// Clones a parameter
+    /// </summary>
+    /// <returns>A new, unassociated SQLiteParameter</returns>
+    public object Clone()
+    {
+      SQLiteParameter newparam = new SQLiteParameter(this);
+
+      return newparam;
+    }
   }
 }

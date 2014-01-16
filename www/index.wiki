@@ -1,0 +1,69 @@
+<title>About</title>
+<nowiki>
+  <br>
+  <table width="100%" cellpadding="5">
+    <tr>
+      <td width="20%">
+        &nbsp;
+      </td>
+      <td>
+        <p>
+          System.Data.SQLite is an ADO.NET adapter for
+          <a href="http://www.sqlite.org/">SQLite</a>.
+        </p>
+        <p>
+          System.Data.SQLite was started by Robert Simpson.  Robert still has
+          commit privileges on this repository but is no longer an active
+          contributor.  Development and maintenance work is now mostly performed
+          by the SQLite Development Team.  The SQLite team is committed to
+          supporting System.Data.SQLite long-term.
+        </p>
+        <p>
+          Historical versions, as well as the original support forums, may still
+          be found at
+          <a href="http://sqlite.phxsoftware.com/">http://sqlite.phxsoftware.com/</a>,
+          though there have been no updates to this version since April of 2010.
+        </p>
+        <p>
+          There is no forum on this web site; however, the
+          <a href="support.wiki">support page</a> has an updated list of support
+          options.
+        </p>
+        <p>
+          Please refer to the
+          <a href="downloads.wiki">download page</a> for a complete list of
+          downloadable packages and information on their use.
+        </p>
+        <p>
+          The current documentation for all public types, methods, properties,
+          and events is checked into the repository, in
+          <a href="http://en.wikipedia.org/wiki/Microsoft_Compiled_HTML_Help">
+          <i>Microsoft Compiled HTML Help</i> (&quot;CHM&quot;) format</a>.  It
+          can also be
+          <a href="/index.html/doc/trunk/Doc/SQLite.NET.chm?mimetype=application/x-chm">
+          downloaded directly</a> via the web interface to the repository.
+        </p>
+      </td>
+      <td width="30%" valign="top">
+        <table align="right" border="1" cellpadding="10" hspace="10" cellspacing="0">
+          <tr>
+            <td>
+              <ul>
+                <li><a href="features.wiki">Features</a></li>
+                <li><a href="faq.wiki">Frequently Asked Questions</a></li>
+                <li><a href="news.wiki">News</a></li>
+                <li><a href="support.wiki">Support</a></li>
+                <li><a href="downloads.wiki">Downloads</a></li>
+                <li><a href="contribute.wiki">Contributing</a></li>
+                <li><a href="source.wiki">Source Code</a></li>
+                <li><a href="build.wiki">Build Procedures</a></li>
+                <li><a href="test.wiki">Test Procedures</a></li>
+                <li><a href="release.wiki">Release Procedures</a></li>
+              </ul>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</nowiki>

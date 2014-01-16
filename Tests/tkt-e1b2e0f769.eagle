@@ -1,0 +1,135 @@
+###############################################################################
+#
+# tkt-e1b2e0f769.eagle --
+#
+# Written by Joe Mistachkin.
+# Released to the public domain, use at your own risk!
+#
+###############################################################################
+
+package require Eagle
+package require Eagle.Library
+package require Eagle.Test
+
+runTestPrologue
+
+###############################################################################
+
+package require System.Data.SQLite.Test
+runSQLiteTestPrologue
+
+###############################################################################
+
+runTest {test tkt-e1b2e0f769-1.1 {data reader cleanup} -setup {
+  setupDb [set fileName tkt-e1b2e0f769-1.1.db]
+} -body {
+  sql execute $db "CREATE TABLE t1(x INTEGER);"
+  sql execute $db "CREATE TABLE t2(x INTEGER);"
+
+  foreach x [list 1 2 3] {
+    sql execute $db "INSERT INTO t1 (x) VALUES($x);"
+  }
+
+  set result1 [list]
+  set dataSource [file join [getDatabaseDirectory] $fileName]
+
+  foreach table [list t1 t2] {
+    set id [object invoke Interpreter.GetActive NextId]
+    set sql "SELECT x FROM $table ORDER BY x;"
+
+    unset -nocomplain results errors
+
+    set code [compileCSharpWith [subst {
+      using System.Collections.Generic;
+      using System.Data.SQLite;
+
+      namespace _Dynamic${id}
+      {
+        public static class Test${id}
+        {
+          public static List<long?> Tkt_e1b2e0f769(
+            SQLiteConnection connection
+            )
+          {
+            List<long?> result = new List<long?>();
+
+            using (SQLiteTransaction transaction =
+                connection.BeginTransaction())
+            {
+              using (SQLiteCommand command = connection.CreateCommand())
+              {
+                command.CommandText = "${sql}";
+
+                using (SQLiteDataReader dataReader = command.ExecuteReader())
+                {
+                  //
+                  // NOTE: If there are no rows, close the connection and
+                  //       return the empty list.  In this case,  an exception
+                  //       will be raised when exiting the using block for the
+                  //       data reader because we are closing the connection out
+                  //       from underneath it.
+                  //
+                  if (!dataReader.HasRows)
+                  {
+                    //
+                    // NOTE: Closing the connection here caused an exception to
+                    //       be raised when exiting the using block for the data
+                    //       reader (below) because the Dispose method for the
+                    //       data reader calls the Close method, which always
+                    //       assumed the underlying connection was still open.
+                    //
+                    connection.Close();
+                    return result;
+                  }
+
+                  while (dataReader.Read())
+                  {
+                    result.Add((long?) dataReader\[0\]);
+                  }
+                } // NOTE: Exception here when no data rows (see comment above).
+              }
+            }
+
+            connection.Close();
+            return result;
+          }
+
+          /////////////////////////////////////////////////////////////////////
+
+          public static int Main()
+          {
+            using (SQLiteConnection connection = new SQLiteConnection(
+                "Data Source=${dataSource};"))
+            {
+              connection.Open();
+
+              return Tkt_e1b2e0f769(connection).Count;
+            }
+          }
+        }
+      }
+    }] true true true results errors System.Data.SQLite.dll]
+
+    lappend result1 $code $results \
+        [expr {[info exists errors] ? $errors : ""}] \
+        [expr {$code eq "Ok" ? [catch {
+          object invoke _Dynamic${id}.Test${id} Main
+        } result2] : [set result2 ""]}] $result2
+  }
+
+  set result1
+} -cleanup {
+  cleanupDb $fileName
+
+  unset -nocomplain result2 result1 code results errors sql table dataSource \
+      id x db fileName
+} -constraints [fixConstraints {eagle monoBug28 command.sql compile.DATA SQLite\
+!defineConstant.System.Data.SQLite.CHECK_STATE System.Data.SQLite\
+compileCSharp}] -match regexp -result {^Ok\
+System#CodeDom#Compiler#CompilerResults#\d+ \{\} 0 3 Ok\
+System#CodeDom#Compiler#CompilerResults#\d+ \{\} 0 0$}}
+
+###############################################################################
+
+runSQLiteTestEpilogue
+runTestEpilogue

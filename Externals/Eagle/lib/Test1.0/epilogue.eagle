@@ -1,0 +1,432 @@
+###############################################################################
+#
+# epilogue.eagle --
+#
+# Extensible Adaptable Generalized Logic Engine (Eagle)
+# Test Epilogue File
+#
+# Copyright (c) 2007-2012 by Joe Mistachkin.  All rights reserved.
+#
+# See the file "license.terms" for information on usage and redistribution of
+# this file, and for a DISCLAIMER OF ALL WARRANTIES.
+#
+# RCS: @(#) $Id: $
+#
+###############################################################################
+
+if {![info exists no([file tail [info script]])]} then {
+  if {[info level] > 0} then {
+    error "cannot run, current level is not global"
+  }
+
+  #
+  # NOTE: Verify that the current call frame is correct and that the
+  #       interpreter call stack has not been imbalanced by previous
+  #       tests or other errors.  This check only applies to Eagle.
+  #
+  if {[isEagle]} then {
+    #
+    # NOTE: Check the name of the current call frame against the one
+    #       that should be used for evaluating this script file.
+    #
+    if {[object invoke -flags +NonPublic \
+            Interpreter.GetActive.CurrentFrame Name] ne \
+        [appendArgs source " " [file normalize [info script]]]} then {
+      unset -nocomplain test_suite_running
+      error "cannot run, current frame is not for this script"
+    }
+  }
+
+  #
+  # NOTE: Make sure all the variables used by this epilogue are unset.
+  #
+  unset -nocomplain memory stack name count passedOrSkipped percent \
+      exitCode
+
+  #
+  # NOTE: Show when the tests actually ended (now).
+  #
+  tputs $test_channel [appendArgs "---- tests ended at " \
+      [formatTimeStamp [set test_timestamp(endSeconds) \
+      [clock seconds]]] \n]
+
+  #
+  # NOTE: We can only calculate the elapsed seconds for the tests if
+  #       the necessary variables exist and contain valid values.
+  #
+  if {[info exists test_timestamp(startSeconds)] && \
+      [string is integer -strict $test_timestamp(startSeconds)] && \
+      [info exists test_timestamp(endSeconds)] && \
+      [string is integer -strict $test_timestamp(endSeconds)]} then {
+    #
+    # NOTE: First, figure out how many whole seconds elapsed during
+    #       roughly the entire testing process (which is rougly the
+    #       same time taken to just run the tests themselves).
+    #
+    set test_timestamp(elapsedSeconds) [expr \
+        {$test_timestamp(endSeconds) - $test_timestamp(startSeconds)}]
+
+    #
+    # NOTE: Show (and log) the number of elapsed seconds and possibly
+    #       a human readable elapsed time string as well.
+    #
+    tputs $test_channel [appendArgs "---- tests took approximately " \
+        [formatElapsedTime $test_timestamp(elapsedSeconds)] \n]
+  }
+
+  #
+  # NOTE: Show the ending command count (for both Tcl and Eagle).
+  #
+  tputs $test_channel [appendArgs "---- ending command count: " \
+      [info cmdcount] \n]
+
+  if {[isEagle]} then {
+    #
+    # NOTE: We can only calculate the elapsed microseconds for the tests
+    #       if the necessary variables exist and contain valid values.
+    #
+    if {[info exists test_timestamp(startCount)] && \
+        [string is wideinteger -strict $test_timestamp(startCount)]} then {
+      #
+      # NOTE: First, figure out how many microseconds elapsed during
+      #       roughly the entire testing process (which is rougly the
+      #       same time taken to just run the tests themselves).
+      #
+      catch {
+        set test_timestamp(elapsedMicroseconds) \
+            [clock stop $test_timestamp(startCount)]
+      }
+
+      #
+      # NOTE: Show the approximate number of elapsed microseconds.
+      #
+      if {[info exists test_timestamp(elapsedMicroseconds)] && [string \
+          is double -strict $test_timestamp(elapsedMicroseconds)]} then {
+        tputs $test_channel [appendArgs "---- tests took approximately " \
+            [formatDecimal $test_timestamp(elapsedMicroseconds)] \
+            " microseconds\n"]
+      }
+    }
+
+    #
+    # NOTE: Show the ending operation count (for Eagle only).
+    #
+    tputs $test_channel [appendArgs "---- ending operation count: " \
+        [object invoke -flags +NonPublic Interpreter.GetActive \
+            OperationCount] \n]
+
+    #
+    # NOTE: Show the current state of the memory.
+    #
+    catch {debug memory} memory
+
+    tputs $test_channel [appendArgs "---- ending memory: " \
+        [formatListAsDict $memory <none>] \n]
+
+    unset memory
+
+    #
+    # NOTE: Show the current state of the native stack.
+    #
+    catch {debug stack true} stack
+
+    tputs $test_channel [appendArgs "---- ending stack: " \
+        [formatListAsDict $stack <none>] \n]
+
+    unset stack
+
+    #
+    # NOTE: Check for and display any duplicate test names that we found.  In
+    #       theory, this checking may produce false positives if a test file
+    #       (or the entire test suite) is run multiple times without resetting
+    #       the test statistics and/or restarting Eagle; however, duplicate
+    #       test names must be avoided and this is considered a good trade-off.
+    #
+    foreach {name count} $eagle_tests(Counts) {
+      if {$count > 1} then {
+        tputs $test_channel [appendArgs \
+            "==== test name \"" $name "\" DUPLICATED (" $count ")\n"]
+      } elseif {$count <= 0} then {
+        tputs $test_channel [appendArgs \
+            "==== test name \"" $name "\" BAD COUNT (" $count ")\n"]
+      }
+    }
+
+    unset -nocomplain name count
+
+    tputs $test_channel \n; # NOTE: Blank line.
+
+    if {$eagle_tests(Passed) > 0} then {
+      tresult Ok [appendArgs "PASSED: " $eagle_tests(Passed) \n]
+    }
+
+    if {$eagle_tests(Failed) > 0} then {
+      tresult Error [appendArgs "FAILED: " $eagle_tests(Failed) \n]
+
+      if {[llength $eagle_tests(FailedNames)] > 0} then {
+        tresult Error [appendArgs "FAILED: " $eagle_tests(FailedNames) \n]
+      }
+    }
+
+    if {$eagle_tests(Skipped) > 0} then {
+      tresult Break [appendArgs "SKIPPED: " $eagle_tests(Skipped) \n]
+
+      if {[llength $eagle_tests(SkippedNames)] > 0} then {
+        tresult Break [appendArgs "SKIPPED: " $eagle_tests(SkippedNames) \n]
+      }
+    }
+
+    if {$eagle_tests(Total) > 0} then {
+      tresult Return [appendArgs "TOTAL: " $eagle_tests(Total) \n]
+
+      if {$eagle_tests(Skipped) > 0} then {
+        set percent [getSkipPercentage]
+
+        tresult Break [appendArgs \
+            "SKIP PERCENTAGE: " [formatDecimal $percent] %\n]
+      }
+
+      set percent [getPassPercentage]
+
+      tresult Return [appendArgs \
+          "PASS PERCENTAGE: " [formatDecimal $percent] %\n]
+    } else {
+      #
+      # NOTE: No tests.
+      #
+      set percent 0
+    }
+
+    #
+    # NOTE: Has the test pass threshold been set?  If so, is it set to
+    #       the default value?
+    #
+    if {![info exists test_threshold] || $test_threshold == 100} then {
+      #
+      # NOTE: The test pass threshold is set to the default value (100%).
+      #       Check to make sure that all tests pass and then set the
+      #       exit code to success; otherwise, we set it to failure.
+      #
+      set passedOrSkipped [expr {$eagle_tests(Passed) + \
+          $eagle_tests(Skipped)}]
+
+      if {$passedOrSkipped == $eagle_tests(Total)} then {
+        set exitCode Success
+
+        if {$eagle_tests(Total) > 0} then {
+          tresult Ok "OVERALL RESULT: SUCCESS\n"
+        } else {
+          tresult Ok "OVERALL RESULT: NONE\n"
+        }
+      } else {
+        set exitCode Failure
+
+        tresult Error "OVERALL RESULT: FAILURE\n"
+      }
+
+      unset passedOrSkipped
+    } else {
+      #
+      # NOTE: They specified a non-default test pass threshold.  Check to
+      #       make sure that we meet or exceed the requirement and then
+      #       set the exit code to success; otherwise, set it to failure.
+      #
+      if {$percent >= $test_threshold} then {
+        set exitCode Success
+
+        if {$eagle_tests(Total) > 0} then {
+          tresult Ok [appendArgs \
+              "OVERALL RESULT: SUCCESS (" $percent "% >= " $test_threshold %)\n]
+        } else {
+          tresult Ok [appendArgs \
+              "OVERALL RESULT: NONE (" $percent "% >= " $test_threshold %)\n]
+        }
+      } else {
+        set exitCode Failure
+
+        tresult Error [appendArgs \
+            "OVERALL RESULT: FAILURE (" $percent "% < " $test_threshold %)\n]
+      }
+    }
+
+    unset percent
+
+    tputs $test_channel \n; # NOTE: Blank line.
+  } else {
+    tputs $test_channel \n; # NOTE: Blank line.
+
+    if {$::tcltest::numTests(Passed) > 0} then {
+      tputs $test_channel [appendArgs \
+          "PASSED: " $::tcltest::numTests(Passed) \n]
+    }
+
+    if {$::tcltest::numTests(Failed) > 0} then {
+      tputs $test_channel [appendArgs \
+          "FAILED: " $::tcltest::numTests(Failed) \n]
+
+      if {[llength $::tcltest::failFiles] > 0} then {
+        tputs $test_channel [appendArgs \
+            "FAILED: " $::tcltest::failFiles \n]
+      }
+    }
+
+    if {$::tcltest::numTests(Skipped) > 0} then {
+      tputs $test_channel [appendArgs \
+          "SKIPPED: " $::tcltest::numTests(Skipped) \n]
+    }
+
+    if {$::tcltest::numTests(Total) > 0} then {
+      tputs $test_channel [appendArgs \
+          "TOTAL: " $::tcltest::numTests(Total) \n]
+
+      if {$::tcltest::numTests(Skipped) > 0} then {
+        set percent [getSkipPercentage]
+
+        tputs $test_channel [appendArgs \
+            "SKIP PERCENTAGE: " [formatDecimal $percent] %\n]
+      }
+
+      set percent [getPassPercentage]
+
+      tputs $test_channel [appendArgs \
+          "PASS PERCENTAGE: " [formatDecimal $percent] %\n]
+    } else {
+      #
+      # NOTE: No tests.
+      #
+      set percent 0
+    }
+
+    #
+    # NOTE: Has the test pass threshold been set?  If so, is it set to
+    #       the default value?
+    #
+    if {![info exists test_threshold] || $test_threshold == 100} then {
+      #
+      # NOTE: The test pass threshold is set to the default value (100%).
+      #       Check to make sure that all tests pass and then set the
+      #       exit code to success; otherwise, we set it to failure.
+      #
+      set passedOrSkipped [expr {$::tcltest::numTests(Passed) + \
+          $::tcltest::numTests(Skipped)}]
+
+      if {$passedOrSkipped == $::tcltest::numTests(Total)} then {
+        set exitCode 0; # Success.
+
+        if {$::tcltest::numTests(Total) > 0} then {
+          tputs $test_channel "OVERALL RESULT: SUCCESS\n"
+        } else {
+          tputs $test_channel "OVERALL RESULT: NONE\n"
+        }
+      } else {
+        set exitCode 1; # Failure.
+
+        tputs $test_channel "OVERALL RESULT: FAILURE\n"
+      }
+
+      unset passedOrSkipped
+    } else {
+      #
+      # NOTE: They specified a non-default test pass threshold.  Check to
+      #       make sure that we meet or exceed the requirement and then
+      #       set the exit code to success; otherwise, set it to failure.
+      #
+      if {$percent >= $test_threshold} then {
+        set exitCode 0; # Success.
+
+        if {$::tcltest::numTests(Total) > 0} then {
+          tputs $test_channel [appendArgs \
+              "OVERALL RESULT: SUCCESS (" $percent "% >= " $test_threshold %)\n]
+        } else {
+          tputs $test_channel [appendArgs \
+              "OVERALL RESULT: NONE (" $percent "% >= " $test_threshold %)\n]
+        }
+      } else {
+        set exitCode 1; # Failure.
+
+        tputs $test_channel [appendArgs \
+            "OVERALL RESULT: FAILURE (" $percent "% < " $test_threshold %)\n]
+      }
+    }
+
+    unset percent
+
+    tputs $test_channel \n; # NOTE: Blank line.
+  }
+
+  #
+  # NOTE: Call the Tcl test cleanup procedure now to give it a chance to do
+  #       any custom cleanup that has been registered.
+  #
+  ::tcltest::cleanupTests
+
+  #
+  # NOTE: Check for and process any custom test epilogue script that may
+  #       be set in the environment.
+  #
+  sourceIfValid epilogue [getEnvironmentVariable testEpilogue]
+
+  #
+  # NOTE: Are we being prevented from evaluating the "post-test" script?
+  #
+  if {![info exists no(postTest)]} then {
+    #
+    # NOTE: Evaluate the specified post-test script now, if any.
+    #
+    if {[info exists test_script(post)] && \
+        [string length $test_script(post)] > 0} then {
+      #
+      # TODO: Perhaps use [uplevel] here instead of [eval].  For now, it does
+      #       not matter since we enforce this file being evaluated at the
+      #       top-level.
+      #
+      if {[catch $test_script(post) test_script(post,result)]} then {
+        #
+        # NOTE: Make 100% sure, even in "quiet" mode, that this script error
+        #       gets into the test log file.
+        #
+        tputs $test_channel [appendArgs "---- post-test script error: " \
+            $test_script(post,result) \n]
+
+        #
+        # NOTE: The post-test script failed in some way.  This is considered
+        #       to be an overall failure of the test suite; therefore, raise
+        #       the error now that we are sure it has been recorded in the
+        #       test log file.
+        #
+        unset -nocomplain test_suite_running
+        error $test_script(post,result)
+      }
+    }
+  }
+
+  #
+  # NOTE: Indicate that the test suite is no longer running.
+  #
+  if {[info exists test_suite_running] && $test_suite_running} then {
+    set test_suite_running false
+  }
+
+  #
+  # NOTE: Do we need to exit now?
+  #
+  if {[isExitOnComplete]} then {
+    #
+    # NOTE: Exit now.  In Eagle, this will not exit the entire process.
+    #       Zero (0) will be the exit code if all the selected tests have
+    #       succeeded or the test success threshold has been met or
+    #       exceeded; otherwise, one (1) will be the exit code.
+    #
+    exit $exitCode
+  } else {
+    #
+    # NOTE: For Eagle, even when not exiting, we still set the ExitCode
+    #       property of the interpreter.
+    #
+    if {[isEagle] && [llength [info commands object]] > 0} then {
+      object invoke -alias Interpreter.GetActive ExitCode $exitCode
+    }
+
+    unset exitCode
+  }
+}
