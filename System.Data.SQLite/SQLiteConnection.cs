@@ -2168,7 +2168,9 @@ namespace System.Data.SQLite
         _password = null;
 #endif
 
-        if (!fullUri)
+        if (isMemory)
+          _dataSource = fileName;
+        else if (!fullUri)
           _dataSource = Path.GetFileNameWithoutExtension(fileName);
         else
           _dataSource = fileName;
